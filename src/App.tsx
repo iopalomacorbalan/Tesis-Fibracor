@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import LoginPage from "@/modules/auth/LoginPage";
 import DashboardPage from "@/modules/dashboard/DashboardPage";
+import ObrasPage from "@/modules/obras/ObrasPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/obras" element={<ObrasPage />} />
             <Route path="*" element={<Placeholder />} />
           </Route>
         </Routes>
