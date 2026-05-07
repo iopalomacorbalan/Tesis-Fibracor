@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, Wallet, Wrench, ClipboardList, GitBranch, LogOut, Zap,
+  Users, ClipboardList, GitBranch, LogOut, Zap,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -16,22 +16,24 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  // Principal
   { to: "/", icon: LayoutDashboard, label: "Dashboard", group: "Principal" },
-  { to: "/mis-tareas", icon: ClipboardList, label: "Mis tareas", group: "Principal" },
+
+  // Comercial
   { to: "/crm", icon: Users, label: "CRM", group: "Comercial",
     roles: ["Direccion", "Operaciones", "Comercial", "Contabilidad"] },
+
+  // Proyectos
   { to: "/obras", icon: Briefcase, label: "Obras", group: "Proyectos" },
-  { to: "/remitos", icon: FileText, label: "Remitos", group: "Proyectos",
-    roles: ["Direccion", "Operaciones", "Paniol", "Comercial"] },
-  { to: "/costos", icon: Wallet, label: "Costos", group: "Proyectos",
-    roles: ["Direccion", "Operaciones", "Comercial", "Contabilidad"] },
+  { to: "/reportes", icon: FileText, label: "Reportes", group: "Proyectos" },
+
+  // Operaciones
   { to: "/stock", icon: Package, label: "Stock", group: "Operaciones" },
+  { to: "/solicitudes", icon: ClipboardList, label: "Solicitudes", group: "Operaciones" },
   { to: "/movimientos", icon: GitBranch, label: "Movimientos", group: "Operaciones",
     roles: ["Direccion", "Operaciones", "Paniol"] },
   { to: "/compras", icon: ShoppingCart, label: "Compras", group: "Operaciones",
     roles: ["Direccion", "Operaciones", "Paniol", "Contabilidad"] },
-  { to: "/tecnicos", icon: Wrench, label: "Técnicos", group: "Operaciones",
-    roles: ["Direccion", "Operaciones", "Paniol"] },
 ];
 
 export function Sidebar() {

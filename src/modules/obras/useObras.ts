@@ -4,7 +4,6 @@ import type { Obra, ObraConRelaciones } from "@/types/database";
 
 const KEY = "obras";
 
-// Lista todas las obras con sus relaciones
 export function useObras() {
   return useQuery({
     queryKey: [KEY],
@@ -19,12 +18,11 @@ export function useObras() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data ?? []) as ObraConRelaciones[];
+      return (data ?? []) as unknown as ObraConRelaciones[];
     },
   });
 }
 
-// Obtener una obra individual con técnicos
 export function useObra(id: string | undefined) {
   return useQuery({
     queryKey: [KEY, id],
@@ -50,7 +48,6 @@ export function useObra(id: string | undefined) {
   });
 }
 
-// Crear obra
 type CrearObraInput = {
   cliente_id: string | null;
   nombre_obra: string;
@@ -61,20 +58,19 @@ type CrearObraInput = {
   presupuesto?: number;
   jefe_obra_id?: string | null;
   observaciones?: string | null;
-  tecnicos_ids?: string[]; // adicionales
+  tecnicos_ids?: string[];
 };
 
 async function generarObraId(prefijoCliente: string): Promise<string> {
-  // Cuenta cuántas obras hay con ese prefijo y genera el siguiente
   const prefix = prefijoCliente.toUpperCase().substring(0, 2);
   const { data, error } = await supabase
     .from("obras")
     .select("obra_id")
     .like("obra_id", `OT-${prefix}-%`);
   if (error) throw error;
-  const max = (data ?? [])
-    .map(r => parseInt(r.obra_id.split("-").pop() || "0"))
-    .reduce((m, n) => Math.max(m, n), 0);
+  const max = ((data as any[]) ?? [])
+    .map((r: any) => parseInt(String(r.obra_id ?? "").split("-").pop() || "0"))
+    .reduce((m: number, n: number) => Math.max(m, n), 0);
   return `OT-${prefix}-${String(max + 1).padStart(4, "0")}`;
 }
 
@@ -82,13 +78,13 @@ export function useCrearObra() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CrearObraInput) => {
-      // Determinar prefijo desde el cliente
       let prefix = "XX";
       if (input.cliente_id) {
         const { data: cli } = await supabase
           .from("clientes").select("nombre").eq("id", input.cliente_id).single();
-        if (cli?.nombre) {
-          prefix = cli.nombre.replace(/[^A-Za-z]/g, "").substring(0, 2).toUpperCase() || "XX";
+        const cliRow = cli as any;
+        if (cliRow?.nombre) {
+          prefix = String(cliRow.nombre).replace(/[^A-Za-z]/g, "").substring(0, 2).toUpperCase() || "XX";
         }
       }
       const obraId = await generarObraId(prefix);
@@ -106,7 +102,7 @@ export function useCrearObra() {
           fecha_inicio_est: input.fecha_inicio_est ?? null,
           fecha_fin_est: input.fecha_fin_est ?? null,
           presupuesto: input.presupuesto ?? 0,
-          estado: "Pendiente OIO" as const,
+          estado: "Pendiente OIO",
           jefe_obra_id: input.jefe_obra_id ?? null,
           observaciones: input.observaciones ?? null,
           created_by: userId ?? null,
@@ -114,23 +110,22 @@ export function useCrearObra() {
         .select()
         .single();
       if (error) throw error;
+      const obraRow = obra as any;
 
-      // Insertar técnicos adicionales
       if (input.tecnicos_ids && input.tecnicos_ids.length > 0) {
         const rows = input.tecnicos_ids.map(tid => ({
-          obra_id: obra.id,
+          obra_id: obraRow.id,
           tecnico_id: tid,
         }));
-        await supabase.from("obra_tecnicos").insert(rows);
+        await supabase.from("obra_tecnicos").insert(rows as any);
       }
 
-      return obra;
+      return obraRow as Obra;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
 }
 
-// Editar obra
 export function useEditarObra() {
   const qc = useQueryClient();
   return useMutation({
@@ -146,15 +141,14 @@ export function useEditarObra() {
       if (error) throw error;
 
       if (tecnicos_ids !== undefined) {
-        // Reemplazar técnicos asignados
         await supabase.from("obra_tecnicos").delete().eq("obra_id", id);
         if (tecnicos_ids.length > 0) {
           const rows = tecnicos_ids.map(tid => ({ obra_id: id, tecnico_id: tid }));
-          await supabase.from("obra_tecnicos").insert(rows);
+          await supabase.from("obra_tecnicos").insert(rows as any);
         }
       }
 
-      return data;
+      return data as Obra;
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: [KEY] });
@@ -163,7 +157,6 @@ export function useEditarObra() {
   });
 }
 
-// Eliminar obra
 export function useEliminarObra() {
   const qc = useQueryClient();
   return useMutation({
@@ -175,7 +168,6 @@ export function useEliminarObra() {
   });
 }
 
-// Cambiar estado
 export function useCambiarEstadoObra() {
   const qc = useQueryClient();
   return useMutation({

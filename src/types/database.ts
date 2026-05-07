@@ -9,6 +9,18 @@ export type CategoriaItem =
 export type EstadoObra =
   | "Pendiente OIO" | "En ejecucion" | "Para cierre" | "Cerrada" | "Cancelada";
 
+export type TipoMovimiento =
+  | "Ingreso_compra" | "Ingreso_inicial" | "Ajuste_positivo" | "Ajuste_negativo"
+  | "Retiro" | "Devolucion_pendiente" | "Devolucion" | "Reactivacion" | "Baja"
+  | "Transferencia";
+
+export type EstadoCompra =
+  | "Solicitada" | "Aprobada" | "Parcial" | "Recibida" | "Rechazada" | "Cancelada";
+
+export type EstadoSolicitud = "Pendiente" | "Parcial" | "Atendida" | "Cancelada";
+export type EstadoItemSol = "pendiente" | "en_oc" | "listo" | "entregado" | "cancelado";
+export type PrioridadSol = "Normal" | "Alta" | "Urgente";
+
 export interface Usuario {
   id: string;
   user_id: string;
@@ -38,6 +50,45 @@ export interface Cliente {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+export interface Proveedor {
+  id: string;
+  proveedor_id: string;
+  nombre: string;
+  cuit: string | null;
+  contacto: string | null;
+  email: string | null;
+  telefono: string | null;
+  direccion: string | null;
+  rubros: string[] | null;
+  notas: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Inventario {
+  id: string;
+  item_id: string;
+  descripcion: string;
+  categoria: CategoriaItem;
+  unidad: string;
+  stock_disponible: number;
+  stock_en_obra: number;
+  stock_fuera_servicio: number;
+  stock_minimo: number;
+  numero_serie: string | null;
+  proveedor_principal_id: string | null;
+  precio_costo: number;
+  precio_lista: number;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InventarioConProveedor extends Inventario {
+  proveedor?: Proveedor | null;
 }
 
 export interface Obra {
@@ -74,29 +125,139 @@ export interface ObraTecnico {
   asignado_at: string;
 }
 
+export interface Movimiento {
+  id: string;
+  mov_id: string;
+  tipo: TipoMovimiento;
+  item_id: string;
+  cantidad: number;
+  obra_id: string | null;
+  tecnico_id: string | null;
+  ejecutado_por: string | null;
+  compra_id: string | null;
+  solicitud_id: string | null;
+  remito_id: string | null;
+  movimiento_padre_id: string | null;
+  estado_herramienta: string | null;
+  observaciones: string | null;
+  fecha: string;
+  created_at: string;
+}
+
+export interface MovimientoConRelaciones extends Movimiento {
+  item?: Inventario | null;
+  obra?: Obra | null;
+  tecnico?: Usuario | null;
+  ejecutor?: Usuario | null;
+}
+
+export interface Solicitud {
+  id: string;
+  solicitud_id: string;
+  obra_id: string | null;
+  tecnico_id: string | null;
+  destinatario_id: string | null;
+  prioridad: PrioridadSol;
+  estado: EstadoSolicitud;
+  observaciones: string | null;
+  fecha_solicitud: string;
+  fecha_atencion: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SolicitudItem {
+  id: string;
+  solicitud_id: string;
+  item_id: string | null;
+  descripcion_libre: string | null;
+  cantidad: number;
+  unidad: string;
+  estado: EstadoItemSol;
+  observaciones: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SolicitudItemConRelaciones extends SolicitudItem {
+  item?: Inventario | null;
+}
+
+export interface SolicitudConRelaciones extends Solicitud {
+  obra?: Obra | null;
+  tecnico?: Usuario | null;
+  destinatario?: Usuario | null;
+  items?: SolicitudItemConRelaciones[];
+}
+
+export interface Compra {
+  id: string;
+  compra_id: string;
+  proveedor_id: string | null;
+  obra_id: string | null;
+  fecha_solicitud: string;
+  fecha_aprobacion: string | null;
+  fecha_recepcion: string | null;
+  estado: EstadoCompra;
+  solicitado_por: string | null;
+  aprobador_id: string | null;
+  total_estimado: number | null;
+  observaciones: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompraItem {
+  id: string;
+  compra_id: string;
+  item_id: string;
+  descripcion: string;
+  cantidad_solicitada: number;
+  cantidad_recibida: number;
+  precio_unitario: number;
+  observaciones: string | null;
+  created_at: string;
+}
+
+export interface CompraItemConRelaciones extends CompraItem {
+  item?: Inventario | null;
+}
+
+export interface CompraConRelaciones extends Compra {
+  proveedor?: Proveedor | null;
+  obra?: Obra | null;
+  solicitante?: Usuario | null;
+  items?: CompraItemConRelaciones[];
+}
+
+export interface Reporte {
+  id: string;
+  reporte_id: string;
+  obra_id: string;
+  tecnico_id: string | null;
+  fecha: string;
+  descripcion: string | null;
+  trabajos_realizados: string | null;
+  pendientes: string | null;
+  created_at: string;
+}
+
+export interface ReporteFoto {
+  id: string;
+  reporte_id: string;
+  storage_path: string;
+  url: string | null;
+  caption: string | null;
+  uploaded_at: string;
+}
+
+export interface ReporteConRelaciones extends Reporte {
+  obra?: Obra | null;
+  tecnico?: Usuario | null;
+  fotos?: ReporteFoto[];
+}
+
+// Database type permisivo para Supabase
 export interface Database {
-  public: {
-    Tables: {
-      usuarios: {
-        Row: Usuario;
-        Insert: Omit<Usuario, "created_at" | "updated_at">;
-        Update: Partial<Omit<Usuario, "id" | "created_at">>;
-      };
-      clientes: {
-        Row: Cliente;
-        Insert: Omit<Cliente, "id" | "created_at" | "updated_at" | "deleted_at">;
-        Update: Partial<Omit<Cliente, "id" | "created_at">>;
-      };
-      obras: {
-        Row: Obra;
-        Insert: Omit<Obra, "id" | "created_at" | "updated_at" | "closed_at">;
-        Update: Partial<Omit<Obra, "id" | "created_at">>;
-      };
-      obra_tecnicos: {
-        Row: ObraTecnico;
-        Insert: Omit<ObraTecnico, "asignado_at">;
-        Update: Partial<ObraTecnico>;
-      };
-    };
-  };
+  public: { Tables: Record<string, any> };
 }

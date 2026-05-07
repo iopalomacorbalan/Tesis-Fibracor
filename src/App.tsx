@@ -8,6 +8,12 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import LoginPage from "@/modules/auth/LoginPage";
 import DashboardPage from "@/modules/dashboard/DashboardPage";
 import ObrasPage from "@/modules/obras/ObrasPage";
+import StockPage from "@/modules/stock/StockPage";
+import SolicitudesPage from "@/modules/solicitudes/SolicitudesPage";
+import MovimientosPage from "@/modules/movimientos/MovimientosPage";
+import ComprasPage from "@/modules/compras/ComprasPage";
+import ReportesPage from "@/modules/reportes/ReportesPage";
+import CrmPage from "@/modules/crm/CrmPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +37,12 @@ export default function App() {
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/obras" element={<ObrasPage />} />
+            <Route path="/stock" element={<StockPage />} />
+            <Route path="/solicitudes" element={<SolicitudesPage />} />
+            <Route path="/movimientos" element={<MovimientosPage />} />
+            <Route path="/compras" element={<ComprasPage />} />
+            <Route path="/reportes" element={<ReportesPage />} />
+            <Route path="/crm" element={<CrmPage />} />
             <Route path="*" element={<Placeholder />} />
           </Route>
         </Routes>
