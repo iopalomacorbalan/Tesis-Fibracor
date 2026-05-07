@@ -14,6 +14,7 @@ import MovimientosPage from "@/modules/movimientos/MovimientosPage";
 import ComprasPage from "@/modules/compras/ComprasPage";
 import ReportesPage from "@/modules/reportes/ReportesPage";
 import CrmPage from "@/modules/crm/CrmPage";
+import MisHerramientasPage from "@/modules/mis-herramientas/MisHerramientasPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/stock" element={<StockPage />} />
             <Route path="/solicitudes" element={<SolicitudesPage />} />
             <Route path="/movimientos" element={<MovimientosPage />} />
+            <Route path="/mis-herramientas" element={<MisHerramientasPage />} />
             <Route path="/compras" element={<ComprasPage />} />
             <Route path="/reportes" element={<ReportesPage />} />
             <Route path="/crm" element={<CrmPage />} />

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye,
   Briefcase, MapPin, Calendar, User, AlertCircle,
+  Play, CheckCircle, Lock, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,8 +13,12 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useObras, useEliminarObra, useCambiarEstadoObra } from "./useObras";
+import {
+  useObras, useEliminarObra, useCambiarEstadoObra,
+  useCerrarObra, useFinalizarObra,
+} from "./useObras";
 import { ObraDialog } from "./ObraDialog";
+import { ObraDetalle } from "./ObraDetalle";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import type { ObraConRelaciones, EstadoObra } from "@/types/database";
@@ -36,15 +41,21 @@ export default function ObrasPage() {
   const { data: obras = [], isLoading, error } = useObras();
   const eliminarObra = useEliminarObra();
   const cambiarEstado = useCambiarEstadoObra();
+  const cerrarObra = useCerrarObra();
+  const finalizarObra = useFinalizarObra();
 
   const [search, setSearch] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<EstadoObra | "todos">("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [obraEditar, setObraEditar] = useState<ObraConRelaciones | null>(null);
   const [obraEliminar, setObraEliminar] = useState<ObraConRelaciones | null>(null);
+  const [obraDetalle, setObraDetalle] = useState<ObraConRelaciones | null>(null);
+  const [obraCerrar, setObraCerrar] = useState<ObraConRelaciones | null>(null);
+  const [obraFinalizar, setObraFinalizar] = useState<ObraConRelaciones | null>(null);
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Comercial"].includes(profile.area);
   const puedeEliminar = profile?.area === "Direccion";
+  const puedeCerrar = profile && ["Direccion", "Operaciones"].includes(profile.area);
 
   const obrasFiltradas = useMemo(() => {
     return obras.filter(o => {
@@ -183,8 +194,13 @@ export default function ObrasPage() {
               obra={o}
               puedeEditar={!!puedeEditar}
               puedeEliminar={!!puedeEliminar}
+              puedeCerrar={!!puedeCerrar}
+              onVer={(o) => setObraDetalle(o)}
               onEditar={handleEditarObra}
               onEliminar={(o) => setObraEliminar(o)}
+              onIniciar={(o) => cambiarEstado.mutate({ id: o.id, estado: "En ejecucion" })}
+              onParaCierre={(o) => setObraCerrar(o)}
+              onFinalizar={(o) => setObraFinalizar(o)}
             />
           ))}
         </div>
@@ -192,6 +208,60 @@ export default function ObrasPage() {
 
       {/* Dialogs */}
       <ObraDialog open={dialogOpen} onOpenChange={setDialogOpen} obra={obraEditar} />
+      <ObraDetalle
+        open={!!obraDetalle}
+        onOpenChange={(o) => !o && setObraDetalle(null)}
+        obraId={obraDetalle?.id ?? null}
+      />
+
+      {/* Iniciar cierre (genera devoluciones automáticas) */}
+      <ConfirmDialog
+        open={!!obraCerrar}
+        onOpenChange={(o) => !o && setObraCerrar(null)}
+        title={`¿Iniciar cierre de ${obraCerrar?.obra_id}?`}
+        description={
+          "Esto va a:\n" +
+          "• Generar devoluciones pendientes automáticamente para todas las herramientas que los técnicos tengan asignadas en esta obra\n" +
+          "• Cancelar las solicitudes pendientes/parciales de la obra\n" +
+          "• Marcar la obra como 'Para cierre'\n\n" +
+          "Después, pañol procesará cada devolución y cuando todas estén OK, podés finalizar la obra."
+        }
+        confirmText="Iniciar cierre"
+        loading={cerrarObra.isPending}
+        onConfirm={async () => {
+          if (!obraCerrar) return;
+          try {
+            const r = await cerrarObra.mutateAsync({ id: obraCerrar.id });
+            toast.success(
+              `Obra en cierre: ${r.herramientas_generadas} devoluciones generadas` +
+              (r.materiales_pendientes > 0 ? ` · ${r.materiales_pendientes} materiales para revisar` : "")
+            );
+            setObraCerrar(null);
+          } catch (e: any) {
+            toast.error("Error: " + e.message);
+          }
+        }}
+      />
+
+      {/* Finalizar (de Para cierre → Cerrada) */}
+      <ConfirmDialog
+        open={!!obraFinalizar}
+        onOpenChange={(o) => !o && setObraFinalizar(null)}
+        title={`¿Finalizar ${obraFinalizar?.obra_id}?`}
+        description="Asegurate que todas las devoluciones pendientes se hayan procesado. Esta acción marca la obra como Cerrada (no podrás hacer cambios después)."
+        confirmText="Finalizar obra"
+        loading={finalizarObra.isPending}
+        onConfirm={async () => {
+          if (!obraFinalizar) return;
+          try {
+            await finalizarObra.mutateAsync(obraFinalizar.id);
+            toast.success(`Obra ${obraFinalizar.obra_id} cerrada`);
+            setObraFinalizar(null);
+          } catch (e: any) {
+            toast.error("Error: " + e.message);
+          }
+        }}
+      />
       <ConfirmDialog
         open={!!obraEliminar}
         onOpenChange={(o) => !o && setObraEliminar(null)}
@@ -224,19 +294,25 @@ function StatCard({ label, value, variant = "default" }: { label: string; value:
 }
 
 function ObraCard({
-  obra, puedeEditar, puedeEliminar, onEditar, onEliminar,
+  obra, puedeEditar, puedeEliminar, puedeCerrar,
+  onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar,
 }: {
   obra: ObraConRelaciones;
   puedeEditar: boolean;
   puedeEliminar: boolean;
+  puedeCerrar: boolean;
+  onVer: (o: ObraConRelaciones) => void;
   onEditar: (o: ObraConRelaciones) => void;
   onEliminar: (o: ObraConRelaciones) => void;
+  onIniciar: (o: ObraConRelaciones) => void;
+  onParaCierre: (o: ObraConRelaciones) => void;
+  onFinalizar: (o: ObraConRelaciones) => void;
 }) {
   return (
     <Card className="hover:border-primary/40 transition-colors">
       <CardContent className="p-5">
         <div className="flex justify-between items-start gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onVer(obra)}>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h3 className="font-bold text-lg">{obra.obra_id}</h3>
               <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold border", estadoStyle(obra.estado))}>
@@ -276,24 +352,45 @@ function ObraCard({
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" disabled title="Próximamente">
-              <Eye className="h-4 w-4" />
+          <div className="flex gap-1 flex-wrap">
+            <Button variant="ghost" size="sm" onClick={() => onVer(obra)}>
+              <Eye className="h-3.5 w-3.5" />
               Ver
             </Button>
-            {puedeEditar && (
+
+            {/* Acciones de cambio de estado */}
+            {puedeCerrar && obra.estado === "Pendiente OIO" && (
+              <Button variant="ghost" size="sm" className="text-success" onClick={() => onIniciar(obra)}>
+                <Play className="h-3.5 w-3.5" />
+                Iniciar
+              </Button>
+            )}
+            {puedeCerrar && obra.estado === "En ejecucion" && (
+              <Button variant="ghost" size="sm" className="text-primary" onClick={() => onParaCierre(obra)}>
+                <Lock className="h-3.5 w-3.5" />
+                Cerrar obra
+              </Button>
+            )}
+            {puedeCerrar && obra.estado === "Para cierre" && (
+              <Button variant="success" size="sm" onClick={() => onFinalizar(obra)}>
+                <CheckCircle className="h-3.5 w-3.5" />
+                Finalizar
+              </Button>
+            )}
+
+            {puedeEditar && obra.estado !== "Cerrada" && (
               <Button variant="ghost" size="sm" onClick={() => onEditar(obra)}>
-                <Edit className="h-4 w-4" />
+                <Edit className="h-3.5 w-3.5" />
                 Editar
               </Button>
             )}
             {puedeEliminar && (
               <Button
-                variant="ghost" size="sm"
+                variant="ghost" size="icon"
                 onClick={() => onEliminar(obra)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>

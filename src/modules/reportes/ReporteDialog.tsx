@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Camera, X, Upload } from "lucide-react";
+import { Loader2, Camera, X, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,18 +11,26 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useCrearReporte } from "./useReportes";
+import {
+  useCrearReporte, useEditarReporte, useAgregarFotos, useEliminarFoto,
+} from "./useReportes";
 import { useObras } from "@/modules/obras/useObras";
+import type { ReporteConRelaciones } from "@/types/database";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   obraIdFijo?: string;
+  reporte?: ReporteConRelaciones | null; // si viene → modo edición
 }
 
-export function ReporteDialog({ open, onOpenChange, obraIdFijo }: Props) {
+export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props) {
+  const isEdit = !!reporte;
   const { data: obras = [] } = useObras();
   const crear = useCrearReporte();
+  const editar = useEditarReporte();
+  const agregarFotos = useAgregarFotos();
+  const eliminarFoto = useEliminarFoto();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [obraId, setObraId] = useState<string>(obraIdFijo ?? "");
@@ -35,15 +43,25 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo }: Props) {
 
   useEffect(() => {
     if (open) {
-      setObraId(obraIdFijo ?? "");
-      setFecha(new Date().toISOString().slice(0, 10));
-      setDescripcion("");
-      setTrabajos("");
-      setPendientes("");
+      if (reporte) {
+        // Modo edición - cargar datos existentes
+        setObraId(reporte.obra_id);
+        setFecha(reporte.fecha.slice(0, 10));
+        setDescripcion(reporte.descripcion ?? "");
+        setTrabajos(reporte.trabajos_realizados ?? "");
+        setPendientes(reporte.pendientes ?? "");
+      } else {
+        // Modo creación
+        setObraId(obraIdFijo ?? "");
+        setFecha(new Date().toISOString().slice(0, 10));
+        setDescripcion("");
+        setTrabajos("");
+        setPendientes("");
+      }
       setFotos([]);
       setPreviews([]);
     }
-  }, [open, obraIdFijo]);
+  }, [open, obraIdFijo, reporte]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -55,18 +73,28 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo }: Props) {
       reader.onload = (ev) => {
         nuevosPreviews.push(ev.target?.result as string);
         if (nuevosPreviews.length === files.length) {
-          setPreviews([...previews, ...nuevosPreviews]);
+          setPreviews(prev => [...prev, ...nuevosPreviews]);
         }
       };
       reader.readAsDataURL(f);
     });
-    setFotos([...fotos, ...files]);
+    setFotos(prev => [...prev, ...files]);
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const removeFoto = (idx: number) => {
+  const removeFotoNueva = (idx: number) => {
     setFotos(fotos.filter((_, i) => i !== idx));
     setPreviews(previews.filter((_, i) => i !== idx));
+  };
+
+  const removeFotoExistente = async (foto: any) => {
+    if (!confirm("¿Eliminar esta foto?")) return;
+    try {
+      await eliminarFoto.mutateAsync(foto);
+      toast.success("Foto eliminada");
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,27 +106,52 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo }: Props) {
     }
 
     try {
-      const rep = await crear.mutateAsync({
-        obra_id: obraId,
-        fecha,
-        descripcion: descripcion || undefined,
-        trabajos_realizados: trabajos || undefined,
-        pendientes: pendientes || undefined,
-        fotos: fotos.length > 0 ? fotos : undefined,
-      });
-      toast.success(`Reporte ${rep.reporte_id} creado${fotos.length > 0 ? ` con ${fotos.length} fotos` : ""}`);
+      if (isEdit && reporte) {
+        // EDITAR
+        await editar.mutateAsync({
+          id: reporte.id,
+          patch: {
+            obra_id: obraId,
+            fecha,
+            descripcion: descripcion || null,
+            trabajos_realizados: trabajos || null,
+            pendientes: pendientes || null,
+          },
+        });
+        // Subir nuevas fotos si las hay
+        if (fotos.length > 0) {
+          await agregarFotos.mutateAsync({ reporteId: reporte.id, fotos });
+        }
+        toast.success(`Reporte ${reporte.reporte_id} actualizado`);
+      } else {
+        // CREAR
+        const rep = await crear.mutateAsync({
+          obra_id: obraId,
+          fecha,
+          descripcion: descripcion || undefined,
+          trabajos_realizados: trabajos || undefined,
+          pendientes: pendientes || undefined,
+          fotos: fotos.length > 0 ? fotos : undefined,
+        });
+        toast.success(`Reporte ${rep.reporte_id} creado${fotos.length > 0 ? ` con ${fotos.length} fotos` : ""}`);
+      }
       onOpenChange(false);
     } catch (e: any) {
       toast.error("Error: " + e.message);
     }
   };
 
+  const fotosExistentes = reporte?.fotos ?? [];
+  const loading = crear.isPending || editar.isPending || agregarFotos.isPending;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nuevo reporte</DialogTitle>
-          <DialogDescription>Documentar trabajos en obra con texto y fotos</DialogDescription>
+          <DialogTitle>{isEdit ? `Editar reporte ${reporte?.reporte_id}` : "Nuevo reporte"}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? "Modificar los datos del reporte" : "Documentar trabajos en obra con texto y fotos"}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -158,8 +211,34 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo }: Props) {
             />
           </div>
 
+          {/* Fotos existentes (en modo edición) */}
+          {isEdit && fotosExistentes.length > 0 && (
+            <div className="space-y-2">
+              <Label>Fotos actuales ({fotosExistentes.length})</Label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {fotosExistentes.map((f: any) => (
+                  <div key={f.id} className="relative aspect-square">
+                    <img
+                      src={f.url}
+                      alt=""
+                      className="w-full h-full object-cover rounded-md border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFotoExistente(f)}
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
+                      title="Eliminar foto"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label>Fotos ({fotos.length})</Label>
+            <Label>{isEdit ? "Agregar fotos nuevas" : "Fotos"} ({fotos.length})</Label>
             <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-4">
               <input
                 ref={fileRef}
@@ -198,7 +277,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo }: Props) {
                     />
                     <button
                       type="button"
-                      onClick={() => removeFoto(idx)}
+                      onClick={() => removeFotoNueva(idx)}
                       className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
                     >
                       <X className="h-3 w-3" />
@@ -211,9 +290,9 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo }: Props) {
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={crear.isPending}>
-              {crear.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Guardar reporte
+            <Button type="submit" disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isEdit ? "Guardar cambios" : "Guardar reporte"}
             </Button>
           </DialogFooter>
         </form>

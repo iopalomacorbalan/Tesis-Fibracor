@@ -178,3 +178,43 @@ export function useCambiarEstadoObra() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
 }
+
+// Cierre completo: genera devoluciones automáticas y cancela solicitudes pendientes
+export function useCerrarObra() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, observaciones }: { id: string; observaciones?: string }) => {
+      const { data, error } = await supabase.rpc("cerrar_obra_con_devoluciones", {
+        p_obra_id: id,
+        p_observaciones: observaciones ?? "",
+      });
+      if (error) throw error;
+      return data as { status: string; herramientas_generadas: number; materiales_pendientes: number };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["movimientos"] });
+      qc.invalidateQueries({ queryKey: ["solicitudes"] });
+      qc.invalidateQueries({ queryKey: ["inventario"] });
+    },
+  });
+}
+
+// Marcar como Cerrada (después de "Para cierre", cuando todas las devoluciones se procesaron)
+export function useFinalizarObra() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("obras")
+        .update({
+          estado: "Cerrada",
+          fecha_fin_real: new Date().toISOString().slice(0, 10),
+          closed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}

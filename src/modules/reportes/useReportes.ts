@@ -158,6 +158,32 @@ export function useEliminarFoto() {
   });
 }
 
+export function useEditarReporte() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: {
+      id: string;
+      patch: Partial<{
+        fecha: string;
+        descripcion: string | null;
+        trabajos_realizados: string | null;
+        pendientes: string | null;
+        obra_id: string;
+      }>;
+    }) => {
+      const { data, error } = await supabase
+        .from("reportes")
+        .update(patch as any)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Reporte;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}
+
 export function useEliminarReporte() {
   const qc = useQueryClient();
   return useMutation({

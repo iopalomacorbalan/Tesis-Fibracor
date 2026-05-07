@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import {
-  Plus, Search, FileText, AlertCircle, Camera, Briefcase, User, Trash2, Eye,
+  Plus, Search, FileText, AlertCircle, Camera, Briefcase, User, Trash2, Eye, Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,12 @@ export default function ReportesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [repDetalle, setRepDetalle] = useState<ReporteConRelaciones | null>(null);
   const [repEliminar, setRepEliminar] = useState<ReporteConRelaciones | null>(null);
+  const [repEditar, setRepEditar] = useState<ReporteConRelaciones | null>(null);
+  const [dialogEditOpen, setDialogEditOpen] = useState(false);
 
   const puedeEliminar = profile && ["Direccion", "Operaciones"].includes(profile.area);
+  // Direccion/Operaciones editan cualquiera. Los técnicos editan solo los propios.
+  const puedeEditarSiempre = profile && ["Direccion", "Operaciones"].includes(profile.area);
 
   const filtered = useMemo(() => {
     return reportes.filter(r => {
@@ -112,19 +116,30 @@ export default function ReportesPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map(r => (
-            <ReporteCard
-              key={r.id}
-              reporte={r}
-              puedeEliminar={!!puedeEliminar}
-              onClick={() => setRepDetalle(r)}
-              onEliminar={() => setRepEliminar(r)}
-            />
-          ))}
+          {filtered.map(r => {
+            const esAutor = profile && r.tecnico_id === profile.id;
+            const puedeEditarEste = puedeEditarSiempre || esAutor;
+            return (
+              <ReporteCard
+                key={r.id}
+                reporte={r}
+                puedeEliminar={!!puedeEliminar}
+                puedeEditar={!!puedeEditarEste}
+                onClick={() => setRepDetalle(r)}
+                onEliminar={() => setRepEliminar(r)}
+                onEditar={() => { setRepEditar(r); setDialogEditOpen(true); }}
+              />
+            );
+          })}
         </div>
       )}
 
       <ReporteDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <ReporteDialog
+        open={dialogEditOpen}
+        onOpenChange={(o) => { setDialogEditOpen(o); if (!o) setRepEditar(null); }}
+        reporte={repEditar}
+      />
       <ReporteDetalle
         open={!!repDetalle}
         onOpenChange={(o) => !o && setRepDetalle(null)}
@@ -166,12 +181,14 @@ function StatCard({
 }
 
 function ReporteCard({
-  reporte, puedeEliminar, onClick, onEliminar,
+  reporte, puedeEliminar, puedeEditar, onClick, onEliminar, onEditar,
 }: {
   reporte: ReporteConRelaciones;
   puedeEliminar: boolean;
+  puedeEditar: boolean;
   onClick: () => void;
   onEliminar: () => void;
+  onEditar: () => void;
 }) {
   const numFotos = reporte.fotos?.length ?? 0;
 
@@ -232,6 +249,14 @@ function ReporteCard({
           <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onClick(); }}>
             <Eye className="h-3.5 w-3.5" /> Ver
           </Button>
+          {puedeEditar && (
+            <Button
+              variant="ghost" size="sm"
+              onClick={(e) => { e.stopPropagation(); onEditar(); }}
+            >
+              <Edit className="h-3.5 w-3.5" /> Editar
+            </Button>
+          )}
           {puedeEliminar && (
             <Button
               variant="ghost" size="icon"
