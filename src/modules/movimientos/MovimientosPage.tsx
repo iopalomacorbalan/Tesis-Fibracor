@@ -86,7 +86,7 @@ export default function MovimientosPage() {
       </div>
 
       <Tabs defaultValue={pendientes.length > 0 && esPaniol ? "pendientes" : "todos"}>
-        <TabsList>
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-1"><TabsList className="w-max">
           <TabsTrigger value="todos">📋 Historial completo</TabsTrigger>
           <TabsTrigger value="pendientes">
             ⏳ Devoluciones pendientes
@@ -96,7 +96,7 @@ export default function MovimientosPage() {
               </span>
             )}
           </TabsTrigger>
-        </TabsList>
+        </TabsList></div>
 
         <TabsContent value="todos">
           <div className="space-y-4">

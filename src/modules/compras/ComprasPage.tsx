@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   Plus, Search, ShoppingCart, AlertCircle, Briefcase,
-  CheckCircle, Clock, Package, X,
+  CheckCircle, Clock, Package, X, FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 import { useCompras, useCambiarEstadoCompra } from "./useCompras";
 import { CompraDialog } from "./CompraDialog";
 import { RecibirCompraDialog } from "./RecibirCompraDialog";
+import { ExportarOcDialog } from "./ExportarOcDialog";
 import { useAuth } from "@/lib/auth";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import type { CompraConRelaciones, EstadoCompra } from "@/types/database";
@@ -35,6 +36,7 @@ export default function ComprasPage() {
   const [filtro, setFiltro] = useState<string>("activas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [recibirOC, setRecibirOC] = useState<CompraConRelaciones | null>(null);
+  const [exportarOC, setExportarOC] = useState<CompraConRelaciones | null>(null);
 
   const puedeAprobar = profile && ["Direccion", "Operaciones"].includes(profile.area);
   const puedeRecibir = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
@@ -156,6 +158,7 @@ export default function ComprasPage() {
               puedeRecibir={!!puedeRecibir}
               onAprobar={() => handleAprobar(c)}
               onRecibir={() => setRecibirOC(c)}
+              onExportar={() => setExportarOC(c)}
               onCancelar={() => handleCancelar(c)}
             />
           ))}
@@ -167,6 +170,11 @@ export default function ComprasPage() {
         open={!!recibirOC}
         onOpenChange={(o) => !o && setRecibirOC(null)}
         compra={recibirOC}
+      />
+      <ExportarOcDialog
+        open={!!exportarOC}
+        onOpenChange={(o) => !o && setExportarOC(null)}
+        compra={exportarOC}
       />
     </div>
   );
@@ -196,13 +204,14 @@ function StatCard({
 }
 
 function CompraCard({
-  compra, puedeAprobar, puedeRecibir, onAprobar, onRecibir, onCancelar,
+  compra, puedeAprobar, puedeRecibir, onAprobar, onRecibir, onExportar, onCancelar,
 }: {
   compra: CompraConRelaciones;
   puedeAprobar: boolean;
   puedeRecibir: boolean;
   onAprobar: () => void;
   onRecibir: () => void;
+  onExportar: () => void;
   onCancelar: () => void;
 }) {
   const info = ESTADO_INFO[compra.estado];
@@ -216,7 +225,7 @@ function CompraCard({
   return (
     <Card className="hover:border-primary/40 transition-colors">
       <CardContent className="p-4">
-        <div className="flex justify-between items-start gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="font-bold">{compra.compra_id}</span>
@@ -255,7 +264,10 @@ function CompraCard({
             )}
           </div>
 
-          <div className="flex gap-1 flex-wrap flex-shrink-0">
+          <div className="flex gap-1 flex-wrap pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 sm:flex-shrink-0">
+            <Button size="sm" variant="ghost" onClick={onExportar} title="Descargar PDF">
+              <FileDown className="h-3.5 w-3.5" /> PDF
+            </Button>
             {compra.estado === "Solicitada" && puedeAprobar && (
               <Button size="sm" variant="success" onClick={onAprobar}>
                 <CheckCircle className="h-3.5 w-3.5" /> Aprobar

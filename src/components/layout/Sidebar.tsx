@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, ClipboardList, GitBranch, LogOut, Wrench,
+  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ const NAV: NavItem[] = [
   // Comercial
   { to: "/crm", icon: Users, label: "CRM", group: "Comercial",
     roles: ["Direccion", "Operaciones", "Comercial", "Contabilidad"] },
+  { to: "/remitos", icon: ScrollText, label: "Remitos", group: "Comercial",
+    roles: ["Direccion", "Operaciones", "Comercial", "Paniol", "Contabilidad"] },
 
   // Proyectos
   { to: "/obras", icon: Briefcase, label: "Obras", group: "Proyectos" },

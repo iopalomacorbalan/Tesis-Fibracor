@@ -137,7 +137,7 @@ export default function MisHerramientasPage() {
           {(herramientas as HerramientaAsignada[]).map(h => (
             <Card key={h.item_id} className="hover:border-primary/40 transition-colors">
               <CardContent className="p-4">
-                <div className="flex justify-between items-start gap-4 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-semibold">{h.descripcion}</h3>

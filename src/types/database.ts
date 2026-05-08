@@ -242,6 +242,41 @@ export interface Reporte {
   created_at: string;
 }
 
+export interface Remito {
+  id: string;
+  remito_id: string;
+  obra_id: string;
+  fecha: string;
+  recibido_por: string | null;
+  dni_receptor: string | null;
+  fecha_recepcion: string | null;
+  observaciones: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface RemitoItem {
+  id: string;
+  remito_id: string;
+  item_id: string;
+  movimiento_id: string | null;
+  cantidad: number;
+  observaciones: string | null;
+  created_at: string;
+}
+
+export interface RemitoItemConRelaciones extends RemitoItem {
+  item?: Inventario | null;
+}
+
+export interface RemitoConRelaciones extends Remito {
+  obra?: Obra | null;
+  cliente?: Cliente | null;
+  creador?: Usuario | null;
+  items?: RemitoItemConRelaciones[];
+}
+
 export interface ReporteFoto {
   id: string;
   reporte_id: string;

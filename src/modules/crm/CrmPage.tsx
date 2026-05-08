@@ -17,10 +17,10 @@ export default function CrmPage() {
       </div>
 
       <Tabs defaultValue="clientes">
-        <TabsList>
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-1"><TabsList className="w-max">
           <TabsTrigger value="clientes">👥 Clientes</TabsTrigger>
           <TabsTrigger value="proveedores">🚚 Proveedores</TabsTrigger>
-        </TabsList>
+        </TabsList></div>
 
         <TabsContent value="clientes">
           <ClientesList />

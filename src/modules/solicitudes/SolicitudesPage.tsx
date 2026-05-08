@@ -228,7 +228,7 @@ function SolicitudCard({
       onClick={onClick}
     >
       <CardContent className="p-4">
-        <div className="flex justify-between items-start gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="font-bold">{solicitud.solicitud_id}</span>

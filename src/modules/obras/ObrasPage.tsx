@@ -310,12 +310,14 @@ function ObraCard({
 }) {
   return (
     <Card className="hover:border-primary/40 transition-colors">
-      <CardContent className="p-5">
-        <div className="flex justify-between items-start gap-4 flex-wrap">
+      <CardContent className="p-4 sm:p-5">
+        {/* Layout: vertical en mobile, horizontal en desktop */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+          {/* Info principal */}
           <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onVer(obra)}>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="font-bold text-lg">{obra.obra_id}</h3>
-              <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold border", estadoStyle(obra.estado))}>
+              <h3 className="font-bold text-base sm:text-lg">{obra.obra_id}</h3>
+              <span className={cn("px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap", estadoStyle(obra.estado))}>
                 {obra.estado}
               </span>
             </div>
@@ -325,22 +327,22 @@ function ObraCard({
               {obra.nombre_obra && <span className="text-muted-foreground"> · {obra.nombre_obra}</span>}
             </div>
 
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
               {obra.sitio && (
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
                   {obra.sitio}
                 </span>
               )}
               {obra.fecha_inicio_est && (
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Inicio: {formatDate(obra.fecha_inicio_est)}
+                  <Calendar className="h-3 w-3 flex-shrink-0" />
+                  {formatDate(obra.fecha_inicio_est)}
                 </span>
               )}
               {obra.jefe_obra && (
                 <span className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
+                  <User className="h-3 w-3 flex-shrink-0" />
                   {obra.jefe_obra.nombre}
                 </span>
               )}
@@ -352,10 +354,11 @@ function ObraCard({
             </div>
           </div>
 
-          <div className="flex gap-1 flex-wrap">
+          {/* Acciones - en mobile como bottom bar */}
+          <div className="flex gap-1 flex-wrap pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 sm:flex-shrink-0">
             <Button variant="ghost" size="sm" onClick={() => onVer(obra)}>
               <Eye className="h-3.5 w-3.5" />
-              Ver
+              <span className="hidden sm:inline">Ver</span>
             </Button>
 
             {/* Acciones de cambio de estado */}
@@ -368,7 +371,8 @@ function ObraCard({
             {puedeCerrar && obra.estado === "En ejecucion" && (
               <Button variant="ghost" size="sm" className="text-primary" onClick={() => onParaCierre(obra)}>
                 <Lock className="h-3.5 w-3.5" />
-                Cerrar obra
+                <span className="hidden sm:inline">Cerrar obra</span>
+                <span className="sm:hidden">Cerrar</span>
               </Button>
             )}
             {puedeCerrar && obra.estado === "Para cierre" && (
@@ -381,14 +385,14 @@ function ObraCard({
             {puedeEditar && obra.estado !== "Cerrada" && (
               <Button variant="ghost" size="sm" onClick={() => onEditar(obra)}>
                 <Edit className="h-3.5 w-3.5" />
-                Editar
+                <span className="hidden sm:inline">Editar</span>
               </Button>
             )}
             {puedeEliminar && (
               <Button
                 variant="ghost" size="icon"
                 onClick={() => onEliminar(obra)}
-                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto sm:ml-0"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>

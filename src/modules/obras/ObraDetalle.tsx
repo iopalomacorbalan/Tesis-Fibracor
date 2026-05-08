@@ -89,9 +89,9 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-3 flex-wrap">
-                <span className="text-2xl">{obra.obra_id}</span>
-                <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold border", ESTADO_COLOR[obra.estado])}>
+              <DialogTitle className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <span className="text-xl sm:text-2xl">{obra.obra_id}</span>
+                <span className={cn("px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap", ESTADO_COLOR[obra.estado])}>
                   {obra.estado}
                 </span>
               </DialogTitle>
@@ -108,27 +108,29 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
             </DialogHeader>
 
             <Tabs defaultValue="resumen">
-              <TabsList>
-                <TabsTrigger value="resumen">📋 Resumen</TabsTrigger>
-                <TabsTrigger value="solicitudes">
-                  <ClipboardList className="h-3.5 w-3.5 mr-1" />
-                  Solicitudes ({datos?.solicitudes.length ?? 0})
-                </TabsTrigger>
-                <TabsTrigger value="movimientos">
-                  <GitBranch className="h-3.5 w-3.5 mr-1" />
-                  Movimientos ({datos?.movimientos.length ?? 0})
-                </TabsTrigger>
-                <TabsTrigger value="reportes">
-                  <FileText className="h-3.5 w-3.5 mr-1" />
-                  Reportes ({datos?.reportes.length ?? 0})
-                </TabsTrigger>
-                {puedeVerCostos && (
-                  <TabsTrigger value="costos">
-                    <Wallet className="h-3.5 w-3.5 mr-1" />
-                    Costos
+              <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-1">
+                <TabsList className="w-max">
+                  <TabsTrigger value="resumen">📋 Resumen</TabsTrigger>
+                  <TabsTrigger value="solicitudes">
+                    <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                    Solicitudes ({datos?.solicitudes.length ?? 0})
                   </TabsTrigger>
-                )}
-              </TabsList>
+                  <TabsTrigger value="movimientos">
+                    <GitBranch className="h-3.5 w-3.5 mr-1" />
+                    Movimientos ({datos?.movimientos.length ?? 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="reportes">
+                    <FileText className="h-3.5 w-3.5 mr-1" />
+                    Reportes ({datos?.reportes.length ?? 0})
+                  </TabsTrigger>
+                  {puedeVerCostos && (
+                    <TabsTrigger value="costos">
+                      <Wallet className="h-3.5 w-3.5 mr-1" />
+                      Costos
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              </div>
 
               <TabsContent value="resumen" className="space-y-4">
                 <ResumenObra obra={obra} />

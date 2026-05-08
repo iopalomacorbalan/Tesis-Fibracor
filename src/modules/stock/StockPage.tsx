@@ -323,7 +323,7 @@ function ItemCard({
   return (
     <Card className={cn("hover:border-primary/40 transition-colors", critico && "border-destructive/50")}>
       <CardContent className="p-4">
-        <div className="flex justify-between items-start gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h3 className="font-semibold">{item.descripcion}</h3>
@@ -366,7 +366,7 @@ function ItemCard({
           </div>
 
           {puedeEditar && (
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-1 flex-wrap pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 sm:flex-shrink-0">
               <Button variant="ghost" size="sm" onClick={onHistorial}>
                 <History className="h-3.5 w-3.5" /> Historial
               </Button>

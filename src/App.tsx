@@ -15,6 +15,7 @@ import ComprasPage from "@/modules/compras/ComprasPage";
 import ReportesPage from "@/modules/reportes/ReportesPage";
 import CrmPage from "@/modules/crm/CrmPage";
 import MisHerramientasPage from "@/modules/mis-herramientas/MisHerramientasPage";
+import RemitosPage from "@/modules/remitos/RemitosPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/compras" element={<ComprasPage />} />
             <Route path="/reportes" element={<ReportesPage />} />
             <Route path="/crm" element={<CrmPage />} />
+            <Route path="/remitos" element={<RemitosPage />} />
             <Route path="*" element={<Placeholder />} />
           </Route>
         </Routes>
