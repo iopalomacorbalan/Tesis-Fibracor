@@ -202,9 +202,34 @@ export function useCrearRemito() {
 
       // Crear los items vinculados
       if (itemsParaInsertar.length > 0) {
+        // Necesitamos buscar la descripción del inventario para los que tienen item_id
+        // (porque la tabla tiene una columna 'descripcion' que arrastra el nombre del ítem)
+        const itemIds = itemsParaInsertar
+          .filter(it => it.item_id)
+          .map(it => it.item_id as string);
+        let descripcionesPorId: Record<string, string> = {};
+        if (itemIds.length > 0) {
+          const { data: invs } = await supabase
+            .from("inventario")
+            .select("id, descripcion")
+            .in("id", itemIds);
+          for (const inv of (invs ?? []) as any[]) {
+            descripcionesPorId[inv.id] = inv.descripcion;
+          }
+        }
+
         const rows = itemsParaInsertar.map(it => ({
-          ...it,
           remito_id: remRow.id,
+          item_id: it.item_id,
+          // descripcion: del inventario o la libre
+          descripcion: it.item_id
+            ? (descripcionesPorId[it.item_id] ?? "—")
+            : (it.descripcion_libre ?? "—"),
+          descripcion_libre: it.descripcion_libre,
+          unidad: it.unidad,
+          movimiento_id: it.movimiento_id,
+          cantidad: it.cantidad,
+          observaciones: it.observaciones,
         }));
         const { error: errItems } = await supabase.from("remito_items").insert(rows as any);
         if (errItems) throw errItems;
