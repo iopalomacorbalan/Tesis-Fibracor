@@ -106,7 +106,7 @@ export default function ObrasPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
             <Briefcase className="h-8 w-8 text-primary" />
             Obras
           </h1>

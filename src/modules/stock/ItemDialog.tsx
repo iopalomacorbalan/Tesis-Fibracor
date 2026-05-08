@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { useCrearItem, useEditarItem } from "./useInventario";
 import { useProveedores } from "@/modules/crm/proveedores/useProveedores";
+import { useAuth } from "@/lib/auth";
 import { itemSchema, type ItemFormValues } from "./schemas";
 import type { Inventario, CategoriaItem } from "@/types/database";
 
@@ -41,9 +42,12 @@ const UNIDADES = ["ud.", "m", "km", "kg", "lt", "caja", "rollo", "bolsa", "par"]
 
 export function ItemDialog({ open, onOpenChange, item }: Props) {
   const isEdit = !!item;
+  const { profile } = useAuth();
   const { data: proveedores = [] } = useProveedores();
   const crear = useCrearItem();
   const editar = useEditarItem();
+
+  const puedeVerPrecios = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
 
   const [form, setForm] = useState<ItemFormValues>(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -237,30 +241,32 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="precio_costo">Precio costo ($)</Label>
-              <Input
-                id="precio_costo"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.precio_costo ?? 0}
-                onChange={(e) => setForm(f => ({ ...f, precio_costo: parseFloat(e.target.value) || 0 }))}
-              />
+          {puedeVerPrecios && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="precio_costo">Precio costo ($)</Label>
+                <Input
+                  id="precio_costo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.precio_costo ?? 0}
+                  onChange={(e) => setForm(f => ({ ...f, precio_costo: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="precio_lista">Precio lista ($)</Label>
+                <Input
+                  id="precio_lista"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.precio_lista ?? 0}
+                  onChange={(e) => setForm(f => ({ ...f, precio_lista: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="precio_lista">Precio lista ($)</Label>
-              <Input
-                id="precio_lista"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.precio_lista ?? 0}
-                onChange={(e) => setForm(f => ({ ...f, precio_lista: parseFloat(e.target.value) || 0 }))}
-              />
-            </div>
-          </div>
+          )}
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>

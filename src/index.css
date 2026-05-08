@@ -66,3 +66,25 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--muted)); border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.3); }
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  /* Scrollbars más finos en mobile */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+
+  /* Inputs no zoom en iOS */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Dialog full-width en mobile */
+  [role="dialog"] {
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px !important;
+  }
+}
+
+/* Touch targets más grandes en touch devices */
+@media (hover: none) and (pointer: coarse) {
+  button, [role="button"], a {
+    min-height: 36px;
+  }
+}

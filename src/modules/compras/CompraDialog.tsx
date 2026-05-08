@@ -11,6 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useCrearCompra } from "./useCompras";
 import { useProveedores } from "@/modules/crm/proveedores/useProveedores";
 import { useObras } from "@/modules/obras/useObras";
@@ -170,21 +171,17 @@ export function CompraDialog({ open, onOpenChange }: Props) {
                       )}
                     </div>
 
-                    <Select
-                      value={draft.item_id}
-                      onValueChange={(v) => onItemSeleccion(idx, v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar ítem del inventario..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {items.map(it => (
-                          <SelectItem key={it.id} value={it.id}>
-                            {it.descripcion} ({it.item_id})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value={draft.item_id || null}
+                      onChange={(v) => v && onItemSeleccion(idx, v)}
+                      placeholder="Seleccionar ítem del inventario..."
+                      options={items.map(it => ({
+                        value: it.id,
+                        label: it.descripcion,
+                        searchText: `${it.item_id}${it.numero_serie ? ` · S/N ${it.numero_serie}` : ""}`,
+                        hint: `${it.stock_disponible} disp.`,
+                      }))}
+                    />
 
                     <div className="grid grid-cols-3 gap-2">
                       <div>

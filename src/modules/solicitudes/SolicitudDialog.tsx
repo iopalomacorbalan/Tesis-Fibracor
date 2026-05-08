@@ -11,6 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useCrearSolicitud } from "./useSolicitudes";
 import { useObras } from "@/modules/obras/useObras";
 import { useInventario } from "@/modules/stock/useInventario";
@@ -196,22 +197,20 @@ export function SolicitudDialog({ open, onOpenChange, obraIdFijo }: Props) {
                     )}
                   </div>
 
-                  <Select
+                  <SearchableSelect
                     value={draft.item_id ?? "manual"}
-                    onValueChange={(v) => onItemSeleccion(idx, v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar del inventario..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="manual">📝 Escribir descripción manual</SelectItem>
-                      {items.map(it => (
-                        <SelectItem key={it.id} value={it.id}>
-                          {it.descripcion} ({it.item_id}) — {it.stock_disponible} disp.
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => onItemSeleccion(idx, v ?? "manual")}
+                    placeholder="Seleccionar del inventario..."
+                    options={[
+                      { value: "manual", label: "📝 Escribir descripción manual" },
+                      ...items.map(it => ({
+                        value: it.id,
+                        label: it.descripcion,
+                        searchText: `${it.item_id}${it.numero_serie ? ` · S/N ${it.numero_serie}` : ""}`,
+                        hint: `${it.stock_disponible} disp.`,
+                      })),
+                    ]}
+                  />
 
                   {draft.item_id === null && (
                     <Input

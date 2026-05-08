@@ -52,6 +52,7 @@ export default function StockPage() {
   const [itemHistorial, setItemHistorial] = useState<Inventario | null>(null);
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const puedeVerPrecios = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
 
   const filtered = useMemo(() => {
     return items.filter(i => {
@@ -96,7 +97,7 @@ export default function StockPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
             <Package className="h-8 w-8 text-primary" />
             Stock
           </h1>
@@ -113,7 +114,10 @@ export default function StockPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={cn(
+        "grid grid-cols-2 gap-4",
+        puedeVerPrecios ? "lg:grid-cols-4" : "lg:grid-cols-3"
+      )}>
         <StatCard label="Total ítems" value={stats.total} icon={Package} />
         <StatCard
           label="Stock crítico" value={stats.criticos}
@@ -123,12 +127,14 @@ export default function StockPage() {
           label="En revisión / FS" value={stats.fueraServicio}
           icon={Wrench} variant={stats.fueraServicio > 0 ? "warning" : "muted"}
         />
-        <StatCard
-          label="Valor total"
-          value={formatCurrency(stats.valorTotal)}
-          icon={() => <span className="text-muted-foreground">$</span>}
-          textValue
-        />
+        {puedeVerPrecios && (
+          <StatCard
+            label="Valor total"
+            value={formatCurrency(stats.valorTotal)}
+            icon={() => <span className="text-muted-foreground">$</span>}
+            textValue
+          />
+        )}
       </div>
 
       {/* Banner herramientas en revisión */}

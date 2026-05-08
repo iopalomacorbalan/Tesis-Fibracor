@@ -16,6 +16,7 @@ import { cn, formatDate, formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { profile } = useAuth();
+  const puedeVerPrecios = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
   const { data: obras = [] } = useObras();
   const { data: items = [] } = useInventario();
   const { data: itemsFS = [] } = useItemsFueraServicio();
@@ -42,7 +43,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
           ¡Hola, {profile?.nombre?.split(" ")[0]}! 👋
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -103,28 +104,30 @@ export default function DashboardPage() {
         <KpiCard to="/solicitudes" icon={ClipboardList} label="Solicitudes"
           value={solicitudesActivas.length} sublabel="activas" />
         <KpiCard to="/compras" icon={ShoppingCart} label="OCs abiertas"
-          value={ocAbiertas.length} sublabel={formatCurrency(valorOC)} />
+          value={ocAbiertas.length} sublabel={puedeVerPrecios ? formatCurrency(valorOC) : undefined} />
         <KpiCard to="/reportes" icon={FileText} label="Reportes 7d"
           value={reportesUlt7.length} sublabel={`${reportes.length} totales`} />
         <KpiCard to="/crm" icon={Users} label="Clientes"
           value={clientes.length} sublabel="activos" />
       </div>
 
-      {/* Resumen de inventario */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              Valor de inventario
-            </h2>
-          </div>
-          <div className="text-3xl font-bold">{formatCurrency(valorInventario)}</div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Calculado sobre stock disponible × precio costo
-          </p>
-        </CardContent>
-      </Card>
+      {/* Resumen de inventario - solo Direccion/Operaciones/Contabilidad */}
+      {puedeVerPrecios && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Valor de inventario
+              </h2>
+            </div>
+            <div className="text-3xl font-bold">{formatCurrency(valorInventario)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Calculado sobre stock disponible × precio costo
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Dos columnas con últimas obras y reportes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

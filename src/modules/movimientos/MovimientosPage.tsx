@@ -76,7 +76,7 @@ export default function MovimientosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
           <GitBranch className="h-8 w-8 text-primary" />
           Movimientos
         </h1>
