@@ -245,7 +245,8 @@ export interface Reporte {
 export interface Remito {
   id: string;
   remito_id: string;
-  obra_id: string;
+  obra_id: string | null;
+  cliente_id: string | null;
   fecha: string;
   recibido_por: string | null;
   dni_receptor: string | null;
@@ -259,7 +260,9 @@ export interface Remito {
 export interface RemitoItem {
   id: string;
   remito_id: string;
-  item_id: string;
+  item_id: string | null;
+  descripcion_libre: string | null;
+  unidad: string | null;
   movimiento_id: string | null;
   cantidad: number;
   observaciones: string | null;

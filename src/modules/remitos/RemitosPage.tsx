@@ -233,10 +233,14 @@ function RemitoCard({
             </div>
 
             <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-              {remito.obra && (
+              {remito.obra ? (
                 <span className="flex items-center gap-1">
                   <Briefcase className="h-3 w-3" /> {remito.obra.obra_id}
                   {remito.obra.nombre_obra && ` · ${remito.obra.nombre_obra}`}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-primary">
+                  <User className="h-3 w-3" /> Entrega directa
                 </span>
               )}
               <span>📅 {formatDate(remito.fecha)}</span>

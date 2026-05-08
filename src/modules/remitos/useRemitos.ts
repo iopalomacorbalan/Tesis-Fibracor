@@ -25,6 +25,7 @@ export function useRemitos(obraId?: string | null) {
         .select(`
           *,
           obra:obras(id, obra_id, nombre_obra, sitio, cliente_id, cliente:clientes(*)),
+          cliente_directo:clientes!remitos_cliente_id_fkey(*),
           creador:usuarios!remitos_created_by_fkey(id, nombre),
           items:remito_items(
             *,
@@ -34,10 +35,10 @@ export function useRemitos(obraId?: string | null) {
       if (obraId) q = q.eq("obra_id", obraId);
       const { data, error } = await q.order("fecha", { ascending: false });
       if (error) throw error;
-      // Mapear cliente desde obra
       return ((data ?? []) as any[]).map(r => ({
         ...r,
-        cliente: r.obra?.cliente ?? null,
+        // Cliente: si hay obra → de la obra; si no → cliente directo
+        cliente: r.obra?.cliente ?? r.cliente_directo ?? null,
       })) as RemitoConRelaciones[];
     },
   });
@@ -54,6 +55,7 @@ export function useRemito(id: string | undefined) {
         .select(`
           *,
           obra:obras(id, obra_id, nombre_obra, sitio, cliente_id, cliente:clientes(*)),
+          cliente_directo:clientes!remitos_cliente_id_fkey(*),
           creador:usuarios!remitos_created_by_fkey(id, nombre),
           items:remito_items(
             *,
@@ -64,7 +66,10 @@ export function useRemito(id: string | undefined) {
         .single();
       if (error) throw error;
       const r = data as any;
-      return { ...r, cliente: r.obra?.cliente ?? null };
+      return {
+        ...r,
+        cliente: r.obra?.cliente ?? r.cliente_directo ?? null,
+      };
     },
   });
 }
@@ -93,16 +98,30 @@ async function generarRemitoId(): Promise<string> {
   return `REM-${String(max + 1).padStart(3, "0")}`;
 }
 
+async function generarMovId(): Promise<string> {
+  const { data } = await supabase.from("movimientos").select("mov_id");
+  const max = ((data as any[]) ?? [])
+    .map((m: any) => parseInt(String(m.mov_id ?? "").split("-").pop() || "0"))
+    .reduce((m: number, n: number) => Math.max(m, n), 0);
+  return `MOV-${String(max + 1).padStart(3, "0")}`;
+}
+
 type CrearRemitoInput = {
-  obra_id: string;
+  // Modo: desde obra o entrega directa
+  obra_id?: string | null;
+  cliente_id?: string | null;
   fecha?: string;
   recibido_por?: string | null;
   dni_receptor?: string | null;
   fecha_recepcion?: string | null;
   observaciones?: string | null;
+  // Si true, descuenta del stock generando movimientos Retiro
+  descontar_stock?: boolean;
   items: Array<{
-    item_id: string;
-    movimiento_id: string | null;
+    item_id: string | null;            // null si es descripción manual
+    descripcion_libre?: string | null; // requerido si item_id null
+    unidad?: string | null;
+    movimiento_id?: string | null;     // viene cuando se crea desde un retiro existente
     cantidad: number;
     observaciones?: string | null;
   }>;
@@ -116,11 +135,59 @@ export function useCrearRemito() {
       const userResp = await supabase.auth.getUser();
       const userId = userResp.data.user?.id;
 
+      // Si descontar stock está activo y no viene de obra (sin movimiento_id),
+      // primero generamos los movimientos Retiro y luego los vinculamos
+      const itemsParaInsertar: Array<{
+        item_id: string | null;
+        descripcion_libre: string | null;
+        unidad: string | null;
+        movimiento_id: string | null;
+        cantidad: number;
+        observaciones: string | null;
+      }> = [];
+
+      for (const it of input.items) {
+        let movimientoIdFinal = it.movimiento_id ?? null;
+
+        // Si pidieron descontar stock y el item tiene item_id (no es manual)
+        // y no viene de un retiro existente
+        if (input.descontar_stock && it.item_id && !it.movimiento_id) {
+          const movId = await generarMovId();
+          const { data: mov, error: errMov } = await supabase
+            .from("movimientos")
+            .insert({
+              mov_id: movId,
+              tipo: "Retiro",
+              item_id: it.item_id,
+              cantidad: it.cantidad,
+              obra_id: input.obra_id ?? null,
+              ejecutado_por: userId ?? null,
+              observaciones: `Entrega vía remito ${remito_id}` +
+                (input.cliente_id ? " (entrega directa)" : ""),
+            } as any)
+            .select()
+            .single();
+          if (errMov) throw errMov;
+          movimientoIdFinal = (mov as any).id;
+        }
+
+        itemsParaInsertar.push({
+          item_id: it.item_id,
+          descripcion_libre: it.descripcion_libre ?? null,
+          unidad: it.unidad ?? null,
+          movimiento_id: movimientoIdFinal,
+          cantidad: it.cantidad,
+          observaciones: it.observaciones ?? null,
+        });
+      }
+
+      // Crear el remito
       const { data: rem, error } = await supabase
         .from("remitos")
         .insert({
           remito_id,
-          obra_id: input.obra_id,
+          obra_id: input.obra_id ?? null,
+          cliente_id: input.cliente_id ?? null,
           fecha: input.fecha ?? new Date().toISOString().slice(0, 10),
           recibido_por: input.recibido_por ?? null,
           dni_receptor: input.dni_receptor ?? null,
@@ -133,13 +200,11 @@ export function useCrearRemito() {
       if (error) throw error;
       const remRow = rem as any;
 
-      if (input.items.length > 0) {
-        const rows = input.items.map(it => ({
+      // Crear los items vinculados
+      if (itemsParaInsertar.length > 0) {
+        const rows = itemsParaInsertar.map(it => ({
+          ...it,
           remito_id: remRow.id,
-          item_id: it.item_id,
-          movimiento_id: it.movimiento_id,
-          cantidad: it.cantidad,
-          observaciones: it.observaciones ?? null,
         }));
         const { error: errItems } = await supabase.from("remito_items").insert(rows as any);
         if (errItems) throw errItems;
@@ -150,6 +215,8 @@ export function useCrearRemito() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["items_remitables"] });
+      qc.invalidateQueries({ queryKey: ["inventario"] });
+      qc.invalidateQueries({ queryKey: ["movimientos"] });
     },
   });
 }
@@ -184,7 +251,6 @@ export function useEliminarRemito() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // CASCADE elimina los items
       const { error } = await supabase.from("remitos").delete().eq("id", id);
       if (error) throw error;
     },

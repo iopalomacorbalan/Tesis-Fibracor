@@ -93,9 +93,9 @@ export async function generarPdfRemito(args: {
     body: items.map((it, idx) => [
       String(idx + 1),
       (it as any).item?.item_id ?? "—",
-      (it as any).item?.descripcion ?? "—",
+      (it as any).item?.descripcion ?? it.descripcion_libre ?? "—",
       fmtNumber(it.cantidad, 2),
-      (it as any).item?.unidad ?? "ud.",
+      (it as any).item?.unidad ?? it.unidad ?? "ud.",
       it.observaciones ?? "",
     ]),
     margin: { left: PAGE.margin, right: PAGE.margin },
