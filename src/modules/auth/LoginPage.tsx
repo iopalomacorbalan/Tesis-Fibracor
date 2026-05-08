@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { Zap, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,14 +35,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Zap className="h-7 w-7 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">FIBRACOR</h1>
-              <p className="text-xs text-muted-foreground">Gestión operativa de redes</p>
-            </div>
+          <div className="flex flex-col items-center gap-3">
+            <img
+              src="/logo-fibracor.png"
+              alt="FIBRACOR"
+              className="h-20 w-auto rounded-lg shadow-lg shadow-primary/20"
+            />
+            <p className="text-xs text-muted-foreground">Gestión operativa de redes</p>
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, ClipboardList, GitBranch, LogOut, Zap, Wrench,
+  Users, ClipboardList, GitBranch, LogOut, Wrench,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -52,12 +52,13 @@ export function Sidebar() {
     <aside className="w-[260px] sm:w-64 bg-card border-r border-border flex flex-col h-screen sticky top-0">
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-            <Zap className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-          </div>
-          <div>
-            <div className="font-bold tracking-tight">FIBRACOR</div>
-            <div className="text-xs text-muted-foreground">Gestión operativa</div>
+          <img
+            src="/logo-fibracor.png"
+            alt="FIBRACOR"
+            className="h-10 w-auto rounded-md"
+          />
+          <div className="text-xs text-muted-foreground">
+            Gestión operativa
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { useAuth } from "@/lib/auth";
 
@@ -58,10 +58,11 @@ export function AppLayout() {
               <Menu className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center">
-                <Zap className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
-              </div>
-              <span className="font-bold tracking-tight text-sm">FIBRACOR</span>
+              <img
+                src="/logo-fibracor.png"
+                alt="FIBRACOR"
+                className="h-7 w-auto rounded"
+              />
             </div>
             <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-xs">
               {profile?.nombre.split(" ").slice(0, 2).map(s => s[0]).join("") || "?"}
