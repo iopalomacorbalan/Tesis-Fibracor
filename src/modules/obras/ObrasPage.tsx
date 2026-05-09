@@ -19,6 +19,7 @@ import {
 } from "./useObras";
 import { ObraDialog } from "./ObraDialog";
 import { ObraDetalle } from "./ObraDetalle";
+import { CostosExtrasDialog } from "./CostosExtrasDialog";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import type { ObraConRelaciones, EstadoObra } from "@/types/database";
@@ -50,7 +51,8 @@ export default function ObrasPage() {
   const [obraEditar, setObraEditar] = useState<ObraConRelaciones | null>(null);
   const [obraEliminar, setObraEliminar] = useState<ObraConRelaciones | null>(null);
   const [obraDetalle, setObraDetalle] = useState<ObraConRelaciones | null>(null);
-  const [obraCerrar, setObraCerrar] = useState<ObraConRelaciones | null>(null);
+  const [obraExtras, setObraExtras] = useState<ObraConRelaciones | null>(null); // paso 1: costos extras
+  const [obraCerrar, setObraCerrar] = useState<ObraConRelaciones | null>(null); // paso 2: confirmar
   const [obraFinalizar, setObraFinalizar] = useState<ObraConRelaciones | null>(null);
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Comercial"].includes(profile.area);
@@ -199,7 +201,7 @@ export default function ObrasPage() {
               onEditar={handleEditarObra}
               onEliminar={(o) => setObraEliminar(o)}
               onIniciar={(o) => cambiarEstado.mutate({ id: o.id, estado: "En ejecucion" })}
-              onParaCierre={(o) => setObraCerrar(o)}
+              onParaCierre={(o) => setObraExtras(o)}
               onFinalizar={(o) => setObraFinalizar(o)}
             />
           ))}
@@ -212,6 +214,19 @@ export default function ObrasPage() {
         open={!!obraDetalle}
         onOpenChange={(o) => !o && setObraDetalle(null)}
         obraId={obraDetalle?.id ?? null}
+      />
+
+      {/* Paso 1: Costos extras antes del cierre */}
+      <CostosExtrasDialog
+        open={!!obraExtras}
+        onOpenChange={(o) => !o && setObraExtras(null)}
+        obra={obraExtras}
+        onContinuar={() => {
+          if (obraExtras) {
+            setObraCerrar(obraExtras);
+            setObraExtras(null);
+          }
+        }}
       />
 
       {/* Iniciar cierre (genera devoluciones automáticas) */}
@@ -322,7 +337,7 @@ function ObraCard({
               </span>
             </div>
 
-            <div className="text-sm font-medium">
+            <div className="text-sm font-medium break-words">
               {obra.cliente?.nombre ?? <span className="text-muted-foreground italic">— sin cliente —</span>}
               {obra.nombre_obra && <span className="text-muted-foreground"> · {obra.nombre_obra}</span>}
             </div>

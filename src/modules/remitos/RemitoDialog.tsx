@@ -422,7 +422,7 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-medium">{it.descripcion}</span>
+                                  <span className="text-sm font-medium break-words">{it.descripcion}</span>
                                   <span className="text-[10px] text-muted-foreground">{it.item_codigo}</span>
                                   <span className={cn(
                                     "px-1.5 py-0.5 rounded text-[9px] font-semibold",
@@ -541,7 +541,7 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                           className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
                         />
                         <div>
-                          <div className="text-sm font-medium">Descontar del stock al crear</div>
+                          <div className="text-sm font-medium break-words">Descontar del stock al crear</div>
                           <div className="text-xs text-muted-foreground">
                             {descontarStock
                               ? "✓ Genera movimientos de Retiro automáticamente para los ítems del inventario"

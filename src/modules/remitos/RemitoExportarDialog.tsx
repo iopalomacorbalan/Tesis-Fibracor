@@ -74,7 +74,7 @@ export function RemitoExportarDialog({ open, onOpenChange, remito }: Props) {
               version === "firmar" ? "text-warning" : "text-muted-foreground"
             )} />
             <div>
-              <div className="text-sm font-medium">Para firmar</div>
+              <div className="text-sm font-medium break-words">Para firmar</div>
               <div className="text-xs text-muted-foreground">
                 PDF con campos en blanco para que el cliente firme y complete sus datos.
                 Aparece la marca "VERSIÓN PARA FIRMAR" al pie.
@@ -98,7 +98,7 @@ export function RemitoExportarDialog({ open, onOpenChange, remito }: Props) {
               version === "final" ? "text-success" : "text-muted-foreground"
             )} />
             <div>
-              <div className="text-sm font-medium">Versión final</div>
+              <div className="text-sm font-medium break-words">Versión final</div>
               <div className="text-xs text-muted-foreground">
                 {tieneDatosReceptor
                   ? "PDF con los datos del receptor ya cargados (nombre, DNI, fecha)."

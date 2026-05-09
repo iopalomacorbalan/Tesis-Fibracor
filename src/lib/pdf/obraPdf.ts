@@ -16,6 +16,8 @@ export interface PdfObraOptions {
   incluirFotos: boolean;
   incluirFinanciero: boolean;
   incluirMaterialesDetalle: boolean;
+  incluirHerramientas: boolean;
+  incluirCostosExtras: boolean;
   // Calidad de imagen (mm máximo)
   fotoMaxAncho?: number;
   fotoMaxAlto?: number;
@@ -28,6 +30,8 @@ const DEFAULTS: PdfObraOptions = {
   incluirFotos: true,
   incluirFinanciero: false,
   incluirMaterialesDetalle: false,
+  incluirHerramientas: false,
+  incluirCostosExtras: false,
   fotoMaxAncho: 75,
   fotoMaxAlto: 55,
   mostrarSoloLista: false,
@@ -235,6 +239,8 @@ export async function generarPdfObra(args: {
         ["Presupuesto de obra", fmtMoney(costos.presupuesto), fmtMoney(costos.presupuesto)],
         ["Materiales consumidos", fmtMoney(costos.total_materiales_costo), fmtMoney(costos.total_materiales_lista)],
         ["Compras vinculadas (OCs)", fmtMoney(costos.total_ocs), fmtMoney(costos.total_ocs)],
+        ["Herramientas no devueltas", fmtMoney(costos.total_herramientas_no_devueltas), fmtMoney(costos.total_herramientas_no_devueltas)],
+        ["Costos extras (tercerizados, etc.)", fmtMoney(costos.total_costos_extras), fmtMoney(costos.total_costos_extras)],
         [
           { content: "Total ejecutado", styles: { fontStyle: "bold" } },
           { content: fmtMoney(costos.total_ejecutado_costo), styles: { fontStyle: "bold" } },
@@ -309,6 +315,96 @@ export async function generarPdfObra(args: {
         ]),
         margin: { left: PAGE.margin, right: PAGE.margin },
       });
+      y = (doc as any).lastAutoTable.finalY + 8;
+    }
+
+    // Costos extras
+    if (opts.incluirCostosExtras && costos.costos_extras.length > 0) {
+      y = ensureSpace(doc, y, 30);
+      y = sectionTitle(doc, "Costos extras (tercerizados, materiales adicionales)", y);
+
+      autoTable(doc, {
+        startY: y,
+        theme: "striped",
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: PDF_COLORS.primary, textColor: 255, fontStyle: "bold" },
+        head: [["Concepto", "Observaciones", "Monto"]],
+        columnStyles: { 2: { halign: "right", fontStyle: "bold" } },
+        body: [
+          ...costos.costos_extras.map(e => [
+            e.concepto,
+            e.observaciones ?? "",
+            fmtMoney(e.monto),
+          ]),
+          [
+            { content: "TOTAL EXTRAS", styles: { fontStyle: "bold" } },
+            "",
+            { content: fmtMoney(costos.total_costos_extras), styles: { fontStyle: "bold", textColor: PDF_COLORS.primary } },
+          ],
+        ],
+        margin: { left: PAGE.margin, right: PAGE.margin },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+    }
+  }
+
+  // ====== HERRAMIENTAS UTILIZADAS (no van en financiero, pueden ir solas) ======
+  if (opts.incluirHerramientas && costos && costos.herramientas.length > 0) {
+    if (!opts.incluirFinanciero) {
+      doc.addPage();
+      y = PAGE.margin + 5;
+    } else {
+      y = ensureSpace(doc, y, 30);
+    }
+    y = sectionTitle(doc, "Herramientas utilizadas en la obra", y);
+
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF_COLORS.muted);
+    doc.text(
+      "Lista de herramientas asignadas a técnicos durante la obra. Solo las NO devueltas se cuentan como costo.",
+      PAGE.margin, y
+    );
+    y += 4;
+
+    autoTable(doc, {
+      startY: y,
+      theme: "striped",
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: PDF_COLORS.primary, textColor: 255, fontStyle: "bold" },
+      head: [["Código", "Herramienta", "Técnico", "Cant.", "Estado", opts.incluirFinanciero ? "Costo" : ""].filter(Boolean)],
+      columnStyles: opts.incluirFinanciero ? { 5: { halign: "right" } } : {},
+      body: costos.herramientas.map(h => {
+        const estadoColor = h.estado_final === "Devuelta" ? PDF_COLORS.success
+          : h.estado_final === "No devuelta" ? PDF_COLORS.danger
+          : PDF_COLORS.warning;
+        const row: any[] = [
+          h.item_codigo,
+          h.descripcion,
+          h.tecnico_nombre ?? "—",
+          fmtNumber(h.cantidad_retirada, 2),
+          { content: h.estado_final, styles: { textColor: estadoColor, fontStyle: "bold" } },
+        ];
+        if (opts.incluirFinanciero) {
+          const costoFinal = h.estado_final === "No devuelta"
+            ? h.cantidad_no_devuelta * h.precio_costo : 0;
+          row.push(costoFinal > 0 ? fmtMoney(costoFinal) : "—");
+        }
+        return row;
+      }),
+      margin: { left: PAGE.margin, right: PAGE.margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 4;
+
+    // Resumen herramientas no devueltas
+    if (opts.incluirFinanciero && costos.total_herramientas_no_devueltas > 0) {
+      doc.setFontSize(9);
+      doc.setTextColor(...PDF_COLORS.danger);
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        `Total herramientas no devueltas (sumadas al costo): ${fmtMoney(costos.total_herramientas_no_devueltas)}`,
+        PAGE.margin, y
+      );
+      y += 6;
     }
   }
 

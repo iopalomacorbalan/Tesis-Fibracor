@@ -228,7 +228,7 @@ function RemitoCard({
               )}
             </div>
 
-            <div className="text-sm font-medium">
+            <div className="text-sm font-medium break-words">
               {remito.cliente?.nombre ?? <span className="text-muted-foreground italic">Sin cliente</span>}
             </div>
 

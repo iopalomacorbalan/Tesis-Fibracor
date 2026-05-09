@@ -187,7 +187,7 @@ export default function DashboardPage() {
                   >
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-medium break-words">
                           {r.reporte_id}
                           {r.obra?.obra_id && <span className="text-muted-foreground"> · {r.obra.obra_id}</span>}
                         </div>

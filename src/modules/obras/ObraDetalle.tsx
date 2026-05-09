@@ -312,7 +312,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
       <div className="text-muted-foreground mt-0.5">{icon}</div>
       <div className="flex-1">
         <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="text-sm font-medium">{value}</div>
+        <div className="text-sm font-medium break-words">{value}</div>
       </div>
     </div>
   );

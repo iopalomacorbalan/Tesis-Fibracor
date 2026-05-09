@@ -92,3 +92,17 @@
     min-height: 36px;
   }
 }
+
+/* Prevenir overflow horizontal por descripciones largas */
+.card-text-overflow {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  /* Forzar que los flex-1 min-w-0 funcionen */
+  .min-w-0 {
+    min-width: 0 !important;
+  }
+}
+

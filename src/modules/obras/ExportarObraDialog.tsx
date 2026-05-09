@@ -27,6 +27,8 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
   const [incluirFotos, setIncluirFotos] = useState(true);
   const [incluirFinanciero, setIncluirFinanciero] = useState(false);
   const [incluirMaterialesDetalle, setIncluirMaterialesDetalle] = useState(false);
+  const [incluirHerramientas, setIncluirHerramientas] = useState(false);
+  const [incluirCostosExtras, setIncluirCostosExtras] = useState(false);
   const [generando, setGenerando] = useState(false);
 
   if (!obra) return null;
@@ -50,12 +52,14 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
       const doc = await generarPdfObra({
         obra,
         reportes: incluirReportes ? reportesParaPdf : [],
-        costos: incluirFinanciero ? costos : null,
+        costos: (incluirFinanciero || incluirHerramientas) ? costos : null,
         options: {
           incluirReportes,
           incluirFotos,
           incluirFinanciero,
           incluirMaterialesDetalle,
+          incluirHerramientas,
+          incluirCostosExtras,
         },
       });
 
@@ -88,7 +92,7 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="text-sm font-medium">Contenido del PDF:</div>
+          <div className="text-sm font-medium break-words">Contenido del PDF:</div>
 
           <CheckOption
             checked={incluirReportes}
@@ -114,21 +118,34 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
               checked={incluirFinanciero}
               onChange={setIncluirFinanciero}
               label="Resumen financiero"
-              description="Presupuesto vs ejecutado, margen, OCs"
+              description="Presupuesto vs ejecutado, margen, OCs, costos extras"
               warning={incluirFinanciero ? "⚠ El PDF incluirá información de costos sensible" : undefined}
             />
           )}
 
           {incluirFinanciero && (
-            <div className="ml-6">
+            <div className="ml-6 space-y-2">
               <CheckOption
                 checked={incluirMaterialesDetalle}
                 onChange={setIncluirMaterialesDetalle}
                 label="Detalle de materiales"
                 description="Tabla con cada ítem y su costo"
               />
+              <CheckOption
+                checked={incluirCostosExtras}
+                onChange={setIncluirCostosExtras}
+                label="Costos extras"
+                description="Tercerizados, materiales adicionales, etc."
+              />
             </div>
           )}
+
+          <CheckOption
+            checked={incluirHerramientas}
+            onChange={setIncluirHerramientas}
+            label="Herramientas utilizadas"
+            description="Lista de herramientas asignadas a técnicos con su estado final (devuelta/no devuelta/dañada)"
+          />
         </div>
 
         {numFotos > 30 && incluirFotos && (
@@ -174,7 +191,7 @@ function CheckOption({
         className="mt-1 h-4 w-4 cursor-pointer accent-primary"
       />
       <div className="flex-1">
-        <div className="text-sm font-medium">{label}</div>
+        <div className="text-sm font-medium break-words">{label}</div>
         {description && <div className="text-xs text-muted-foreground">{description}</div>}
         {warning && <div className="text-xs text-warning mt-0.5">{warning}</div>}
       </div>

@@ -24,6 +24,27 @@ export interface OcVinculada {
   cantidad_recibida: number;
 }
 
+export interface HerramientaUsada {
+  item_id: string;
+  item_codigo: string;
+  descripcion: string;
+  categoria: string;
+  precio_costo: number;
+  tecnico_nombre: string | null;
+  cantidad_retirada: number;
+  cantidad_devuelta: number;
+  cantidad_pendiente: number;
+  cantidad_no_devuelta: number;
+  estado_final: string; // 'Devuelta' / 'Pendiente' / 'No devuelta'
+}
+
+export interface CostoExtraObra {
+  id: string;
+  concepto: string;
+  monto: number;
+  observaciones: string | null;
+}
+
 export interface ObraCostos {
   presupuesto: number;
   // Materiales (retiros desde stock que NO volvieron por devolución)
@@ -33,12 +54,18 @@ export interface ObraCostos {
   // OCs vinculadas a la obra
   ocs: OcVinculada[];
   total_ocs: number;
+  // Herramientas usadas (no consumibles)
+  herramientas: HerramientaUsada[];
+  total_herramientas_no_devueltas: number; // costo de las que NO volvieron
+  // Costos extras (tercerizados, etc)
+  costos_extras: CostoExtraObra[];
+  total_costos_extras: number;
   // Totales agregados
   total_ejecutado_costo: number;
   total_ejecutado_lista: number;
-  margen_costo: number;       // presupuesto - ejecutado_costo
-  margen_costo_pct: number;   // %
-  margen_lista: number;       // presupuesto - ejecutado_lista (lo que sale al precio facturable)
+  margen_costo: number;
+  margen_costo_pct: number;
+  margen_lista: number;
   margen_lista_pct: number;
 }
 
@@ -89,13 +116,13 @@ export function useObraCostos(obraId: string | null) {
         consumidoPorItem.set(key, cur);
       }
 
-      // Solo cuenta como costo lo que realmente se consumió (queda en obra al cierre)
-      // Nota: las herramientas devueltas no se cuentan como costo
+      // Solo MATERIALES CONSUMIBLES cuentan como costo de obra (no herramientas)
       const materiales: MaterialRetirado[] = [];
       let totalMatCosto = 0;
       let totalMatLista = 0;
       for (const [item_id, info] of consumidoPorItem.entries()) {
         if (info.cantidad <= 0) continue;
+        if (!info.es_consumible) continue; // herramientas no van como material
         const tCosto = info.cantidad * info.precio_costo;
         const tLista = info.cantidad * info.precio_lista;
         materiales.push({
@@ -113,6 +140,39 @@ export function useObraCostos(obraId: string | null) {
         totalMatLista += tLista;
       }
       materiales.sort((a, b) => b.total_costo - a.total_costo);
+
+      // 2.5. Herramientas usadas (las consultamos vía RPC para tener el estado final)
+      const { data: herramientasData } = await supabase.rpc("get_herramientas_obra", {
+        p_obra_id: obraId,
+      });
+      const herramientas: HerramientaUsada[] = ((herramientasData ?? []) as any[]).map(h => ({
+        item_id: h.item_id,
+        item_codigo: h.item_codigo,
+        descripcion: h.descripcion,
+        categoria: h.categoria,
+        precio_costo: Number(h.precio_costo) || 0,
+        tecnico_nombre: h.tecnico_nombre,
+        cantidad_retirada: Number(h.cantidad_retirada) || 0,
+        cantidad_devuelta: Number(h.cantidad_devuelta) || 0,
+        cantidad_pendiente: Number(h.cantidad_pendiente) || 0,
+        cantidad_no_devuelta: Number(h.cantidad_no_devuelta) || 0,
+        estado_final: h.estado_final,
+      }));
+      // Solo las herramientas NO devueltas suman costo (rotas, perdidas, no devueltas)
+      const totalHerrNoDev = herramientas
+        .filter(h => h.estado_final === "No devuelta")
+        .reduce((s, h) => s + (h.cantidad_no_devuelta * h.precio_costo), 0);
+
+      // 2.6. Costos extras (tercerizados, etc.)
+      const { data: extrasData } = await supabase
+        .from("costos_extras_obra")
+        .select("id, concepto, monto, observaciones")
+        .eq("obra_id", obraId);
+      const costosExtras: CostoExtraObra[] = ((extrasData ?? []) as any[]).map(e => ({
+        id: e.id, concepto: e.concepto, monto: Number(e.monto) || 0,
+        observaciones: e.observaciones,
+      }));
+      const totalExtras = costosExtras.reduce((s, e) => s + e.monto, 0);
 
       // 3. OCs vinculadas a la obra
       const { data: comprasData } = await supabase
@@ -138,9 +198,10 @@ export function useObraCostos(obraId: string | null) {
         .filter(c => c.estado !== "Cancelada" && c.estado !== "Rechazada")
         .reduce((s, c) => s + c.total_estimado, 0);
 
-      // 4. Totales agregados (no se duplica: materiales son insumos, OCs son compras nuevas)
-      const totalEjecutadoCosto = totalMatCosto + totalOcs;
-      const totalEjecutadoLista = totalMatLista + totalOcs;
+      // 4. Totales agregados
+      // Costo = materiales consumibles + OCs + herramientas no devueltas + costos extras
+      const totalEjecutadoCosto = totalMatCosto + totalOcs + totalHerrNoDev + totalExtras;
+      const totalEjecutadoLista = totalMatLista + totalOcs + totalHerrNoDev + totalExtras;
 
       const margenCosto = presupuesto - totalEjecutadoCosto;
       const margenCostoPct = presupuesto > 0 ? (margenCosto / presupuesto) * 100 : 0;
@@ -154,6 +215,10 @@ export function useObraCostos(obraId: string | null) {
         total_materiales_lista: totalMatLista,
         ocs,
         total_ocs: totalOcs,
+        herramientas,
+        total_herramientas_no_devueltas: totalHerrNoDev,
+        costos_extras: costosExtras,
+        total_costos_extras: totalExtras,
         total_ejecutado_costo: totalEjecutadoCosto,
         total_ejecutado_lista: totalEjecutadoLista,
         margen_costo: margenCosto,

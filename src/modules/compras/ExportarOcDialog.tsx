@@ -110,7 +110,7 @@ export function ExportarOcDialog({ open, onOpenChange, compra }: Props) {
                 className="mt-1 h-4 w-4 cursor-pointer accent-primary"
               />
               <div>
-                <div className="text-sm font-medium">Incluir precios y total</div>
+                <div className="text-sm font-medium break-words">Incluir precios y total</div>
                 <div className="text-xs text-muted-foreground">
                   Si lo desactivás, el PDF sale solo con cantidades
                 </div>
