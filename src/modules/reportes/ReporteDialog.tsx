@@ -32,6 +32,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
   const agregarFotos = useAgregarFotos();
   const eliminarFoto = useEliminarFoto();
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileRefGaleria = useRef<HTMLInputElement>(null);
 
   const [obraId, setObraId] = useState<string>(obraIdFijo ?? "");
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
@@ -80,6 +81,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
     });
     setFotos(prev => [...prev, ...files]);
     if (fileRef.current) fileRef.current.value = "";
+    if (fileRefGaleria.current) fileRefGaleria.current.value = "";
   };
 
   const removeFotoNueva = (idx: number) => {
@@ -240,6 +242,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
           <div className="space-y-2">
             <Label>{isEdit ? "Agregar fotos nuevas" : "Fotos"} ({fotos.length})</Label>
             <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-4">
+              {/* Input para cámara (solo en mobile) */}
               <input
                 ref={fileRef}
                 type="file"
@@ -248,18 +251,38 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
                 capture="environment"
                 onChange={handleFileChange}
                 className="hidden"
-                id="upload-fotos"
+                id="upload-fotos-camara"
+              />
+              {/* Input para galería (sin capture) */}
+              <input
+                ref={fileRefGaleria}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+                id="upload-fotos-galeria"
               />
               <div className="flex flex-col items-center gap-2">
                 <Camera className="h-8 w-8 text-muted-foreground" />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  <Upload className="h-3.5 w-3.5" /> Subir fotos
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <Camera className="h-3.5 w-3.5" /> Tomar foto
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileRefGaleria.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5" /> Desde galería
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Podés subir múltiples imágenes a la vez
                 </p>
