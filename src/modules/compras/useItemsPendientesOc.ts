@@ -68,7 +68,7 @@ export function useCrearOcDesdePendientes() {
           estado: "Solicitada",
           total_estimado: total,
           observaciones: input.observaciones ?? "Generada desde pendientes de OC",
-          solicitante_id: userId,
+          solicitado_por: userId ?? null,
         } as any)
         .select()
         .single();
