@@ -10,11 +10,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCompras, useCambiarEstadoCompra } from "./useCompras";
 import { CompraDialog } from "./CompraDialog";
 import { CompraDetalle } from "./CompraDetalle";
 import { RecibirCompraDialog } from "./RecibirCompraDialog";
 import { ExportarOcDialog } from "./ExportarOcDialog";
+import { PendientesOcTab } from "./PendientesOcTab";
+import { useItemsPendientesOc } from "./useItemsPendientesOc";
 import { useAuth } from "@/lib/auth";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import type { CompraConRelaciones, EstadoCompra } from "@/types/database";
@@ -39,6 +42,9 @@ export default function ComprasPage() {
   const [recibirOC, setRecibirOC] = useState<CompraConRelaciones | null>(null);
   const [exportarOC, setExportarOC] = useState<CompraConRelaciones | null>(null);
   const [verCompra, setVerCompra] = useState<CompraConRelaciones | null>(null);
+  const [tab, setTab] = useState<"ocs" | "pendientes">("ocs");
+
+  const { data: pendientes = [] } = useItemsPendientesOc();
 
   const puedeAprobar = profile && ["Direccion", "Operaciones"].includes(profile.area);
   const puedeRecibir = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
@@ -108,65 +114,94 @@ export default function ComprasPage() {
         <StatCard label="Recibidas" value={String(stats.recibidas)} variant="success" />
       </div>
 
-      <div className="flex gap-3 flex-wrap items-center">
-        <div className="flex-1 min-w-[280px] relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por OC, proveedor, obra..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "ocs" | "pendientes")} className="w-full">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-1">
+          <TabsList className="w-max">
+            <TabsTrigger value="ocs">
+              Órdenes de compra
+              {compras.length > 0 && (
+                <span className="ml-2 text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
+                  {compras.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="pendientes">
+              Pendientes de OC
+              {pendientes.length > 0 && (
+                <span className="ml-2 text-[10px] bg-warning/20 text-warning border border-warning/30 px-1.5 py-0.5 rounded-full font-bold">
+                  {pendientes.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
         </div>
-        <Select value={filtro} onValueChange={setFiltro}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="activas">Activas</SelectItem>
-            <SelectItem value="todos">Todas</SelectItem>
-            <SelectItem value="Solicitada">Solicitadas</SelectItem>
-            <SelectItem value="Aprobada">Aprobadas</SelectItem>
-            <SelectItem value="Parcial">Parciales</SelectItem>
-            <SelectItem value="Recibida">Recibidas</SelectItem>
-            <SelectItem value="Cancelada">Canceladas</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
-      {isLoading ? (
-        <Card><CardContent className="py-16 text-center text-muted-foreground">Cargando OCs...</CardContent></Card>
-      ) : error ? (
-        <Card className="border-destructive">
-          <CardContent className="py-8 flex items-center gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5" />
-            <div className="text-sm">{(error as Error).message}</div>
-          </CardContent>
-        </Card>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">Sin órdenes de compra</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map(c => (
-            <CompraCard
-              key={c.id}
-              compra={c}
-              puedeAprobar={!!puedeAprobar}
-              puedeRecibir={!!puedeRecibir}
-              onAprobar={() => handleAprobar(c)}
-              onRecibir={() => setRecibirOC(c)}
-              onExportar={() => setExportarOC(c)}
-              onVer={() => setVerCompra(c)}
-              onCancelar={() => handleCancelar(c)}
-            />
-          ))}
-        </div>
-      )}
+        <TabsContent value="ocs" className="space-y-4 mt-4">
+          <div className="flex gap-3 flex-wrap items-center">
+            <div className="flex-1 min-w-[280px] relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por OC, proveedor, obra..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={filtro} onValueChange={setFiltro}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="activas">Activas</SelectItem>
+                <SelectItem value="todos">Todas</SelectItem>
+                <SelectItem value="Solicitada">Solicitadas</SelectItem>
+                <SelectItem value="Aprobada">Aprobadas</SelectItem>
+                <SelectItem value="Parcial">Parciales</SelectItem>
+                <SelectItem value="Recibida">Recibidas</SelectItem>
+                <SelectItem value="Cancelada">Canceladas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <Card><CardContent className="py-16 text-center text-muted-foreground">Cargando OCs...</CardContent></Card>
+          ) : error ? (
+            <Card className="border-destructive">
+              <CardContent className="py-8 flex items-center gap-3 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                <div className="text-sm">{(error as Error).message}</div>
+              </CardContent>
+            </Card>
+          ) : filtered.length === 0 ? (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+                <p className="text-muted-foreground">Sin órdenes de compra</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map(c => (
+                <CompraCard
+                  key={c.id}
+                  compra={c}
+                  puedeAprobar={!!puedeAprobar}
+                  puedeRecibir={!!puedeRecibir}
+                  onAprobar={() => handleAprobar(c)}
+                  onRecibir={() => setRecibirOC(c)}
+                  onExportar={() => setExportarOC(c)}
+                  onVer={() => setVerCompra(c)}
+                  onCancelar={() => handleCancelar(c)}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="pendientes" className="mt-4">
+          <PendientesOcTab />
+        </TabsContent>
+      </Tabs>
 
       <CompraDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <RecibirCompraDialog

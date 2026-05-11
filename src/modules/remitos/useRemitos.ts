@@ -131,12 +131,29 @@ export function useCrearRemito() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CrearRemitoInput) => {
-      const remito_id = await generarRemitoId();
       const userResp = await supabase.auth.getUser();
       const userId = userResp.data.user?.id;
 
-      // Si descontar stock está activo y no viene de obra (sin movimiento_id),
-      // primero generamos los movimientos Retiro y luego los vinculamos
+      // 1) Crear el remito PRIMERO (trigger asigna remito_id automático)
+      const { data: rem, error } = await supabase
+        .from("remitos")
+        .insert({
+          obra_id: input.obra_id ?? null,
+          cliente_id: input.cliente_id ?? null,
+          fecha: input.fecha ?? new Date().toISOString().slice(0, 10),
+          recibido_por: input.recibido_por ?? null,
+          dni_receptor: input.dni_receptor ?? null,
+          fecha_recepcion: input.fecha_recepcion ?? null,
+          observaciones: input.observaciones ?? null,
+          created_by: userId ?? null,
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      const remRow = rem as any;
+      const remitoIdReal = remRow.remito_id; // ID asignado por el trigger
+
+      // 2) Generar movimientos Retiro si corresponde (mov_id por trigger)
       const itemsParaInsertar: Array<{
         item_id: string | null;
         descripcion_libre: string | null;
@@ -149,20 +166,16 @@ export function useCrearRemito() {
       for (const it of input.items) {
         let movimientoIdFinal = it.movimiento_id ?? null;
 
-        // Si pidieron descontar stock y el item tiene item_id (no es manual)
-        // y no viene de un retiro existente
         if (input.descontar_stock && it.item_id && !it.movimiento_id) {
-          const movId = await generarMovId();
           const { data: mov, error: errMov } = await supabase
             .from("movimientos")
             .insert({
-              mov_id: movId,
               tipo: "Retiro",
               item_id: it.item_id,
               cantidad: it.cantidad,
               obra_id: input.obra_id ?? null,
               ejecutado_por: userId ?? null,
-              observaciones: `Entrega vía remito ${remito_id}` +
+              observaciones: `Entrega vía remito ${remitoIdReal}` +
                 (input.cliente_id ? " (entrega directa)" : ""),
             } as any)
             .select()
@@ -180,25 +193,6 @@ export function useCrearRemito() {
           observaciones: it.observaciones ?? null,
         });
       }
-
-      // Crear el remito
-      const { data: rem, error } = await supabase
-        .from("remitos")
-        .insert({
-          remito_id,
-          obra_id: input.obra_id ?? null,
-          cliente_id: input.cliente_id ?? null,
-          fecha: input.fecha ?? new Date().toISOString().slice(0, 10),
-          recibido_por: input.recibido_por ?? null,
-          dni_receptor: input.dni_receptor ?? null,
-          fecha_recepcion: input.fecha_recepcion ?? null,
-          observaciones: input.observaciones ?? null,
-          created_by: userId ?? null,
-        } as any)
-        .select()
-        .single();
-      if (error) throw error;
-      const remRow = rem as any;
 
       // Crear los items vinculados
       if (itemsParaInsertar.length > 0) {

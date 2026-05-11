@@ -14,12 +14,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  useObras, useEliminarObra, useCambiarEstadoObra,
+  useObras, useCambiarEstadoObra,
   useCerrarObra, useFinalizarObra,
 } from "./useObras";
 import { ObraDialog } from "./ObraDialog";
 import { ObraDetalle } from "./ObraDetalle";
 import { CostosExtrasDialog } from "./CostosExtrasDialog";
+import { EliminarObraDialog } from "./EliminarObraDialog";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import type { ObraConRelaciones, EstadoObra } from "@/types/database";
@@ -40,7 +41,6 @@ function estadoStyle(estado: EstadoObra): string {
 export default function ObrasPage() {
   const { profile } = useAuth();
   const { data: obras = [], isLoading, error } = useObras();
-  const eliminarObra = useEliminarObra();
   const cambiarEstado = useCambiarEstadoObra();
   const cerrarObra = useCerrarObra();
   const finalizarObra = useFinalizarObra();
@@ -74,17 +74,6 @@ export default function ObrasPage() {
       return true;
     });
   }, [obras, search, filtroEstado]);
-
-  const handleEliminar = async () => {
-    if (!obraEliminar) return;
-    try {
-      await eliminarObra.mutateAsync(obraEliminar.id);
-      toast.success(`Obra ${obraEliminar.obra_id} eliminada`);
-      setObraEliminar(null);
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
-    }
-  };
 
   const handleEditarObra = (o: ObraConRelaciones) => {
     setObraEditar(o);
@@ -277,15 +266,10 @@ export default function ObrasPage() {
           }
         }}
       />
-      <ConfirmDialog
+      <EliminarObraDialog
         open={!!obraEliminar}
         onOpenChange={(o) => !o && setObraEliminar(null)}
-        title={`¿Eliminar obra ${obraEliminar?.obra_id}?`}
-        description="Esta acción no se puede deshacer. Se eliminarán también las solicitudes y movimientos asociados."
-        confirmText="Eliminar"
-        variant="destructive"
-        loading={eliminarObra.isPending}
-        onConfirm={handleEliminar}
+        obra={obraEliminar}
       />
     </div>
   );

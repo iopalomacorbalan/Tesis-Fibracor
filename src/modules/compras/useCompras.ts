@@ -52,7 +52,6 @@ export function useCrearCompra() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CompraInput) => {
-      const compra_id = await generarCompraId();
       const userResp = await supabase.auth.getUser();
       const userId = userResp.data.user?.id;
 
@@ -61,10 +60,10 @@ export function useCrearCompra() {
         0
       );
 
+      // compra_id se asigna por trigger BEFORE INSERT en la BD
       const { data: compra, error } = await supabase
         .from("compras")
         .insert({
-          compra_id,
           proveedor_id: input.proveedor_id,
           obra_id: input.obra_id ?? null,
           fecha_solicitud: new Date().toISOString().slice(0, 10),

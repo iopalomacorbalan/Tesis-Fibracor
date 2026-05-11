@@ -85,14 +85,14 @@ export function useCrearSolicitud() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SolicitudInput) => {
-      const solicitud_id = await generarSolicitudId();
       const userResp = await supabase.auth.getUser();
       const userId = userResp.data.user?.id;
 
+      // No generamos solicitud_id en el frontend - el trigger BEFORE INSERT
+      // 'trg_set_solicitud_id' lo asigna automáticamente y de forma atómica.
       const { data: sol, error } = await supabase
         .from("solicitudes")
         .insert({
-          solicitud_id,
           obra_id: input.obra_id,
           tecnico_id: userId,
           destinatario_id: input.destinatario_id ?? null,
