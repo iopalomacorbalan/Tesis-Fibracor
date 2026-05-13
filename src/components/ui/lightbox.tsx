@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export interface LightboxImage {
   url: string;
@@ -107,37 +107,40 @@ export function Lightbox({ images, initialIndex, open, onClose }: Props) {
   const current = images[index];
   const hasMultiple = images.length > 1;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center select-none"
+      className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center select-none isolate"
       onClick={onClose}
+      style={{ touchAction: "none" }}
     >
       {/* Header con contador y botones */}
       <div
         className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/60 to-transparent"
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="text-white text-sm font-medium">
           {hasMultiple ? `${index + 1} / ${images.length}` : ""}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDownload}
-            className="text-white hover:bg-white/20 hover:text-white"
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-white hover:bg-white/20 rounded-md px-3 py-2 text-sm font-medium"
           >
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline ml-1">Descargar</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-white hover:bg-white/20 hover:text-white h-9 w-9"
+            <span className="hidden sm:inline">Descargar</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="inline-flex items-center justify-center text-white hover:bg-white/20 rounded-md h-9 w-9"
+            aria-label="Cerrar"
           >
             <X className="h-5 w-5" />
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -145,6 +148,7 @@ export function Lightbox({ images, initialIndex, open, onClose }: Props) {
       <div
         className="relative w-full h-full flex items-center justify-center px-4 py-16 sm:px-16"
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -160,14 +164,18 @@ export function Lightbox({ images, initialIndex, open, onClose }: Props) {
       {hasMultiple && (
         <>
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            onPointerDown={(e) => e.stopPropagation()}
             className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
             aria-label="Anterior"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); goNext(); }}
+            onPointerDown={(e) => e.stopPropagation()}
             className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
             aria-label="Siguiente"
           >
@@ -185,6 +193,7 @@ export function Lightbox({ images, initialIndex, open, onClose }: Props) {
           {current.caption}
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
