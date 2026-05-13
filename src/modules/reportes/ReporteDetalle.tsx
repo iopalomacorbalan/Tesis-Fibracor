@@ -26,9 +26,11 @@ export function ReporteDetalle({ open, onOpenChange, reporte }: Props) {
       caption: f.caption ?? null,
     }));
 
+  const isLightboxOpen = lightboxIndex !== null;
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open && !isLightboxOpen} onOpenChange={(o) => { if (!isLightboxOpen) onOpenChange(o); }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{reporte.reporte_id}</DialogTitle>
