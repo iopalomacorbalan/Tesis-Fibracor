@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Briefcase, User, Calendar, Camera, X } from "lucide-react";
+import { Briefcase, User, Calendar, Camera } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Lightbox } from "@/components/ui/lightbox";
 import { formatDate } from "@/lib/utils";
 import type { ReporteConRelaciones } from "@/types/database";
 
@@ -13,9 +14,17 @@ interface Props {
 }
 
 export function ReporteDetalle({ open, onOpenChange, reporte }: Props) {
-  const [fotoZoom, setFotoZoom] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   if (!reporte) return null;
+
+  const fotos = reporte.fotos ?? [];
+  const lightboxImages = fotos
+    .filter(f => f.url)
+    .map(f => ({
+      url: f.url as string,
+      caption: f.caption ?? null,
+    }));
 
   return (
     <>
@@ -71,10 +80,10 @@ export function ReporteDetalle({ open, onOpenChange, reporte }: Props) {
                   Fotos ({reporte.fotos.length})
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {reporte.fotos.map(f => (
+                  {reporte.fotos.map((f, idx) => (
                     <button
                       key={f.id}
-                      onClick={() => setFotoZoom(f.url)}
+                      onClick={() => setLightboxIndex(idx)}
                       className="aspect-square rounded-md overflow-hidden border hover:border-primary transition-colors"
                     >
                       <img
@@ -91,25 +100,12 @@ export function ReporteDetalle({ open, onOpenChange, reporte }: Props) {
         </DialogContent>
       </Dialog>
 
-      {fotoZoom && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setFotoZoom(null)}
-        >
-          <button
-            onClick={() => setFotoZoom(null)}
-            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={fotoZoom}
-            alt=""
-            className="max-w-full max-h-full object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <Lightbox
+        images={lightboxImages}
+        initialIndex={lightboxIndex ?? 0}
+        open={lightboxIndex !== null}
+        onClose={() => setLightboxIndex(null)}
+      />
     </>
   );
 }

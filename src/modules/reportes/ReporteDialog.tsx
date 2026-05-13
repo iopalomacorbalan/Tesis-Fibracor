@@ -15,6 +15,7 @@ import {
   useCrearReporte, useEditarReporte, useAgregarFotos, useEliminarFoto,
 } from "./useReportes";
 import { useObras } from "@/modules/obras/useObras";
+import { procesarImagenes } from "@/lib/imageProcessing";
 import type { ReporteConRelaciones } from "@/types/database";
 
 interface Props {
@@ -41,6 +42,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
   const [pendientes, setPendientes] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [procesandoFotos, setProcesandoFotos] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -64,24 +66,47 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
     }
   }, [open, obraIdFijo, reporte]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
 
-    const nuevosPreviews: string[] = [];
-    files.forEach(f => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        nuevosPreviews.push(ev.target?.result as string);
-        if (nuevosPreviews.length === files.length) {
-          setPreviews(prev => [...prev, ...nuevosPreviews]);
-        }
-      };
-      reader.readAsDataURL(f);
-    });
-    setFotos(prev => [...prev, ...files]);
+    // Limpiar inputs primero
     if (fileRef.current) fileRef.current.value = "";
     if (fileRefGaleria.current) fileRefGaleria.current.value = "";
+
+    // Procesar las imágenes (convierte HEIC → JPG, comprime, normaliza)
+    setProcesandoFotos(true);
+    try {
+      const { exitosas, fallidas } = await procesarImagenes(files);
+
+      // Generar previews de las exitosas
+      const nuevosPreviews: string[] = [];
+      for (const f of exitosas) {
+        const url = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target?.result as string);
+          reader.readAsDataURL(f);
+        });
+        nuevosPreviews.push(url);
+      }
+
+      setFotos(prev => [...prev, ...exitosas]);
+      setPreviews(prev => [...prev, ...nuevosPreviews]);
+
+      if (fallidas.length > 0) {
+        toast.error(
+          `${fallidas.length} foto(s) no pudieron procesarse: ${fallidas[0].error}`,
+          { duration: 5000 }
+        );
+      }
+      if (exitosas.length > 0) {
+        toast.success(`${exitosas.length} foto(s) lista(s) para subir`);
+      }
+    } catch (e: any) {
+      toast.error("Error procesando las imágenes: " + e.message);
+    } finally {
+      setProcesandoFotos(false);
+    }
   };
 
   const removeFotoNueva = (idx: number) => {
@@ -246,7 +271,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 capture="environment"
                 onChange={handleFileChange}
@@ -257,35 +282,49 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
               <input
                 ref={fileRefGaleria}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 multiple
                 onChange={handleFileChange}
                 className="hidden"
                 id="upload-fotos-galeria"
               />
               <div className="flex flex-col items-center gap-2">
-                <Camera className="h-8 w-8 text-muted-foreground" />
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <Camera className="h-3.5 w-3.5" /> Tomar foto
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileRefGaleria.current?.click()}
-                  >
-                    <Upload className="h-3.5 w-3.5" /> Desde galería
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Podés subir múltiples imágenes a la vez
-                </p>
+                {procesandoFotos ? (
+                  <>
+                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                    <p className="text-sm font-medium text-primary">Procesando imágenes...</p>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Esto puede tardar unos segundos si son fotos de iPhone (HEIC).
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileRef.current?.click()}
+                        disabled={procesandoFotos}
+                      >
+                        <Camera className="h-3.5 w-3.5" /> Tomar foto
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileRefGaleria.current?.click()}
+                        disabled={procesandoFotos}
+                      >
+                        <Upload className="h-3.5 w-3.5" /> Desde galería
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Podés subir múltiples imágenes a la vez
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
