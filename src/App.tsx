@@ -13,6 +13,7 @@ import SolicitudesPage from "@/modules/solicitudes/SolicitudesPage";
 import MovimientosPage from "@/modules/movimientos/MovimientosPage";
 import ComprasPage from "@/modules/compras/ComprasPage";
 import ReportesPage from "@/modules/reportes/ReportesPage";
+import { CalendarioPage } from "@/modules/calendario/CalendarioPage";
 import CrmPage from "@/modules/crm/CrmPage";
 import MisHerramientasPage from "@/modules/mis-herramientas/MisHerramientasPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
@@ -39,6 +40,7 @@ export default function App() {
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/obras" element={<ObrasPage />} />
+            <Route path="/calendario" element={<CalendarioPage />} />
             <Route path="/stock" element={<StockPage />} />
             <Route path="/solicitudes" element={<SolicitudesPage />} />
             <Route path="/movimientos" element={<MovimientosPage />} />

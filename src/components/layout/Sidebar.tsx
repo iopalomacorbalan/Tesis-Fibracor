@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText,
+  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ const NAV: NavItem[] = [
 
   // Proyectos
   { to: "/obras", icon: Briefcase, label: "Obras", group: "Proyectos" },
+  { to: "/calendario", icon: CalendarDays, label: "Calendario", group: "Proyectos" },
   { to: "/reportes", icon: FileText, label: "Reportes", group: "Proyectos" },
 
   // Operaciones
