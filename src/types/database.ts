@@ -239,6 +239,8 @@ export interface Reporte {
   descripcion: string | null;
   trabajos_realizados: string | null;
   pendientes: string | null;
+  hora_entrada: string | null;  // formato "HH:MM:SS"
+  hora_salida: string | null;
   created_at: string;
 }
 
@@ -293,6 +295,7 @@ export interface ReporteConRelaciones extends Reporte {
   obra?: Obra | null;
   tecnico?: Usuario | null;
   fotos?: ReporteFoto[];
+  tecnicos_presentes?: Usuario[];
 }
 
 // Database type permisivo para Supabase

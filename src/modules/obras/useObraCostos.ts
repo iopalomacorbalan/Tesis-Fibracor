@@ -79,7 +79,10 @@ export function useObraCostos(obraId: string | null) {
       // 1. Obra para presupuesto
       const { data: obra, error: errObra } = await supabase
         .from("obras").select("presupuesto").eq("id", obraId).single();
-      if (errObra) throw errObra;
+      if (errObra) {
+        console.warn("No se pudo cargar costos (probablemente sin permisos):", errObra.message);
+        return null;
+      }
       const presupuesto = (obra as any)?.presupuesto ?? 0;
 
       // 2. Movimientos de la obra (retiros menos devoluciones aceptadas)

@@ -70,7 +70,7 @@ export function ReporteDetalle({ open, onOpenChange, reporte }: Props) {
 
             {reporte.pendientes && (
               <div>
-                <h3 className="text-sm font-semibold mb-1">Pendientes</h3>
+                <h3 className="text-sm font-semibold mb-1">Observaciones / Pendientes</h3>
                 <p className="text-sm whitespace-pre-wrap">{reporte.pendientes}</p>
               </div>
             )}

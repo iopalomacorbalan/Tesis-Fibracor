@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Loader2, Camera, X, Upload, Trash2 } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Loader2, Camera, X, Upload, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,12 @@ import {
 import {
   useCrearReporte, useEditarReporte, useAgregarFotos, useEliminarFoto,
 } from "./useReportes";
-import { useObras } from "@/modules/obras/useObras";
+import { useObras, useObra } from "@/modules/obras/useObras";
+import { useTecnicos } from "@/modules/obras/useUsuarios";
+import { useAuth } from "@/lib/auth";
 import { procesarImagenes } from "@/lib/imageProcessing";
+import { TimePicker } from "@/components/ui/time-picker";
+import { supabase } from "@/lib/supabase";
 import type { ReporteConRelaciones } from "@/types/database";
 
 interface Props {
@@ -27,7 +31,10 @@ interface Props {
 
 export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props) {
   const isEdit = !!reporte;
+  const { profile } = useAuth();
   const { data: obras = [] } = useObras();
+  const { data: obraActual } = useObra(obraIdFijo ?? "");
+  const { data: todosTecnicos = [] } = useTecnicos();
   const crear = useCrearReporte();
   const editar = useEditarReporte();
   const agregarFotos = useAgregarFotos();
@@ -40,6 +47,10 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
   const [descripcion, setDescripcion] = useState("");
   const [trabajos, setTrabajos] = useState("");
   const [pendientes, setPendientes] = useState("");
+  const [horaEntrada, setHoraEntrada] = useState("");
+  const [horaSalida, setHoraSalida] = useState("");
+  const [tecnicosPresentes, setTecnicosPresentes] = useState<string[]>([]);
+  const [tecnicosAdicionales, setTecnicosAdicionales] = useState<string[]>([]);
   const [fotos, setFotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [procesandoFotos, setProcesandoFotos] = useState(false);
@@ -53,6 +64,10 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
         setDescripcion(reporte.descripcion ?? "");
         setTrabajos(reporte.trabajos_realizados ?? "");
         setPendientes(reporte.pendientes ?? "");
+        setHoraEntrada(reporte.hora_entrada?.slice(0, 5) ?? "");
+        setHoraSalida(reporte.hora_salida?.slice(0, 5) ?? "");
+        setTecnicosPresentes((reporte.tecnicos_presentes ?? []).map(t => t.id));
+        setTecnicosAdicionales([]);
       } else {
         // Modo creación
         setObraId(obraIdFijo ?? "");
@@ -60,6 +75,10 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
         setDescripcion("");
         setTrabajos("");
         setPendientes("");
+        setHoraEntrada("");
+        setHoraSalida("");
+        setTecnicosPresentes(profile ? [profile.id] : []);  // por defecto, el técnico que crea
+        setTecnicosAdicionales([]);
       }
       setFotos([]);
       setPreviews([]);
@@ -124,6 +143,20 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
     }
   };
 
+  const tecnicosTotal = useMemo(() => {
+    return [...tecnicosPresentes, ...tecnicosAdicionales].filter((v, i, a) => a.indexOf(v) === i);
+  }, [tecnicosPresentes, tecnicosAdicionales]);
+
+  const horasCalculadas = useMemo(() => {
+    if (!horaEntrada || !horaSalida) return 0;
+    const [h1, m1] = horaEntrada.split(":").map(Number);
+    const [h2, m2] = horaSalida.split(":").map(Number);
+    const start = h1 * 60 + m1;
+    const end = h2 * 60 + m2;
+    if (end <= start) return 0;
+    return (end - start) / 60;
+  }, [horaEntrada, horaSalida]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!obraId) { toast.error("Seleccioná una obra"); return; }
@@ -131,8 +164,21 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
       toast.error("Completá descripción o trabajos realizados");
       return;
     }
+    if (!horaEntrada || !horaSalida) {
+      toast.error("Las horas de entrada y salida son obligatorias");
+      return;
+    }
+    if (horasCalculadas <= 0) {
+      toast.error("La hora de salida debe ser posterior a la de entrada");
+      return;
+    }
+    if (tecnicosTotal.length === 0) {
+      toast.error("Seleccioná al menos un técnico presente");
+      return;
+    }
 
     try {
+      let reporteId: string;
       if (isEdit && reporte) {
         // EDITAR
         await editar.mutateAsync({
@@ -143,8 +189,11 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
             descripcion: descripcion || null,
             trabajos_realizados: trabajos || null,
             pendientes: pendientes || null,
+            hora_entrada: horaEntrada,
+            hora_salida: horaSalida,
           },
         });
+        reporteId = reporte.id;
         // Subir nuevas fotos si las hay
         if (fotos.length > 0) {
           await agregarFotos.mutateAsync({ reporteId: reporte.id, fotos });
@@ -158,10 +207,22 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
           descripcion: descripcion || undefined,
           trabajos_realizados: trabajos || undefined,
           pendientes: pendientes || undefined,
+          hora_entrada: horaEntrada,
+          hora_salida: horaSalida,
           fotos: fotos.length > 0 ? fotos : undefined,
         });
+        reporteId = rep.id;
         toast.success(`Reporte ${rep.reporte_id} creado${fotos.length > 0 ? ` con ${fotos.length} fotos` : ""}`);
       }
+
+      // Guardar técnicos presentes (siempre se reescribe la lista completa)
+      await supabase.from("reporte_tecnicos").delete().eq("reporte_id", reporteId);
+      if (tecnicosTotal.length > 0) {
+        await supabase.from("reporte_tecnicos").insert(
+          tecnicosTotal.map(tid => ({ reporte_id: reporteId, tecnico_id: tid }))
+        );
+      }
+
       onOpenChange(false);
     } catch (e: any) {
       toast.error("Error: " + e.message);
@@ -229,13 +290,105 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
           </div>
 
           <div className="space-y-2">
-            <Label>Pendientes / Próximos pasos</Label>
+            <Label>Observaciones / Pendientes / Próximos pasos</Label>
             <Textarea
               rows={2}
               placeholder="Tareas pendientes para próxima visita..."
               value={pendientes}
               onChange={(e) => setPendientes(e.target.value)}
             />
+          </div>
+
+          {/* === Horas trabajadas === */}
+          <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <Label className="text-base font-semibold">Asistencia y horario *</Label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <TimePicker
+                label="Hora de entrada"
+                value={horaEntrada}
+                onChange={setHoraEntrada}
+                required
+              />
+              <TimePicker
+                label="Hora de salida"
+                value={horaSalida}
+                onChange={setHoraSalida}
+                required
+              />
+            </div>
+
+            {horasCalculadas > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Total: <b className="text-foreground">{horasCalculadas.toFixed(2)} horas</b>
+                {tecnicosTotal.length > 0 && (
+                  <> · {tecnicosTotal.length} técnico{tecnicosTotal.length > 1 ? "s" : ""} · <b className="text-primary">{(horasCalculadas * tecnicosTotal.length).toFixed(2)} horas-hombre</b></>
+                )}
+              </div>
+            )}
+
+            {/* Técnicos asignados a la obra */}
+            <div className="space-y-2">
+              <Label className="text-sm">Técnicos asignados a la obra (presentes)</Label>
+              {obraActual?.tecnicos && obraActual.tecnicos.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {obraActual.tecnicos.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setTecnicosPresentes(prev =>
+                          prev.includes(t.id)
+                            ? prev.filter(id => id !== t.id)
+                            : [...prev, t.id]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        tecnicosPresentes.includes(t.id)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-input hover:border-primary/40"
+                      }`}
+                    >
+                      {t.nombre}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No hay técnicos asignados a esta obra.</p>
+              )}
+            </div>
+
+            {/* Técnicos adicionales (no asignados originalmente) */}
+            <div className="space-y-2">
+              <Label className="text-sm">Otros técnicos que asistieron (opcional)</Label>
+              <div className="flex flex-wrap gap-2">
+                {todosTecnicos
+                  .filter(t => !obraActual?.tecnicos?.some(at => at.id === t.id))
+                  .map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setTecnicosAdicionales(prev =>
+                          prev.includes(t.id)
+                            ? prev.filter(id => id !== t.id)
+                            : [...prev, t.id]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        tecnicosAdicionales.includes(t.id)
+                          ? "bg-warning/20 text-warning-foreground border-warning"
+                          : "bg-background text-muted-foreground border-input hover:border-warning/40"
+                      }`}
+                    >
+                      + {t.nombre}
+                    </button>
+                  ))}
+              </div>
+            </div>
           </div>
 
           {/* Fotos existentes (en modo edición) */}

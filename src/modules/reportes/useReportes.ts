@@ -15,12 +15,17 @@ export function useReportes(obraId?: string | null) {
           *,
           obra:obras(id, obra_id, nombre_obra, sitio),
           tecnico:usuarios!reportes_tecnico_id_fkey(id, nombre, area, email),
-          fotos:reporte_fotos(*)
+          fotos:reporte_fotos(*),
+          reporte_tecnicos(usuario:usuarios!reporte_tecnicos_tecnico_id_fkey(id, nombre, area))
         `);
       if (obraId) q = q.eq("obra_id", obraId);
       const { data, error } = await q.order("fecha", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as any[]) as ReporteConRelaciones[];
+      const reportes = ((data ?? []) as any[]).map(r => ({
+        ...r,
+        tecnicos_presentes: (r.reporte_tecnicos ?? []).map((rt: any) => rt.usuario),
+      }));
+      return reportes as ReporteConRelaciones[];
     },
   });
 }
@@ -37,12 +42,15 @@ export function useReporte(id: string | undefined) {
           *,
           obra:obras(id, obra_id, nombre_obra, sitio),
           tecnico:usuarios!reportes_tecnico_id_fkey(id, nombre, email),
-          fotos:reporte_fotos(*)
+          fotos:reporte_fotos(*),
+          reporte_tecnicos(usuario:usuarios!reporte_tecnicos_tecnico_id_fkey(id, nombre, area))
         `)
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data as any;
+      const reporte = data as any;
+      reporte.tecnicos_presentes = (reporte.reporte_tecnicos ?? []).map((rt: any) => rt.usuario);
+      return reporte;
     },
   });
 }
@@ -53,6 +61,8 @@ type ReporteInput = {
   descripcion?: string;
   trabajos_realizados?: string;
   pendientes?: string;
+  hora_entrada?: string;
+  hora_salida?: string;
   fotos?: File[];
 };
 
@@ -82,6 +92,8 @@ export function useCrearReporte() {
           descripcion: input.descripcion ?? null,
           trabajos_realizados: input.trabajos_realizados ?? null,
           pendientes: input.pendientes ?? null,
+          hora_entrada: input.hora_entrada ?? null,
+          hora_salida: input.hora_salida ?? null,
         } as any)
         .select()
         .single();

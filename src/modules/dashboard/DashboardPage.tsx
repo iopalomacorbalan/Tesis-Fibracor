@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   Briefcase, Package, ClipboardList, ShoppingCart, FileText,
   AlertTriangle, Clock, GitBranch, Wrench, TrendingUp, Users,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useObras } from "@/modules/obras/useObras";
 import { useInventario, useItemsFueraServicio } from "@/modules/stock/useInventario";
 import { useSolicitudes } from "@/modules/solicitudes/useSolicitudes";
@@ -11,6 +14,7 @@ import { useDevolucionesPendientes } from "@/modules/movimientos/useMovimientos"
 import { useCompras } from "@/modules/compras/useCompras";
 import { useReportes } from "@/modules/reportes/useReportes";
 import { useClientes } from "@/modules/crm/clientes/useClientes";
+import { usePrecioHoraTecnica, useActualizarPrecioHora } from "./useConfigGlobal";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios as canViewPrices } from "@/lib/permissions";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
@@ -129,6 +133,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Precio hora técnica - solo Dirección */}
+      {profile?.area === "Direccion" && <PrecioHoraCard />}
 
       {/* Dos columnas con últimas obras y reportes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -263,5 +270,79 @@ function AlertCard({
         </CardContent>
       </Card>
     </Link>
+  );
+}
+
+function PrecioHoraCard() {
+  const { data: config, isLoading } = usePrecioHoraTecnica();
+  const actualizar = useActualizarPrecioHora();
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState("");
+
+  const handleEditar = () => {
+    setVal(String(config?.amount ?? 0));
+    setEditing(true);
+  };
+
+  const handleGuardar = async () => {
+    const num = parseFloat(val);
+    if (isNaN(num) || num < 0) {
+      toast.error("Ingresá un número válido");
+      return;
+    }
+    try {
+      await actualizar.mutateAsync(num);
+      toast.success("Precio actualizado");
+      setEditing(false);
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" />
+            Precio hora técnica
+          </h2>
+        </div>
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Cargando...</div>
+        ) : editing ? (
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold">$</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={val}
+              onChange={(e) => setVal(e.target.value)}
+              className="flex-1 h-12 px-3 text-2xl font-bold border rounded-md bg-background"
+              autoFocus
+            />
+            <Button size="sm" onClick={handleGuardar} disabled={actualizar.isPending}>
+              {actualizar.isPending ? "..." : "Guardar"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-3xl font-bold">{formatCurrency(config?.amount ?? 0)}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Se aplica al calcular el costo de horas técnicas de cada obra
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={handleEditar}>
+              Editar
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

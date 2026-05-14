@@ -39,12 +39,16 @@ export function useObra(id: string | undefined) {
         `)
         .eq("id", id)
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error("Error cargando obra:", error);
+        throw error;
+      }
       const obra = data as any;
       obra.tecnicos = (obra.obra_tecnicos ?? []).map((ot: any) => ot.usuario);
       delete obra.obra_tecnicos;
       return obra as ObraConRelaciones;
     },
+    retry: false, // No reintentar errores RLS
   });
 }
 

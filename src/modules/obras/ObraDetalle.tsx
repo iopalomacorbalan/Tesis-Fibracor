@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Briefcase, MapPin, Calendar, User, Users, Loader2,
+  Briefcase, MapPin, Calendar, User, Users, Loader2, Clock,
   Wrench, ClipboardList, FileText, GitBranch, Wallet, FileDown,
 } from "lucide-react";
 import {
@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useObra } from "./useObras";
 import { useObraCostos } from "./useObraCostos";
+import { useHorasTecnicasObra, useTotalHorasObra } from "./useHorasTecnicas";
 import { ExportarObraDialog } from "./ExportarObraDialog";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
@@ -70,23 +71,35 @@ function useObraDatos(obraId: string | null) {
 
 export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
   const { profile } = useAuth();
-  const { data: obra, isLoading } = useObra(obraId ?? undefined);
+  const { data: obra, isLoading, error } = useObra(obraId ?? undefined);
   const { data: datos } = useObraDatos(obraId);
-  const { data: costos } = useObraCostos(obraId);
-  const [exportOpen, setExportOpen] = useState(false);
 
   // Direccion, Contabilidad y Comercial ven precios. Operaciones, Paniol y Tecnico NO.
   const puedeVerCostos = puedeVerPrecios(profile?.area);
   const verPrecios = puedeVerCostos;
+
+  // Solo cargar costos si el usuario puede verlos (evita errores de RLS para técnicos)
+  const { data: costos } = useObraCostos(puedeVerCostos ? obraId : null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   if (!obraId) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto">
-        {isLoading || !obra ? (
+        {isLoading ? (
           <div className="py-12 text-center">
             <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+          </div>
+        ) : error || !obra ? (
+          <div className="py-12 text-center space-y-3">
+            <p className="text-destructive font-medium">No se pudo cargar la obra</p>
+            <p className="text-sm text-muted-foreground">
+              {error?.message ?? "Es posible que no tengas permisos para verla."}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              Cerrar
+            </Button>
           </div>
         ) : (
           <>
@@ -126,6 +139,12 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
                     Reportes ({datos?.reportes.length ?? 0})
                   </TabsTrigger>
                   {puedeVerCostos && (
+                    <TabsTrigger value="horas">
+                      <Clock className="h-3.5 w-3.5 mr-1" />
+                      Horas técnicas
+                    </TabsTrigger>
+                  )}
+                  {puedeVerCostos && (
                     <TabsTrigger value="costos">
                       <Wallet className="h-3.5 w-3.5 mr-1" />
                       Costos
@@ -135,7 +154,7 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
               </div>
 
               <TabsContent value="resumen" className="space-y-4">
-                <ResumenObra obra={obra} />
+                <ResumenObra obra={obra} verPrecios={verPrecios} />
               </TabsContent>
 
               <TabsContent value="solicitudes">
@@ -221,6 +240,12 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
               </TabsContent>
 
               {puedeVerCostos && (
+                <TabsContent value="horas">
+                  <HorasTecnicasTab obraId={obraId} area={profile?.area ?? null} />
+                </TabsContent>
+              )}
+
+              {puedeVerCostos && (
                 <TabsContent value="costos">
                   <CostosTab costos={costos} />
                 </TabsContent>
@@ -240,7 +265,7 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
   );
 }
 
-function ResumenObra({ obra }: { obra: ObraConRelaciones }) {
+function ResumenObra({ obra, verPrecios }: { obra: ObraConRelaciones; verPrecios: boolean }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -482,6 +507,94 @@ function ComparativaRow({ label, costo, lista, bold, color }: {
       <span>{label}</span>
       <span className="text-right">{formatCurrency(costo)}</span>
       <span className="text-right">{formatCurrency(lista)}</span>
+    </div>
+  );
+}
+
+function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: string | null }) {
+  const { data: horasPorTecnico = [], isLoading: l1 } = useHorasTecnicasObra(obraId);
+  const { data: totales, isLoading: l2 } = useTotalHorasObra(obraId);
+  const verCosto = area === "Direccion";
+
+  if (l1 || l2) {
+    return (
+      <div className="py-8 text-center">
+        <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  if (horasPorTecnico.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          Aún no hay reportes con horas cargadas para esta obra.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Resumen general */}
+      <div className={cn("grid gap-3", verCosto ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-xs text-muted-foreground">Total horas</div>
+            <div className="text-2xl font-bold">{totales?.total_horas.toFixed(2) ?? "0.00"}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-xs text-muted-foreground">Técnicos</div>
+            <div className="text-2xl font-bold">{totales?.cantidad_tecnicos ?? 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-xs text-muted-foreground">Reportes</div>
+            <div className="text-2xl font-bold">{totales?.cantidad_reportes ?? 0}</div>
+          </CardContent>
+        </Card>
+        {verCosto && (
+          <Card>
+            <CardContent className="p-3">
+              <div className="text-xs text-muted-foreground">Costo total</div>
+              <div className="text-2xl font-bold text-primary">{formatCurrency(totales?.costo_total ?? 0)}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                @ {formatCurrency(totales?.precio_hora_actual ?? 0)}/hr
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Desglose por técnico */}
+      <Card>
+        <CardContent className="p-3">
+          <h3 className="text-sm font-semibold mb-2">Por técnico</h3>
+          <div className="space-y-1">
+            <div className={cn("grid gap-2 text-xs text-muted-foreground font-medium border-b pb-1",
+              verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
+              <span>Técnico</span>
+              <span className="text-right">Reportes</span>
+              <span className="text-right">Horas</span>
+              {verCosto && <span className="text-right">Costo</span>}
+            </div>
+            {horasPorTecnico.map(h => (
+              <div key={h.tecnico_id} className={cn("grid gap-2 text-sm py-1",
+                verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
+                <span className="font-medium">{h.tecnico_nombre}</span>
+                <span className="text-right">{h.cantidad_reportes}</span>
+                <span className="text-right font-mono">{h.total_horas.toFixed(2)}</span>
+                {verCosto && (
+                  <span className="text-right font-mono">{formatCurrency(h.costo_total)}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

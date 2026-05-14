@@ -17,6 +17,7 @@ import { CalendarioPage } from "@/modules/calendario/CalendarioPage";
 import CrmPage from "@/modules/crm/CrmPage";
 import MisHerramientasPage from "@/modules/mis-herramientas/MisHerramientasPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,17 +39,17 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/obras" element={<ObrasPage />} />
-            <Route path="/calendario" element={<CalendarioPage />} />
-            <Route path="/stock" element={<StockPage />} />
-            <Route path="/solicitudes" element={<SolicitudesPage />} />
-            <Route path="/movimientos" element={<MovimientosPage />} />
-            <Route path="/mis-herramientas" element={<MisHerramientasPage />} />
-            <Route path="/compras" element={<ComprasPage />} />
-            <Route path="/reportes" element={<ReportesPage />} />
-            <Route path="/crm" element={<CrmPage />} />
-            <Route path="/remitos" element={<RemitosPage />} />
+            <Route path="/" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+            <Route path="/obras" element={<ErrorBoundary><ObrasPage /></ErrorBoundary>} />
+            <Route path="/calendario" element={<ErrorBoundary><CalendarioPage /></ErrorBoundary>} />
+            <Route path="/stock" element={<ErrorBoundary><StockPage /></ErrorBoundary>} />
+            <Route path="/solicitudes" element={<ErrorBoundary><SolicitudesPage /></ErrorBoundary>} />
+            <Route path="/movimientos" element={<ErrorBoundary><MovimientosPage /></ErrorBoundary>} />
+            <Route path="/mis-herramientas" element={<ErrorBoundary><MisHerramientasPage /></ErrorBoundary>} />
+            <Route path="/compras" element={<ErrorBoundary><ComprasPage /></ErrorBoundary>} />
+            <Route path="/reportes" element={<ErrorBoundary><ReportesPage /></ErrorBoundary>} />
+            <Route path="/crm" element={<ErrorBoundary><CrmPage /></ErrorBoundary>} />
+            <Route path="/remitos" element={<ErrorBoundary><RemitosPage /></ErrorBoundary>} />
             <Route path="*" element={<Placeholder />} />
           </Route>
         </Routes>

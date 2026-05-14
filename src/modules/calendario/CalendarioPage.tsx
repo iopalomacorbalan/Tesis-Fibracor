@@ -166,6 +166,7 @@ export function CalendarioPage() {
           editable={puedeEditar}
           eventStartEditable={puedeEditar}
           eventDurationEditable={puedeEditar}
+          eventResizableFromStart={puedeEditar}
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
           eventClick={handleEventClick}
@@ -176,6 +177,8 @@ export function CalendarioPage() {
           moreLinkText={(n) => `+${n} más`}
           eventTimeFormat={{ hour: "2-digit", minute: "2-digit" }}
           eventDisplay="block"
+          aspectRatio={1.8}
+          contentHeight="auto"
         />
       </div>
 
