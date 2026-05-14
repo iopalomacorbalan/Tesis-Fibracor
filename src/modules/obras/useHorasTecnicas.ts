@@ -68,3 +68,44 @@ export function useTotalHorasObra(obraId: string | null) {
     },
   });
 }
+
+export interface HorasPorDia {
+  reporte_id: string;
+  reporte_codigo: string;
+  fecha: string;
+  hora_entrada: string;
+  hora_salida: string;
+  horas_dia: number;
+  cantidad_asistentes: number;
+  asistentes: Array<{ id: string; nombre: string; area: string }>;
+  costo_dia: number;
+}
+
+/** Trae horas agrupadas por día (un row por reporte) */
+export function useHorasPorDiaObra(obraId: string | null) {
+  return useQuery({
+    queryKey: ["obra_horas_por_dia", obraId],
+    enabled: !!obraId,
+    queryFn: async (): Promise<HorasPorDia[]> => {
+      if (!obraId) return [];
+      const { data, error } = await supabase.rpc("get_horas_por_dia_obra", {
+        p_obra_id: obraId,
+      });
+      if (error) {
+        console.warn("Error horas por día:", error.message);
+        return [];
+      }
+      return (data ?? []).map((d: any) => ({
+        reporte_id: d.reporte_id,
+        reporte_codigo: d.reporte_codigo,
+        fecha: d.fecha,
+        hora_entrada: d.hora_entrada,
+        hora_salida: d.hora_salida,
+        horas_dia: Number(d.horas_dia) || 0,
+        cantidad_asistentes: Number(d.cantidad_asistentes) || 0,
+        asistentes: d.asistentes ?? [],
+        costo_dia: Number(d.costo_dia) || 0,
+      }));
+    },
+  });
+}

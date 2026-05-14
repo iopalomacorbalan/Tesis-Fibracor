@@ -9,6 +9,7 @@ import {
 import { generarPdfObra } from "@/lib/pdf/obraPdf";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
+import { useHorasPorDiaObra, useTotalHorasObra } from "./useHorasTecnicas";
 import type { ObraConRelaciones, ReporteConRelaciones } from "@/types/database";
 import type { ObraCostos } from "./useObraCostos";
 
@@ -23,6 +24,10 @@ interface Props {
 export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos }: Props) {
   const { profile } = useAuth();
   const puedeFinanciero = puedeVerPrecios(profile?.area);
+  const verCostoHoras = profile?.area === "Direccion";
+
+  const { data: horasPorDia = [] } = useHorasPorDiaObra(obra?.id ?? null);
+  const { data: totalHoras } = useTotalHorasObra(obra?.id ?? null);
 
   const [incluirReportes, setIncluirReportes] = useState(true);
   const [incluirFotos, setIncluirFotos] = useState(true);
@@ -30,6 +35,9 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
   const [incluirMaterialesDetalle, setIncluirMaterialesDetalle] = useState(false);
   const [incluirHerramientas, setIncluirHerramientas] = useState(false);
   const [incluirCostosExtras, setIncluirCostosExtras] = useState(false);
+  const [incluirHorasTecnicas, setIncluirHorasTecnicas] = useState(false);
+  const [incluirCostoHoras, setIncluirCostoHoras] = useState(false);
+  const [incluirDesgloseHoras, setIncluirDesgloseHoras] = useState(true);
   const [generando, setGenerando] = useState(false);
 
   if (!obra) return null;
@@ -54,6 +62,12 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
         obra,
         reportes: incluirReportes ? reportesParaPdf : [],
         costos: (incluirFinanciero || incluirHerramientas) ? costos : null,
+        horasTecnicas: incluirHorasTecnicas ? {
+          porDia: horasPorDia,
+          total: totalHoras ?? null,
+          incluirCosto: incluirCostoHoras && verCostoHoras,
+          incluirDesglose: incluirDesgloseHoras,
+        } : null,
         options: {
           incluirReportes,
           incluirFotos,
@@ -61,6 +75,7 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
           incluirMaterialesDetalle,
           incluirHerramientas,
           incluirCostosExtras,
+          incluirHorasTecnicas,
         },
       });
 
@@ -147,6 +162,37 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
             label="Herramientas utilizadas"
             description="Lista de herramientas asignadas a técnicos con su estado final (devuelta/no devuelta/dañada)"
           />
+
+          {/* Horas técnicas - solo si hay datos cargados */}
+          {horasPorDia.length > 0 && (
+            <>
+              <CheckOption
+                checked={incluirHorasTecnicas}
+                onChange={setIncluirHorasTecnicas}
+                label={`Horas técnicas (${(totalHoras?.total_horas ?? 0).toFixed(2)} hs)`}
+                description={`Reportes con asistencia: ${horasPorDia.length} día${horasPorDia.length !== 1 ? "s" : ""}`}
+              />
+
+              {incluirHorasTecnicas && (
+                <div className="ml-7 space-y-2 pb-2">
+                  <CheckOption
+                    checked={incluirDesgloseHoras}
+                    onChange={setIncluirDesgloseHoras}
+                    label="Incluir desglose por día"
+                    description="Tabla con cada fecha, horario, asistentes y horas trabajadas"
+                  />
+                  {verCostoHoras && (
+                    <CheckOption
+                      checked={incluirCostoHoras}
+                      onChange={setIncluirCostoHoras}
+                      label="Incluir costo en pesos"
+                      description="Suma el costo de las horas al total ejecutado (solo Dirección)"
+                    />
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {numFotos > 30 && incluirFotos && (

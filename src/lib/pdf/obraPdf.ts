@@ -18,6 +18,7 @@ export interface PdfObraOptions {
   incluirMaterialesDetalle: boolean;
   incluirHerramientas: boolean;
   incluirCostosExtras: boolean;
+  incluirHorasTecnicas: boolean;
   // Calidad de imagen (mm máximo)
   fotoMaxAncho?: number;
   fotoMaxAlto?: number;
@@ -32,19 +33,43 @@ const DEFAULTS: PdfObraOptions = {
   incluirMaterialesDetalle: false,
   incluirHerramientas: false,
   incluirCostosExtras: false,
+  incluirHorasTecnicas: false,
   fotoMaxAncho: 75,
   fotoMaxAlto: 55,
   mostrarSoloLista: false,
 };
 
+export interface HorasTecnicasPdfData {
+  porDia: Array<{
+    reporte_codigo: string;
+    fecha: string;
+    hora_entrada: string;
+    hora_salida: string;
+    horas_dia: number;
+    cantidad_asistentes: number;
+    asistentes: Array<{ id: string; nombre: string; area: string }>;
+    costo_dia: number;
+  }>;
+  total: {
+    total_horas: number;
+    cantidad_tecnicos: number;
+    cantidad_reportes: number;
+    costo_total: number;
+    precio_hora_actual: number;
+  } | null;
+  incluirCosto: boolean;
+  incluirDesglose: boolean;
+}
+
 export async function generarPdfObra(args: {
   obra: ObraConRelaciones;
   reportes: ReporteConRelaciones[];
   costos?: ObraCostos | null;
+  horasTecnicas?: HorasTecnicasPdfData | null;
   options?: Partial<PdfObraOptions>;
 }): Promise<jsPDF> {
   const opts: PdfObraOptions = { ...DEFAULTS, ...args.options };
-  const { obra, reportes, costos } = args;
+  const { obra, reportes, costos, horasTecnicas } = args;
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = await drawHeader(doc, "Resumen de obra", obra.obra_id);
@@ -405,6 +430,73 @@ export async function generarPdfObra(args: {
         PAGE.margin, y
       );
       y += 6;
+    }
+  }
+
+  // ====== HORAS TÉCNICAS ======
+  if (opts.incluirHorasTecnicas && horasTecnicas && horasTecnicas.porDia.length > 0) {
+    y = ensureSpace(doc, y, 30);
+    y = sectionTitle(doc, "Horas técnicas", y);
+
+    // Resumen
+    const total = horasTecnicas.total;
+    if (total) {
+      doc.setFontSize(10);
+      doc.setTextColor(...PDF_COLORS.text);
+      doc.setFont("helvetica", "normal");
+      const resumenLineas = [
+        `Total horas trabajadas: ${total.total_horas.toFixed(2)} hs`,
+        `Días trabajados: ${horasTecnicas.porDia.length}`,
+        `Técnicos involucrados: ${total.cantidad_tecnicos}`,
+      ];
+      if (horasTecnicas.incluirCosto) {
+        resumenLineas.push(`Precio hora actual: ${fmtMoney(total.precio_hora_actual)}/hr`);
+        resumenLineas.push(`Costo total: ${fmtMoney(total.costo_total)}`);
+      }
+      for (const ln of resumenLineas) {
+        doc.text(ln, PAGE.margin, y);
+        y += 5;
+      }
+      y += 3;
+    }
+
+    // Desglose por día (opcional)
+    if (horasTecnicas.incluirDesglose) {
+      const head: any[] = [["Fecha", "Reporte", "Horario", "Asistentes", "Horas"]];
+      if (horasTecnicas.incluirCosto) head[0].push("Costo");
+
+      const body = horasTecnicas.porDia.map(d => {
+        const asistentesStr = d.asistentes.map(a => a.nombre).join(", ") || "—";
+        const row: any[] = [
+          fmtDate(d.fecha),
+          d.reporte_codigo,
+          `${(d.hora_entrada ?? "").slice(0, 5)} - ${(d.hora_salida ?? "").slice(0, 5)}`,
+          asistentesStr,
+          `${(d.horas_dia * d.cantidad_asistentes).toFixed(2)} hs`,
+        ];
+        if (horasTecnicas.incluirCosto) {
+          row.push(fmtMoney(d.costo_dia));
+        }
+        return row;
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head,
+        body,
+        theme: "striped",
+        headStyles: { fillColor: PDF_COLORS.primary, textColor: [255, 255, 255], fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 22 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 25 },
+          4: { halign: "right", cellWidth: 20 },
+          ...(horasTecnicas.incluirCosto && { 5: { halign: "right", cellWidth: 25 } }),
+        },
+        margin: { left: PAGE.margin, right: PAGE.margin },
+      });
+      y = (doc as any).lastAutoTable.finalY + 6;
     }
   }
 

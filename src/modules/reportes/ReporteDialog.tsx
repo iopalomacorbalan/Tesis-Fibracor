@@ -15,7 +15,7 @@ import {
   useCrearReporte, useEditarReporte, useAgregarFotos, useEliminarFoto,
 } from "./useReportes";
 import { useObras, useObra } from "@/modules/obras/useObras";
-import { useTecnicos } from "@/modules/obras/useUsuarios";
+import { useUsuarios } from "@/modules/obras/useUsuarios";
 import { useAuth } from "@/lib/auth";
 import { procesarImagenes } from "@/lib/imageProcessing";
 import { TimePicker } from "@/components/ui/time-picker";
@@ -34,7 +34,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
   const { profile } = useAuth();
   const { data: obras = [] } = useObras();
   const { data: obraActual } = useObra(obraIdFijo ?? "");
-  const { data: todosTecnicos = [] } = useTecnicos();
+  const { data: todosUsuarios = [] } = useUsuarios();
   const crear = useCrearReporte();
   const editar = useEditarReporte();
   const agregarFotos = useAgregarFotos();
@@ -49,8 +49,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
   const [pendientes, setPendientes] = useState("");
   const [horaEntrada, setHoraEntrada] = useState("");
   const [horaSalida, setHoraSalida] = useState("");
-  const [tecnicosPresentes, setTecnicosPresentes] = useState<string[]>([]);
-  const [tecnicosAdicionales, setTecnicosAdicionales] = useState<string[]>([]);
+  const [asistentes, setAsistentes] = useState<string[]>([]);
   const [fotos, setFotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [procesandoFotos, setProcesandoFotos] = useState(false);
@@ -66,10 +65,9 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
         setPendientes(reporte.pendientes ?? "");
         setHoraEntrada(reporte.hora_entrada?.slice(0, 5) ?? "");
         setHoraSalida(reporte.hora_salida?.slice(0, 5) ?? "");
-        setTecnicosPresentes((reporte.tecnicos_presentes ?? []).map(t => t.id));
-        setTecnicosAdicionales([]);
+        setAsistentes((reporte.tecnicos_presentes ?? []).map(t => t.id));
       } else {
-        // Modo creación
+        // Modo creación - sin nadie pre-tildado
         setObraId(obraIdFijo ?? "");
         setFecha(new Date().toISOString().slice(0, 10));
         setDescripcion("");
@@ -77,8 +75,7 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
         setPendientes("");
         setHoraEntrada("");
         setHoraSalida("");
-        setTecnicosPresentes(profile ? [profile.id] : []);  // por defecto, el técnico que crea
-        setTecnicosAdicionales([]);
+        setAsistentes([]);
       }
       setFotos([]);
       setPreviews([]);
@@ -143,10 +140,6 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
     }
   };
 
-  const tecnicosTotal = useMemo(() => {
-    return [...tecnicosPresentes, ...tecnicosAdicionales].filter((v, i, a) => a.indexOf(v) === i);
-  }, [tecnicosPresentes, tecnicosAdicionales]);
-
   const horasCalculadas = useMemo(() => {
     if (!horaEntrada || !horaSalida) return 0;
     const [h1, m1] = horaEntrada.split(":").map(Number);
@@ -172,8 +165,8 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
       toast.error("La hora de salida debe ser posterior a la de entrada");
       return;
     }
-    if (tecnicosTotal.length === 0) {
-      toast.error("Seleccioná al menos un técnico presente");
+    if (asistentes.length === 0) {
+      toast.error("Tildá al menos un asistente (incluido vos si trabajaste)");
       return;
     }
 
@@ -217,9 +210,9 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
 
       // Guardar técnicos presentes (siempre se reescribe la lista completa)
       await supabase.from("reporte_tecnicos").delete().eq("reporte_id", reporteId);
-      if (tecnicosTotal.length > 0) {
+      if (asistentes.length > 0) {
         await supabase.from("reporte_tecnicos").insert(
-          tecnicosTotal.map(tid => ({ reporte_id: reporteId, tecnico_id: tid }))
+          asistentes.map(tid => ({ reporte_id: reporteId, tecnico_id: tid }))
         );
       }
 
@@ -324,70 +317,56 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
             {horasCalculadas > 0 && (
               <div className="text-sm text-muted-foreground">
                 Total: <b className="text-foreground">{horasCalculadas.toFixed(2)} horas</b>
-                {tecnicosTotal.length > 0 && (
-                  <> · {tecnicosTotal.length} técnico{tecnicosTotal.length > 1 ? "s" : ""} · <b className="text-primary">{(horasCalculadas * tecnicosTotal.length).toFixed(2)} horas-hombre</b></>
+                {asistentes.length > 0 && (
+                  <> · {asistentes.length} asistente{asistentes.length > 1 ? "s" : ""} · <b className="text-primary">{(horasCalculadas * asistentes.length).toFixed(2)} horas-hombre</b></>
                 )}
               </div>
             )}
 
-            {/* Técnicos asignados a la obra */}
+            {/* Asistentes a la obra - todos los usuarios activos, nadie pre-tildado */}
             <div className="space-y-2">
-              <Label className="text-sm">Técnicos asignados a la obra (presentes)</Label>
-              {obraActual?.tecnicos && obraActual.tecnicos.length > 0 ? (
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">¿Quiénes asistieron? <span className="text-destructive">*</span></Label>
+                {asistentes.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {asistentes.length} seleccionado{asistentes.length > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Marcá a quienes estuvieron presentes (incluido vos si trabajaste). Sólo los marcados van a contar en las horas.
+              </p>
+              {todosUsuarios.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {obraActual.tecnicos.map(t => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        setTecnicosPresentes(prev =>
-                          prev.includes(t.id)
-                            ? prev.filter(id => id !== t.id)
-                            : [...prev, t.id]
-                        );
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        tecnicosPresentes.includes(t.id)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-muted-foreground border-input hover:border-primary/40"
-                      }`}
-                    >
-                      {t.nombre}
-                    </button>
-                  ))}
+                  {todosUsuarios.map(u => {
+                    const asignado = obraActual?.tecnicos?.some(t => t.id === u.id);
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          setAsistentes(prev =>
+                            prev.includes(u.id)
+                              ? prev.filter(id => id !== u.id)
+                              : [...prev, u.id]
+                          );
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                          asistentes.includes(u.id)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-input hover:border-primary/40"
+                        }`}
+                      >
+                        {u.nombre}
+                        {asignado && <span className="ml-1 opacity-60">·</span>}
+                        {!asignado && <span className="ml-1 text-[10px] opacity-60">({u.area})</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground italic">No hay técnicos asignados a esta obra.</p>
+                <p className="text-xs text-muted-foreground italic">No hay usuarios activos.</p>
               )}
-            </div>
-
-            {/* Técnicos adicionales (no asignados originalmente) */}
-            <div className="space-y-2">
-              <Label className="text-sm">Otros técnicos que asistieron (opcional)</Label>
-              <div className="flex flex-wrap gap-2">
-                {todosTecnicos
-                  .filter(t => !obraActual?.tecnicos?.some(at => at.id === t.id))
-                  .map(t => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        setTecnicosAdicionales(prev =>
-                          prev.includes(t.id)
-                            ? prev.filter(id => id !== t.id)
-                            : [...prev, t.id]
-                        );
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        tecnicosAdicionales.includes(t.id)
-                          ? "bg-warning/20 text-warning-foreground border-warning"
-                          : "bg-background text-muted-foreground border-input hover:border-warning/40"
-                      }`}
-                    >
-                      + {t.nombre}
-                    </button>
-                  ))}
-              </div>
             </div>
           </div>
 

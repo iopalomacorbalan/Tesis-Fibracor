@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useObra } from "./useObras";
 import { useObraCostos } from "./useObraCostos";
-import { useHorasTecnicasObra, useTotalHorasObra } from "./useHorasTecnicas";
+import { useHorasTecnicasObra, useTotalHorasObra, useHorasPorDiaObra, type TotalHorasObra } from "./useHorasTecnicas";
 import { ExportarObraDialog } from "./ExportarObraDialog";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
@@ -80,6 +80,8 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
 
   // Solo cargar costos si el usuario puede verlos (evita errores de RLS para técnicos)
   const { data: costos } = useObraCostos(puedeVerCostos ? obraId : null);
+  // Total de horas técnicas para incluir en el centro de costos
+  const { data: totalHorasParaCostos } = useTotalHorasObra(puedeVerCostos ? obraId : null);
   const [exportOpen, setExportOpen] = useState(false);
 
   if (!obraId) return null;
@@ -247,7 +249,7 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
 
               {puedeVerCostos && (
                 <TabsContent value="costos">
-                  <CostosTab costos={costos} />
+                  <CostosTab costos={costos} horasObra={totalHorasParaCostos ?? null} area={profile?.area ?? null} />
                 </TabsContent>
               )}
             </Tabs>
@@ -346,7 +348,11 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 }
 
 // ====== COSTOS TAB ======
-function CostosTab({ costos }: { costos: any }) {
+function CostosTab({ costos, horasObra, area }: {
+  costos: any;
+  horasObra: TotalHorasObra | null;
+  area: string | null;
+}) {
   if (!costos) {
     return (
       <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">
@@ -354,6 +360,15 @@ function CostosTab({ costos }: { costos: any }) {
       </CardContent></Card>
     );
   }
+
+  // Direccion y Contabilidad ven la fila de horas técnicas
+  const verHoras = area === "Direccion" || area === "Contabilidad";
+  const costoHoras = verHoras ? (horasObra?.costo_total ?? 0) : 0;
+  const totalEjecutadoCostoConHoras = costos.total_ejecutado_costo + costoHoras;
+  const totalEjecutadoListaConHoras = costos.total_ejecutado_lista + costoHoras;
+  const margenCostoConHoras = costos.presupuesto - totalEjecutadoCostoConHoras;
+  const margenCostoPctConHoras = costos.presupuesto > 0 ? (margenCostoConHoras / costos.presupuesto) * 100 : 0;
+  const margenListaConHoras = costos.presupuesto - totalEjecutadoListaConHoras;
 
   return (
     <div className="space-y-4">
@@ -364,9 +379,9 @@ function CostosTab({ costos }: { costos: any }) {
         <KpiCard label="OCs vinculadas" value={formatCurrency(costos.total_ocs)} variant="primary" />
         <KpiCard
           label="Margen"
-          value={`${costos.margen_costo >= 0 ? "+" : ""}${formatCurrency(costos.margen_costo)}`}
-          subtext={`(${costos.margen_costo_pct.toFixed(1)}%)`}
-          variant={costos.margen_costo >= 0 ? "success" : "destructive"}
+          value={`${margenCostoConHoras >= 0 ? "+" : ""}${formatCurrency(margenCostoConHoras)}`}
+          subtext={`(${margenCostoPctConHoras.toFixed(1)}%)`}
+          variant={margenCostoConHoras >= 0 ? "success" : "destructive"}
         />
       </div>
 
@@ -390,19 +405,26 @@ function CostosTab({ costos }: { costos: any }) {
               costo={costos.total_ocs}
               lista={costos.total_ocs}
             />
+            {verHoras && costoHoras > 0 && (
+              <ComparativaRow
+                label={`Horas técnicas (${(horasObra?.total_horas ?? 0).toFixed(2)} hs)`}
+                costo={costoHoras}
+                lista={costoHoras}
+              />
+            )}
             <div className="border-t border-border pt-2 mt-2">
               <ComparativaRow
                 label="Total ejecutado"
-                costo={costos.total_ejecutado_costo}
-                lista={costos.total_ejecutado_lista}
+                costo={totalEjecutadoCostoConHoras}
+                lista={totalEjecutadoListaConHoras}
                 bold
               />
               <ComparativaRow
                 label="Margen estimado"
-                costo={costos.margen_costo}
-                lista={costos.margen_lista}
+                costo={margenCostoConHoras}
+                lista={margenListaConHoras}
                 bold
-                color={costos.margen_costo >= 0 ? "success" : "destructive"}
+                color={margenCostoConHoras >= 0 ? "success" : "destructive"}
               />
             </div>
           </div>
@@ -512,8 +534,9 @@ function ComparativaRow({ label, costo, lista, bold, color }: {
 }
 
 function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: string | null }) {
-  const { data: horasPorTecnico = [], isLoading: l1 } = useHorasTecnicasObra(obraId);
+  const { data: porDia = [], isLoading: l1 } = useHorasPorDiaObra(obraId);
   const { data: totales, isLoading: l2 } = useTotalHorasObra(obraId);
+  const { data: porTecnico = [] } = useHorasTecnicasObra(obraId);
   const verCosto = area === "Direccion";
 
   if (l1 || l2) {
@@ -524,7 +547,7 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
     );
   }
 
-  if (horasPorTecnico.length === 0) {
+  if (porDia.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
@@ -534,6 +557,8 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
     );
   }
 
+  const diasTrabajados = porDia.length;
+
   return (
     <div className="space-y-4">
       {/* Resumen general */}
@@ -541,7 +566,7 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
         <Card>
           <CardContent className="p-3">
             <div className="text-xs text-muted-foreground">Total horas</div>
-            <div className="text-2xl font-bold">{totales?.total_horas.toFixed(2) ?? "0.00"}</div>
+            <div className="text-2xl font-bold">{(totales?.total_horas ?? 0).toFixed(2)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -552,8 +577,8 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
         </Card>
         <Card>
           <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground">Reportes</div>
-            <div className="text-2xl font-bold">{totales?.cantidad_reportes ?? 0}</div>
+            <div className="text-xs text-muted-foreground">Días trabajados</div>
+            <div className="text-2xl font-bold">{diasTrabajados}</div>
           </CardContent>
         </Card>
         {verCosto && (
@@ -569,32 +594,82 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
         )}
       </div>
 
-      {/* Desglose por técnico */}
-      <Card>
-        <CardContent className="p-3">
-          <h3 className="text-sm font-semibold mb-2">Por técnico</h3>
-          <div className="space-y-1">
-            <div className={cn("grid gap-2 text-xs text-muted-foreground font-medium border-b pb-1",
-              verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
-              <span>Técnico</span>
-              <span className="text-right">Reportes</span>
-              <span className="text-right">Horas</span>
-              {verCosto && <span className="text-right">Costo</span>}
-            </div>
-            {horasPorTecnico.map(h => (
-              <div key={h.tecnico_id} className={cn("grid gap-2 text-sm py-1",
-                verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
-                <span className="font-medium">{h.tecnico_nombre}</span>
-                <span className="text-right">{h.cantidad_reportes}</span>
-                <span className="text-right font-mono">{h.total_horas.toFixed(2)}</span>
-                {verCosto && (
-                  <span className="text-right font-mono">{formatCurrency(h.costo_total)}</span>
-                )}
+      {/* Detalle día por día */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground">Detalle por día</h3>
+        {porDia.map(d => {
+          const horasHombre = d.horas_dia * d.cantidad_asistentes;
+          return (
+            <Card key={d.reporte_id}>
+              <div className="p-3 border-b bg-muted/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm">{formatDate(d.fecha)}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-background border text-muted-foreground font-mono">
+                    {d.hora_entrada?.slice(0, 5)} - {d.hora_salida?.slice(0, 5)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">· {d.reporte_codigo}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <b className="text-foreground">{horasHombre.toFixed(2)} hs</b> · {d.cantidad_asistentes} asistente{d.cantidad_asistentes !== 1 ? "s" : ""}
+                  {verCosto && <> · <b className="text-primary">{formatCurrency(d.costo_dia)}</b></>}
+                </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <CardContent className="p-3">
+                {d.asistentes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">Sin asistentes registrados</p>
+                ) : (
+                  <div className="space-y-1">
+                    {d.asistentes.map(a => (
+                      <div key={a.id} className={cn("grid gap-2 text-sm py-1",
+                        verCosto ? "grid-cols-[1fr_70px_100px]" : "grid-cols-[1fr_70px]")}>
+                        <span>
+                          {a.nombre}
+                          <span className="text-[10px] text-muted-foreground ml-1">({a.area})</span>
+                        </span>
+                        <span className="text-right font-mono text-xs">{d.horas_dia.toFixed(2)} hs</span>
+                        {verCosto && (
+                          <span className="text-right font-mono text-xs text-muted-foreground">
+                            {formatCurrency(d.horas_dia * (totales?.precio_hora_actual ?? 0))}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Resumen acumulado por técnico (al final) */}
+      {porTecnico.length > 0 && (
+        <Card>
+          <CardContent className="p-3">
+            <h3 className="text-sm font-semibold mb-2">Acumulado por técnico</h3>
+            <div className="space-y-1">
+              <div className={cn("grid gap-2 text-xs text-muted-foreground font-medium border-b pb-1",
+                verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
+                <span>Técnico</span>
+                <span className="text-right">Días</span>
+                <span className="text-right">Horas</span>
+                {verCosto && <span className="text-right">Costo</span>}
+              </div>
+              {porTecnico.map(h => (
+                <div key={h.tecnico_id} className={cn("grid gap-2 text-sm py-1",
+                  verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
+                  <span className="font-medium">{h.tecnico_nombre}</span>
+                  <span className="text-right">{h.cantidad_reportes}</span>
+                  <span className="text-right font-mono">{h.total_horas.toFixed(2)}</span>
+                  {verCosto && (
+                    <span className="text-right font-mono">{formatCurrency(h.costo_total)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
