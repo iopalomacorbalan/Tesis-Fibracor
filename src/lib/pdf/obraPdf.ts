@@ -253,42 +253,67 @@ export async function generarPdfObra(args: {
     y = PAGE.margin + 5;
     y = sectionTitle(doc, "Resumen financiero", y);
 
+    // Calcular si hay que sumar horas técnicas al total
+    const costoHoras = (opts.incluirHorasTecnicas && horasTecnicas?.incluirCosto && horasTecnicas?.total)
+      ? horasTecnicas.total.costo_total : 0;
+    const horasHrs = (opts.incluirHorasTecnicas && horasTecnicas?.total) ? horasTecnicas.total.total_horas : 0;
+    const totalEjecutadoCostoFinal = costos.total_ejecutado_costo + costoHoras;
+    const totalEjecutadoListaFinal = costos.total_ejecutado_lista + costoHoras;
+    const margenCostoFinal = costos.presupuesto - totalEjecutadoCostoFinal;
+    const margenListaFinal = costos.presupuesto - totalEjecutadoListaFinal;
+    const margenCostoPctFinal = costos.presupuesto > 0 ? (margenCostoFinal / costos.presupuesto) * 100 : 0;
+    const margenListaPctFinal = costos.presupuesto > 0 ? (margenListaFinal / costos.presupuesto) * 100 : 0;
+
     // Tabla de KPIs principales
+    const tableBody: any[] = [
+      ["Presupuesto de obra", fmtMoney(costos.presupuesto), fmtMoney(costos.presupuesto)],
+      ["Materiales consumidos", fmtMoney(costos.total_materiales_costo), fmtMoney(costos.total_materiales_lista)],
+      ["Compras vinculadas (OCs)", fmtMoney(costos.total_ocs), fmtMoney(costos.total_ocs)],
+      ["Herramientas no devueltas", fmtMoney(costos.total_herramientas_no_devueltas), fmtMoney(costos.total_herramientas_no_devueltas)],
+      ["Costos extras (tercerizados, etc.)", fmtMoney(costos.total_costos_extras), fmtMoney(costos.total_costos_extras)],
+    ];
+
+    // Agregar fila de horas técnicas si corresponde
+    if (costoHoras > 0) {
+      tableBody.push([
+        `Horas técnicas (${horasHrs.toFixed(2)} hs)`,
+        fmtMoney(costoHoras),
+        fmtMoney(costoHoras),
+      ]);
+    }
+
+    tableBody.push(
+      [
+        { content: "Total ejecutado", styles: { fontStyle: "bold" } },
+        { content: fmtMoney(totalEjecutadoCostoFinal), styles: { fontStyle: "bold" } },
+        { content: fmtMoney(totalEjecutadoListaFinal), styles: { fontStyle: "bold" } },
+      ],
+      [
+        { content: "Margen estimado", styles: { fontStyle: "bold", textColor: PDF_COLORS.primary } },
+        {
+          content: `${fmtMoney(margenCostoFinal)} (${fmtNumber(margenCostoPctFinal, 1)}%)`,
+          styles: {
+            fontStyle: "bold",
+            textColor: margenCostoFinal >= 0 ? PDF_COLORS.success : PDF_COLORS.danger,
+          },
+        },
+        {
+          content: `${fmtMoney(margenListaFinal)} (${fmtNumber(margenListaPctFinal, 1)}%)`,
+          styles: {
+            fontStyle: "bold",
+            textColor: margenListaFinal >= 0 ? PDF_COLORS.success : PDF_COLORS.danger,
+          },
+        },
+      ]
+    );
+
     autoTable(doc, {
       startY: y,
       theme: "plain",
       styles: { fontSize: 10, cellPadding: 3 },
       headStyles: { fillColor: PDF_COLORS.primary, textColor: 255, fontStyle: "bold" },
       head: [["Concepto", "A precio costo", "A precio lista"]],
-      body: [
-        ["Presupuesto de obra", fmtMoney(costos.presupuesto), fmtMoney(costos.presupuesto)],
-        ["Materiales consumidos", fmtMoney(costos.total_materiales_costo), fmtMoney(costos.total_materiales_lista)],
-        ["Compras vinculadas (OCs)", fmtMoney(costos.total_ocs), fmtMoney(costos.total_ocs)],
-        ["Herramientas no devueltas", fmtMoney(costos.total_herramientas_no_devueltas), fmtMoney(costos.total_herramientas_no_devueltas)],
-        ["Costos extras (tercerizados, etc.)", fmtMoney(costos.total_costos_extras), fmtMoney(costos.total_costos_extras)],
-        [
-          { content: "Total ejecutado", styles: { fontStyle: "bold" } },
-          { content: fmtMoney(costos.total_ejecutado_costo), styles: { fontStyle: "bold" } },
-          { content: fmtMoney(costos.total_ejecutado_lista), styles: { fontStyle: "bold" } },
-        ],
-        [
-          { content: "Margen estimado", styles: { fontStyle: "bold", textColor: PDF_COLORS.primary } },
-          {
-            content: `${fmtMoney(costos.margen_costo)} (${fmtNumber(costos.margen_costo_pct, 1)}%)`,
-            styles: {
-              fontStyle: "bold",
-              textColor: costos.margen_costo >= 0 ? PDF_COLORS.success : PDF_COLORS.danger,
-            },
-          },
-          {
-            content: `${fmtMoney(costos.margen_lista)} (${fmtNumber(costos.margen_lista_pct, 1)}%)`,
-            styles: {
-              fontStyle: "bold",
-              textColor: costos.margen_lista >= 0 ? PDF_COLORS.success : PDF_COLORS.danger,
-            },
-          },
-        ],
-      ],
+      body: tableBody,
       margin: { left: PAGE.margin, right: PAGE.margin },
     });
 

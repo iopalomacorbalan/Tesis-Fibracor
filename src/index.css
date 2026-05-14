@@ -106,3 +106,51 @@
   }
 }
 
+
+/* === FullCalendar mobile optimizations === */
+@media (max-width: 640px) {
+  .fc .fc-toolbar.fc-header-toolbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem !important;
+  }
+  .fc .fc-toolbar-title {
+    font-size: 1rem !important;
+  }
+  .fc .fc-button {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+  }
+  .fc .fc-col-header-cell-cushion {
+    font-size: 0.65rem;
+    padding: 4px 2px;
+  }
+  .fc .fc-daygrid-day-number {
+    font-size: 0.7rem;
+    padding: 2px 4px;
+  }
+  .fc-event-title,
+  .fc-event-time {
+    font-size: 0.65rem !important;
+  }
+  .fc-daygrid-event {
+    font-size: 0.65rem;
+    padding: 1px 2px;
+  }
+  .fc .fc-list-event-title {
+    font-size: 0.8rem;
+  }
+  /* Scrollbar fino y elegante en mobile dentro de dialogs */
+  [role="dialog"] ::-webkit-scrollbar {
+    width: 4px;
+  }
+}
+
+/* Skill: hide scrollbar but keep scrolling */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

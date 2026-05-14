@@ -88,7 +88,7 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">
         {isLoading ? (
           <div className="py-12 text-center">
             <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -125,31 +125,36 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
             </DialogHeader>
 
             <Tabs defaultValue="resumen">
-              <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 pb-1">
+              <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 pb-1">
                 <TabsList className="w-max">
-                  <TabsTrigger value="resumen">📋 Resumen</TabsTrigger>
+                  <TabsTrigger value="resumen">📋 <span className="hidden sm:inline ml-1">Resumen</span></TabsTrigger>
                   <TabsTrigger value="solicitudes">
-                    <ClipboardList className="h-3.5 w-3.5 mr-1" />
-                    Solicitudes ({datos?.solicitudes.length ?? 0})
+                    <ClipboardList className="h-3.5 w-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">Solicitudes</span>
+                    <span className="ml-1">({datos?.solicitudes.length ?? 0})</span>
                   </TabsTrigger>
                   <TabsTrigger value="movimientos">
-                    <GitBranch className="h-3.5 w-3.5 mr-1" />
-                    Movimientos ({datos?.movimientos.length ?? 0})
+                    <GitBranch className="h-3.5 w-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">Movimientos</span>
+                    <span className="ml-1">({datos?.movimientos.length ?? 0})</span>
                   </TabsTrigger>
                   <TabsTrigger value="reportes">
-                    <FileText className="h-3.5 w-3.5 mr-1" />
-                    Reportes ({datos?.reportes.length ?? 0})
+                    <FileText className="h-3.5 w-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">Reportes</span>
+                    <span className="ml-1">({datos?.reportes.length ?? 0})</span>
                   </TabsTrigger>
                   {puedeVerCostos && (
                     <TabsTrigger value="horas">
-                      <Clock className="h-3.5 w-3.5 mr-1" />
-                      Horas técnicas
+                      <Clock className="h-3.5 w-3.5 sm:mr-1" />
+                      <span className="hidden sm:inline">Horas técnicas</span>
+                      <span className="sm:hidden">Horas</span>
                     </TabsTrigger>
                   )}
                   {puedeVerCostos && (
                     <TabsTrigger value="costos">
-                      <Wallet className="h-3.5 w-3.5 mr-1" />
-                      Costos
+                      <Wallet className="h-3.5 w-3.5 sm:mr-1" />
+                      <span className="hidden sm:inline">Costos</span>
+                      <span className="sm:hidden ml-1">$</span>
                     </TabsTrigger>
                   )}
                 </TabsList>
@@ -525,10 +530,10 @@ function ComparativaRow({ label, costo, lista, bold, color }: {
   const colorCls = color === "success" ? "text-success"
     : color === "destructive" ? "text-destructive" : "";
   return (
-    <div className={`grid grid-cols-3 gap-2 ${bold ? "font-bold" : ""} ${colorCls}`}>
-      <span>{label}</span>
-      <span className="text-right">{formatCurrency(costo)}</span>
-      <span className="text-right">{formatCurrency(lista)}</span>
+    <div className={`grid grid-cols-[1fr_auto_auto] sm:grid-cols-3 gap-2 sm:gap-3 text-[12px] sm:text-sm ${bold ? "font-bold" : ""} ${colorCls}`}>
+      <span className="truncate pr-1">{label}</span>
+      <span className="text-right font-mono whitespace-nowrap">{formatCurrency(costo)}</span>
+      <span className="text-right font-mono whitespace-nowrap">{formatCurrency(lista)}</span>
     </div>
   );
 }
@@ -562,31 +567,31 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
   return (
     <div className="space-y-4">
       {/* Resumen general */}
-      <div className={cn("grid gap-3", verCosto ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <Card>
-          <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground">Total horas</div>
-            <div className="text-2xl font-bold">{(totales?.total_horas ?? 0).toFixed(2)}</div>
+          <CardContent className="p-2 sm:p-3">
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Total horas</div>
+            <div className="text-xl sm:text-2xl font-bold">{(totales?.total_horas ?? 0).toFixed(2)}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground">Técnicos</div>
-            <div className="text-2xl font-bold">{totales?.cantidad_tecnicos ?? 0}</div>
+          <CardContent className="p-2 sm:p-3">
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Técnicos</div>
+            <div className="text-xl sm:text-2xl font-bold">{totales?.cantidad_tecnicos ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground">Días trabajados</div>
-            <div className="text-2xl font-bold">{diasTrabajados}</div>
+          <CardContent className="p-2 sm:p-3">
+            <div className="text-[10px] sm:text-xs text-muted-foreground">Días trabajados</div>
+            <div className="text-xl sm:text-2xl font-bold">{diasTrabajados}</div>
           </CardContent>
         </Card>
         {verCosto && (
           <Card>
-            <CardContent className="p-3">
-              <div className="text-xs text-muted-foreground">Costo total</div>
-              <div className="text-2xl font-bold text-primary">{formatCurrency(totales?.costo_total ?? 0)}</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">
+            <CardContent className="p-2 sm:p-3">
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Costo total</div>
+              <div className="text-base sm:text-2xl font-bold text-primary leading-tight">{formatCurrency(totales?.costo_total ?? 0)}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">
                 @ {formatCurrency(totales?.precio_hora_actual ?? 0)}/hr
               </div>
             </CardContent>
@@ -601,34 +606,35 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
           const horasHombre = d.horas_dia * d.cantidad_asistentes;
           return (
             <Card key={d.reporte_id}>
-              <div className="p-3 border-b bg-muted/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="p-2.5 sm:p-3 border-b bg-muted/30">
+                <div className="flex flex-wrap items-center gap-1.5 mb-1">
                   <span className="font-semibold text-sm">{formatDate(d.fecha)}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-background border text-muted-foreground font-mono">
                     {d.hora_entrada?.slice(0, 5)} - {d.hora_salida?.slice(0, 5)}
                   </span>
                   <span className="text-[10px] text-muted-foreground">· {d.reporte_codigo}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  <b className="text-foreground">{horasHombre.toFixed(2)} hs</b> · {d.cantidad_asistentes} asistente{d.cantidad_asistentes !== 1 ? "s" : ""}
-                  {verCosto && <> · <b className="text-primary">{formatCurrency(d.costo_dia)}</b></>}
+                <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                  <span><b className="text-foreground">{horasHombre.toFixed(2)} hs</b></span>
+                  <span>· {d.cantidad_asistentes} asistente{d.cantidad_asistentes !== 1 ? "s" : ""}</span>
+                  {verCosto && <span>· <b className="text-primary">{formatCurrency(d.costo_dia)}</b></span>}
                 </div>
               </div>
-              <CardContent className="p-3">
+              <CardContent className="p-2.5 sm:p-3">
                 {d.asistentes.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">Sin asistentes registrados</p>
                 ) : (
                   <div className="space-y-1">
                     {d.asistentes.map(a => (
-                      <div key={a.id} className={cn("grid gap-2 text-sm py-1",
-                        verCosto ? "grid-cols-[1fr_70px_100px]" : "grid-cols-[1fr_70px]")}>
-                        <span>
+                      <div key={a.id} className={cn("grid gap-2 text-xs sm:text-sm py-1 items-center",
+                        verCosto ? "grid-cols-[1fr_60px_80px]" : "grid-cols-[1fr_70px]")}>
+                        <span className="truncate">
                           {a.nombre}
                           <span className="text-[10px] text-muted-foreground ml-1">({a.area})</span>
                         </span>
-                        <span className="text-right font-mono text-xs">{d.horas_dia.toFixed(2)} hs</span>
+                        <span className="text-right font-mono text-[11px] sm:text-xs">{d.horas_dia.toFixed(2)} hs</span>
                         {verCosto && (
-                          <span className="text-right font-mono text-xs text-muted-foreground">
+                          <span className="text-right font-mono text-[11px] sm:text-xs text-muted-foreground">
                             {formatCurrency(d.horas_dia * (totales?.precio_hora_actual ?? 0))}
                           </span>
                         )}
@@ -645,24 +651,24 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
       {/* Resumen acumulado por técnico (al final) */}
       {porTecnico.length > 0 && (
         <Card>
-          <CardContent className="p-3">
+          <CardContent className="p-2.5 sm:p-3">
             <h3 className="text-sm font-semibold mb-2">Acumulado por técnico</h3>
             <div className="space-y-1">
-              <div className={cn("grid gap-2 text-xs text-muted-foreground font-medium border-b pb-1",
-                verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
+              <div className={cn("grid gap-2 text-[10px] sm:text-xs text-muted-foreground font-medium border-b pb-1",
+                verCosto ? "grid-cols-[1fr_50px_60px_80px]" : "grid-cols-[1fr_60px_80px]")}>
                 <span>Técnico</span>
                 <span className="text-right">Días</span>
                 <span className="text-right">Horas</span>
                 {verCosto && <span className="text-right">Costo</span>}
               </div>
               {porTecnico.map(h => (
-                <div key={h.tecnico_id} className={cn("grid gap-2 text-sm py-1",
-                  verCosto ? "grid-cols-[1fr_70px_70px_100px]" : "grid-cols-[1fr_70px_90px]")}>
-                  <span className="font-medium">{h.tecnico_nombre}</span>
+                <div key={h.tecnico_id} className={cn("grid gap-2 text-xs sm:text-sm py-1",
+                  verCosto ? "grid-cols-[1fr_50px_60px_80px]" : "grid-cols-[1fr_60px_80px]")}>
+                  <span className="font-medium truncate">{h.tecnico_nombre}</span>
                   <span className="text-right">{h.cantidad_reportes}</span>
                   <span className="text-right font-mono">{h.total_horas.toFixed(2)}</span>
                   {verCosto && (
-                    <span className="text-right font-mono">{formatCurrency(h.costo_total)}</span>
+                    <span className="text-right font-mono text-[11px] sm:text-xs">{formatCurrency(h.costo_total)}</span>
                   )}
                 </div>
               ))}

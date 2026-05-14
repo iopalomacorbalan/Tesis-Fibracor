@@ -145,21 +145,21 @@ export function CalendarioPage() {
         <LegendDot color="#F87171" label="Cerrada / Cancelada" />
       </div>
 
-      <div className="bg-card border rounded-lg p-2 sm:p-4 overflow-hidden">
+      <div className="bg-card border rounded-lg p-1.5 sm:p-4 overflow-hidden">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           locale={esLocale}
           headerToolbar={{
-            left: "prev,next today",
+            left: "prev,next",
             center: "title",
-            right: "dayGridMonth,timeGridWeek,listMonth",
+            right: "today dayGridMonth,listMonth",
           }}
           buttonText={{
             today: "Hoy",
             month: "Mes",
-            week: "Semana",
+            week: "Sem",
             list: "Lista",
           }}
           events={eventos}
@@ -173,12 +173,13 @@ export function CalendarioPage() {
           height="auto"
           firstDay={1} // Lunes
           weekends={true}
-          dayMaxEvents={3}
-          moreLinkText={(n) => `+${n} más`}
+          dayMaxEvents={2}
+          moreLinkText={(n) => `+${n}`}
           eventTimeFormat={{ hour: "2-digit", minute: "2-digit" }}
           eventDisplay="block"
           aspectRatio={1.8}
           contentHeight="auto"
+          titleFormat={{ year: "numeric", month: "short" }}
         />
       </div>
 
