@@ -23,6 +23,7 @@ import { CostosExtrasDialog } from "./CostosExtrasDialog";
 import { EliminarObraDialog } from "./EliminarObraDialog";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/permissions";
 import type { ObraConRelaciones, EstadoObra } from "@/types/database";
 
 const ESTADOS: { value: EstadoObra | "todos"; label: string; color: string }[] = [
@@ -58,6 +59,7 @@ export default function ObrasPage() {
   const puedeEditar = profile && ["Direccion", "Operaciones", "Comercial"].includes(profile.area);
   const puedeEliminar = profile?.area === "Direccion";
   const puedeCerrar = profile && ["Direccion", "Operaciones"].includes(profile.area);
+  const verPrecios = puedeVerPrecios(profile?.area);
 
   const obrasFiltradas = useMemo(() => {
     return obras.filter(o => {
@@ -186,6 +188,7 @@ export default function ObrasPage() {
               puedeEditar={!!puedeEditar}
               puedeEliminar={!!puedeEliminar}
               puedeCerrar={!!puedeCerrar}
+              verPrecios={verPrecios}
               onVer={(o) => setObraDetalle(o)}
               onEditar={handleEditarObra}
               onEliminar={(o) => setObraEliminar(o)}
@@ -293,13 +296,14 @@ function StatCard({ label, value, variant = "default" }: { label: string; value:
 }
 
 function ObraCard({
-  obra, puedeEditar, puedeEliminar, puedeCerrar,
+  obra, puedeEditar, puedeEliminar, puedeCerrar, verPrecios,
   onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar,
 }: {
   obra: ObraConRelaciones;
   puedeEditar: boolean;
   puedeEliminar: boolean;
   puedeCerrar: boolean;
+  verPrecios: boolean;
   onVer: (o: ObraConRelaciones) => void;
   onEditar: (o: ObraConRelaciones) => void;
   onEliminar: (o: ObraConRelaciones) => void;
@@ -345,7 +349,7 @@ function ObraCard({
                   {obra.jefe_obra.nombre}
                 </span>
               )}
-              {obra.presupuesto > 0 && (
+              {verPrecios && obra.presupuesto > 0 && (
                 <span className="font-medium text-foreground">
                   {formatCurrency(obra.presupuesto)}
                 </span>

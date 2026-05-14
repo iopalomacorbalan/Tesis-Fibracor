@@ -14,6 +14,7 @@ import { useObra } from "./useObras";
 import { useObraCostos } from "./useObraCostos";
 import { ExportarObraDialog } from "./ExportarObraDialog";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/permissions";
 import { supabase } from "@/lib/supabase";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import type { ObraConRelaciones, EstadoObra } from "@/types/database";
@@ -74,8 +75,9 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
   const { data: costos } = useObraCostos(obraId);
   const [exportOpen, setExportOpen] = useState(false);
 
-  // Solo Direccion y Comercial (y Operaciones/Contabilidad para info financiera) ven el centro de costos
-  const puedeVerCostos = profile && ["Direccion", "Comercial", "Operaciones", "Contabilidad"].includes(profile.area);
+  // Direccion, Contabilidad y Comercial ven precios. Operaciones, Paniol y Tecnico NO.
+  const puedeVerCostos = puedeVerPrecios(profile?.area);
+  const verPrecios = puedeVerCostos;
 
   if (!obraId) return null;
 
@@ -251,7 +253,7 @@ function ResumenObra({ obra }: { obra: ObraConRelaciones }) {
         {obra.jefe_obra && (
           <InfoRow icon={<User className="h-4 w-4" />} label="Jefe de obra" value={obra.jefe_obra.nombre} />
         )}
-        {obra.presupuesto > 0 && (
+        {verPrecios && obra.presupuesto > 0 && (
           <InfoRow icon={<Wallet className="h-4 w-4" />} label="Presupuesto" value={formatCurrency(obra.presupuesto)} />
         )}
         {obra.fecha_inicio_est && (

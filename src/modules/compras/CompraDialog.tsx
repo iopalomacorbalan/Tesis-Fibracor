@@ -16,6 +16,8 @@ import { useCrearCompra } from "./useCompras";
 import { useProveedores } from "@/modules/crm/proveedores/useProveedores";
 import { useObras } from "@/modules/obras/useObras";
 import { useInventario } from "@/modules/stock/useInventario";
+import { useAuth } from "@/lib/auth";
+import { puedeVerPreciosEnOC } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/utils";
 
 interface Props {
@@ -31,6 +33,8 @@ type ItemDraft = {
 };
 
 export function CompraDialog({ open, onOpenChange }: Props) {
+  const { profile } = useAuth();
+  const verPrecios = puedeVerPreciosEnOC(profile?.area);
   const { data: proveedores = [] } = useProveedores();
   const { data: obras = [] } = useObras();
   const { data: items = [] } = useInventario();
@@ -183,7 +187,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
                       }))}
                     />
 
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className={`grid gap-2 ${verPrecios ? "grid-cols-3" : "grid-cols-1"}`}>
                       <div>
                         <Label className="text-[10px]">Cantidad</Label>
                         <Input
@@ -193,33 +197,39 @@ export function CompraDialog({ open, onOpenChange }: Props) {
                           onChange={(e) => updateItem(idx, { cantidad_solicitada: parseFloat(e.target.value) || 0 })}
                         />
                       </div>
-                      <div>
-                        <Label className="text-[10px]">Precio unitario</Label>
-                        <Input
-                          type="number"
-                          min="0" step="0.01"
-                          value={draft.precio_unitario}
-                          onChange={(e) => updateItem(idx, { precio_unitario: parseFloat(e.target.value) || 0 })}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px]">Subtotal</Label>
-                        <div className="h-10 flex items-center px-3 text-sm font-medium border rounded-md bg-background">
-                          {formatCurrency(subtotal)}
-                        </div>
-                      </div>
+                      {verPrecios && (
+                        <>
+                          <div>
+                            <Label className="text-[10px]">Precio unitario</Label>
+                            <Input
+                              type="number"
+                              min="0" step="0.01"
+                              value={draft.precio_unitario}
+                              onChange={(e) => updateItem(idx, { precio_unitario: parseFloat(e.target.value) || 0 })}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px]">Subtotal</Label>
+                            <div className="h-10 flex items-center px-3 text-sm font-medium border rounded-md bg-background">
+                              {formatCurrency(subtotal)}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="flex justify-end pt-2">
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground">Total estimado</div>
-                <div className="text-2xl font-bold">{formatCurrency(totalCalc)}</div>
+            {verPrecios && (
+              <div className="flex justify-end pt-2">
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">Total estimado</div>
+                  <div className="text-2xl font-bold">{formatCurrency(totalCalc)}</div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="space-y-2">

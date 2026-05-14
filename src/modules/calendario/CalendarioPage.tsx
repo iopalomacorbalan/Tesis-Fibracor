@@ -59,7 +59,7 @@ export function CalendarioPage() {
         }
         return {
           id: o.id,
-          title: `${o.codigo} — ${o.nombre}`,
+          title: `${o.obra_id} — ${o.nombre_obra ?? "Sin nombre"}`,
           start: o.fecha_inicio_est!,
           end: endDate ?? undefined,
           backgroundColor: color.bg,

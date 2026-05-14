@@ -13,6 +13,7 @@ import {
 import { useCrearItem, useEditarItem } from "./useInventario";
 import { useProveedores } from "@/modules/crm/proveedores/useProveedores";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPrecios as canViewPrices } from "@/lib/permissions";
 import { itemSchema, type ItemFormValues } from "./schemas";
 import type { Inventario, CategoriaItem } from "@/types/database";
 
@@ -47,7 +48,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
   const crear = useCrearItem();
   const editar = useEditarItem();
 
-  const puedeVerPrecios = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeVerPrecios = canViewPrices(profile?.area);
 
   const [form, setForm] = useState<ItemFormValues>(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});

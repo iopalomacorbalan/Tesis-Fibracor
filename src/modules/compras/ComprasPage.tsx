@@ -19,6 +19,7 @@ import { ExportarOcDialog } from "./ExportarOcDialog";
 import { PendientesOcTab } from "./PendientesOcTab";
 import { useItemsPendientesOc } from "./useItemsPendientesOc";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPreciosEnOC } from "@/lib/permissions";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import type { CompraConRelaciones, EstadoCompra } from "@/types/database";
 
@@ -48,6 +49,7 @@ export default function ComprasPage() {
 
   const puedeAprobar = profile && ["Direccion", "Operaciones"].includes(profile.area);
   const puedeRecibir = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const verPrecios = puedeVerPreciosEnOC(profile?.area);
 
   const filtered = useMemo(() => {
     return compras.filter(c => {
@@ -107,10 +109,12 @@ export default function ComprasPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={cn("grid grid-cols-2 gap-4", verPrecios ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
         <StatCard label="Solicitadas" value={String(stats.pendientes)} variant="warning" />
         <StatCard label="En curso" value={String(stats.aprobadas)} variant="primary" />
-        <StatCard label="Valor abierto" value={formatCurrency(stats.valorAbierto)} variant="default" small />
+        {verPrecios && (
+          <StatCard label="Valor abierto" value={formatCurrency(stats.valorAbierto)} variant="default" small />
+        )}
         <StatCard label="Recibidas" value={String(stats.recibidas)} variant="success" />
       </div>
 
@@ -187,6 +191,7 @@ export default function ComprasPage() {
                   compra={c}
                   puedeAprobar={!!puedeAprobar}
                   puedeRecibir={!!puedeRecibir}
+                  verPrecios={verPrecios}
                   onAprobar={() => handleAprobar(c)}
                   onRecibir={() => setRecibirOC(c)}
                   onExportar={() => setExportarOC(c)}
@@ -253,11 +258,12 @@ function StatCard({
 }
 
 function CompraCard({
-  compra, puedeAprobar, puedeRecibir, onAprobar, onRecibir, onExportar, onVer, onCancelar,
+  compra, puedeAprobar, puedeRecibir, verPrecios, onAprobar, onRecibir, onExportar, onVer, onCancelar,
 }: {
   compra: CompraConRelaciones;
   puedeAprobar: boolean;
   puedeRecibir: boolean;
+  verPrecios: boolean;
   onAprobar: () => void;
   onRecibir: () => void;
   onExportar: () => void;
@@ -298,7 +304,7 @@ function CompraCard({
               <span>{totalItems} {totalItems === 1 ? "ítem" : "ítems"} ({recibidos} completos)</span>
             </div>
 
-            {compra.total_estimado && (
+            {verPrecios && compra.total_estimado && (
               <div className="text-sm font-semibold mt-1">{formatCurrency(compra.total_estimado)}</div>
             )}
 

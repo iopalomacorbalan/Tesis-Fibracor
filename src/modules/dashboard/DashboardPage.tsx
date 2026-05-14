@@ -12,11 +12,12 @@ import { useCompras } from "@/modules/compras/useCompras";
 import { useReportes } from "@/modules/reportes/useReportes";
 import { useClientes } from "@/modules/crm/clientes/useClientes";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPrecios as canViewPrices } from "@/lib/permissions";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { profile } = useAuth();
-  const puedeVerPrecios = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeVerPrecios = canViewPrices(profile?.area);
   const { data: obras = [] } = useObras();
   const { data: items = [] } = useInventario();
   const { data: itemsFS = [] } = useItemsFueraServicio();

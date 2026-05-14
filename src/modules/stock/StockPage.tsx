@@ -19,6 +19,7 @@ import { AjusteDialog } from "./AjusteDialog";
 import { ReactivarDialog } from "./ReactivarDialog";
 import { HistorialDialog } from "./HistorialDialog";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPrecios as canViewPrices } from "@/lib/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Inventario, CategoriaItem } from "@/types/database";
 
@@ -52,7 +53,7 @@ export default function StockPage() {
   const [itemHistorial, setItemHistorial] = useState<Inventario | null>(null);
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
-  const puedeVerPrecios = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeVerPrecios = canViewPrices(profile?.area);
 
   const filtered = useMemo(() => {
     return items.filter(i => {

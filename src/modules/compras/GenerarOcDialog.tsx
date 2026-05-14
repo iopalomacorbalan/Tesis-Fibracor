@@ -12,6 +12,8 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useProveedores } from "@/modules/crm/proveedores/useProveedores";
 import { useCrearOcDesdePendientes } from "./useItemsPendientesOc";
 import type { ItemPendienteOc } from "./useItemsPendientesOc";
+import { useAuth } from "@/lib/auth";
+import { puedeVerPreciosEnOC } from "@/lib/permissions";
 import { formatCurrency } from "@/lib/utils";
 
 interface Props {
@@ -30,6 +32,8 @@ interface ItemEditable {
 }
 
 export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
+  const { profile } = useAuth();
+  const verPrecios = puedeVerPreciosEnOC(profile?.area);
   const { data: proveedores = [] } = useProveedores();
   const crear = useCrearOcDesdePendientes();
 
@@ -70,7 +74,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
       toast.error("Seleccioná un proveedor");
       return;
     }
-    if (itemsEdit.some(it => it.precio_unitario <= 0)) {
+    if (verPrecios && itemsEdit.some(it => it.precio_unitario <= 0)) {
       toast.error("Todos los ítems deben tener precio");
       return;
     }
@@ -146,27 +150,33 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
                         onChange={(e) => handleEditar(idx, { unidad: e.target.value })}
                       />
                     </div>
-                    <div>
-                      <Label className="text-[10px]">Precio unit. $ *</Label>
-                      <Input
-                        type="number" min="0" step="0.01"
-                        value={it.precio_unitario || ""}
-                        onChange={(e) => handleEditar(idx, { precio_unitario: parseFloat(e.target.value) || 0 })}
-                        placeholder="0.00"
-                      />
+                    {verPrecios && (
+                      <div>
+                        <Label className="text-[10px]">Precio unit. $ *</Label>
+                        <Input
+                          type="number" min="0" step="0.01"
+                          value={it.precio_unitario || ""}
+                          onChange={(e) => handleEditar(idx, { precio_unitario: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {verPrecios && (
+                    <div className="text-xs text-right mt-1">
+                      Subtotal: <b>{formatCurrency(it.cantidad * it.precio_unitario)}</b>
                     </div>
-                  </div>
-                  <div className="text-xs text-right mt-1">
-                    Subtotal: <b>{formatCurrency(it.cantidad * it.precio_unitario)}</b>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t">
-              <span className="text-sm text-muted-foreground">Total estimado:</span>
-              <span className="text-xl font-bold text-primary">{formatCurrency(total)}</span>
-            </div>
+            {verPrecios && (
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="text-sm text-muted-foreground">Total estimado:</span>
+                <span className="text-xl font-bold text-primary">{formatCurrency(total)}</span>
+              </div>
+            )}
           </div>
 
           {/* Observaciones */}

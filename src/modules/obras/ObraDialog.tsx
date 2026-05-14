@@ -15,6 +15,8 @@ import { useClientes, useCrearCliente } from "./useClientes";
 import { useUsuarios, useTecnicos } from "./useUsuarios";
 import { useCrearObra, useEditarObra } from "./useObras";
 import { obraSchema, type ObraFormValues } from "./schemas";
+import { useAuth } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/permissions";
 import type { ObraConRelaciones } from "@/types/database";
 
 interface Props {
@@ -25,6 +27,8 @@ interface Props {
 
 export function ObraDialog({ open, onOpenChange, obra }: Props) {
   const isEdit = !!obra;
+  const { profile } = useAuth();
+  const verPrecios = puedeVerPrecios(profile?.area);
   const { data: clientes = [] } = useClientes();
   const { data: jefesPosibles = [] } = useUsuarios(["Direccion", "Operaciones", "Tecnico"]);
   const { data: tecnicos = [] } = useTecnicos();
@@ -259,14 +263,16 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
                 onChange={(e) => setForm(f => ({ ...f, fecha_fin_est: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="presupuesto">Presupuesto ($)</Label>
-              <Input
-                id="presupuesto" type="number" min="0" step="0.01"
-                value={form.presupuesto ?? 0}
-                onChange={(e) => setForm(f => ({ ...f, presupuesto: parseFloat(e.target.value) || 0 }))}
-              />
-            </div>
+            {verPrecios && (
+              <div className="space-y-2">
+                <Label htmlFor="presupuesto">Presupuesto ($)</Label>
+                <Input
+                  id="presupuesto" type="number" min="0" step="0.01"
+                  value={form.presupuesto ?? 0}
+                  onChange={(e) => setForm(f => ({ ...f, presupuesto: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+            )}
           </div>
 
           {/* Jefe de obra */}

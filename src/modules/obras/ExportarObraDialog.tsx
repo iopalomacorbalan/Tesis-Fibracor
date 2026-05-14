@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { generarPdfObra } from "@/lib/pdf/obraPdf";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPrecios } from "@/lib/permissions";
 import type { ObraConRelaciones, ReporteConRelaciones } from "@/types/database";
 import type { ObraCostos } from "./useObraCostos";
 
@@ -21,7 +22,7 @@ interface Props {
 
 export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos }: Props) {
   const { profile } = useAuth();
-  const puedeFinanciero = profile && ["Direccion", "Comercial", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeFinanciero = puedeVerPrecios(profile?.area);
 
   const [incluirReportes, setIncluirReportes] = useState(true);
   const [incluirFotos, setIncluirFotos] = useState(true);

@@ -5,6 +5,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { puedeVerPreciosEnOC } from "@/lib/permissions";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import type { CompraConRelaciones, EstadoCompra } from "@/types/database";
 
@@ -26,7 +27,7 @@ const ESTADO_COLOR: Record<EstadoCompra, string> = {
 
 export function CompraDetalle({ open, onOpenChange, compra, onExportar }: Props) {
   const { profile } = useAuth();
-  const puedeVerPrecios = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeVerPrecios = puedeVerPreciosEnOC(profile?.area);
 
   if (!compra) return null;
 
