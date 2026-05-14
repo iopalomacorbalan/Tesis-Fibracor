@@ -33,6 +33,7 @@ const empty: ItemFormValues = {
   proveedor_principal_id: null,
   precio_costo: 0,
   precio_lista: 0,
+  ubicacion_fisica: "",
 };
 
 const CATEGORIAS: CategoriaItem[] = [
@@ -65,6 +66,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
         proveedor_principal_id: item.proveedor_principal_id,
         precio_costo: item.precio_costo,
         precio_lista: item.precio_lista,
+        ubicacion_fisica: item.ubicacion_fisica ?? "",
       });
     } else if (open) {
       setForm(empty);
@@ -95,6 +97,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
             proveedor_principal_id: parsed.data.proveedor_principal_id ?? null,
             precio_costo: parsed.data.precio_costo ?? 0,
             precio_lista: parsed.data.precio_lista ?? 0,
+            ubicacion_fisica: parsed.data.ubicacion_fisica?.trim() || null,
           },
         });
         toast.success("Ítem actualizado");
@@ -109,6 +112,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
           proveedor_principal_id: parsed.data.proveedor_principal_id ?? null,
           precio_costo: parsed.data.precio_costo,
           precio_lista: parsed.data.precio_lista,
+          ubicacion_fisica: parsed.data.ubicacion_fisica?.trim() || null,
         });
         toast.success(`Ítem ${it.item_id} creado`);
       }
@@ -220,6 +224,22 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="ubicacion_fisica">Ubicación en pañol</Label>
+              <Input
+                id="ubicacion_fisica"
+                placeholder="Ej: AB-105, Estante 3, Caja 12"
+                value={form.ubicacion_fisica ?? ""}
+                onChange={(e) => setForm(f => ({ ...f, ubicacion_fisica: e.target.value }))}
+                maxLength={50}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Para que los técnicos sepan dónde encontrarlo físicamente
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Proveedor principal</Label>
               <Select

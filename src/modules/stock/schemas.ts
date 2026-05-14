@@ -10,6 +10,7 @@ export const itemSchema = z.object({
   proveedor_principal_id: z.string().uuid().nullable().optional(),
   precio_costo: z.coerce.number().min(0).optional(),
   precio_lista: z.coerce.number().min(0).optional(),
+  ubicacion_fisica: z.string().max(50, "Máx 50 caracteres").optional().or(z.literal("")),
 });
 
 export type ItemFormValues = z.infer<typeof itemSchema>;

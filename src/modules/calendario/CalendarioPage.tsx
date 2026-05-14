@@ -35,11 +35,14 @@ export function CalendarioPage() {
   const puedeEditar = area && ["Direccion", "Operaciones", "Paniol", "Comercial"].includes(area);
   const esTecnico = area === "Tecnico";
 
-  // Filtrar obras: técnicos solo ven las suyas
+  // Filtrar obras: técnicos solo ven las suyas Y activas
   const obrasVisibles = useMemo(() => {
     if (!profile) return [];
     if (esTecnico) {
-      return obras.filter(o => o.tecnicos?.some(t => t.id === profile.id));
+      return obras.filter(o =>
+        o.tecnicos?.some(t => t.id === profile.id) &&
+        (o.estado === "Pendiente OIO" || o.estado === "En ejecucion")
+      );
     }
     return obras;
   }, [obras, profile, esTecnico]);

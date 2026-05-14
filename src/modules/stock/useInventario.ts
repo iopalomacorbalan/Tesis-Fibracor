@@ -64,6 +64,7 @@ type ItemInput = {
   proveedor_principal_id?: string | null;
   precio_costo?: number;
   precio_lista?: number;
+  ubicacion_fisica?: string | null;
 };
 
 async function generarItemId(categoria: CategoriaItem): Promise<string> {
@@ -100,6 +101,7 @@ export function useCrearItem() {
           proveedor_principal_id: input.proveedor_principal_id ?? null,
           precio_costo: input.precio_costo ?? 0,
           precio_lista: input.precio_lista ?? 0,
+          ubicacion_fisica: input.ubicacion_fisica ?? null,
           activo: true,
         } as any)
         .select()

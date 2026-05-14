@@ -15,6 +15,11 @@ import {
 import {
   useHerramientasAsignadas, useSolicitarDevolucion,
 } from "@/modules/movimientos/useMovimientos";
+import {
+  useHerramientasPersonales,
+  useSolicitarDevolucionPersonal,
+  useAceptarDevolucionPersonal,
+} from "@/modules/asignaciones-personales/useAsignacionesPersonales";
 import { useTecnicos } from "@/modules/obras/useUsuarios";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -42,6 +47,16 @@ export default function MisHerramientasPage() {
     : (tecnicoSelId || profile?.id || null);
 
   const { data: herramientas = [], isLoading } = useHerramientasAsignadas(tecnicoIdAUsar);
+  const { data: personales = [] } = useHerramientasPersonales(tecnicoIdAUsar);
+
+  const solicitarPersonal = useSolicitarDevolucionPersonal();
+  const aceptarPersonal = useAceptarDevolucionPersonal();
+  const [personalDevolver, setPersonalDevolver] = useState<{ itemId: string; itemNombre: string; cantidad: number } | null>(null);
+  const [cantDevolver, setCantDevolver] = useState<number>(0);
+  const [motivoDevolver, setMotivoDevolver] = useState("");
+
+  const puedePaniol = profile && ["Paniol", "Direccion", "Operaciones"].includes(profile.area);
+  const esTecnicoActual = profile?.area === "Tecnico" && profile.id === tecnicoIdAUsar;
 
   const [herramientaDevolver, setHerramientaDevolver] = useState<HerramientaAsignada | null>(null);
 
@@ -179,6 +194,158 @@ export default function MisHerramientasPage() {
         tecnicoId={tecnicoIdAUsar ?? null}
         obras={herramientaDevolver?.obras ?? null}
       />
+
+      {/* ===== HERRAMIENTAS DE USO DIARIO (personales) ===== */}
+      {personales.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2 pt-4 border-t">
+            <Package className="h-5 w-5 text-warning" />
+            <h2 className="text-lg font-bold">Herramientas de uso diario</h2>
+            <span className="text-xs text-muted-foreground">
+              (sin vinculación a obra)
+            </span>
+          </div>
+          <div className="space-y-2">
+            {personales.map(p => (
+              <Card key={p.item_id} className="hover:border-warning/40 transition-colors border-warning/20">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-semibold break-words">{p.descripcion}</h3>
+                        <span className="text-xs text-muted-foreground">{p.item_codigo}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/15 text-warning border border-warning/30">
+                          {p.cantidad_en_poder} {p.unidad}
+                        </span>
+                        {p.ubicacion_fisica && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
+                            📍 {p.ubicacion_fisica}
+                          </span>
+                        )}
+                      </div>
+                      {p.numero_serie && (
+                        <p className="text-[11px] text-muted-foreground">S/N: {p.numero_serie}</p>
+                      )}
+                      {p.cantidad_pendiente > 0 && (
+                        <p className="text-[11px] text-warning mt-1">
+                          🔔 {p.cantidad_pendiente} pendiente{p.cantidad_pendiente !== 1 ? "s" : ""} de devolución
+                        </p>
+                      )}
+                    </div>
+
+                    {(esTecnicoActual || puedePaniol) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setPersonalDevolver({
+                            itemId: p.item_id,
+                            itemNombre: p.descripcion,
+                            cantidad: p.cantidad_en_poder,
+                          });
+                          setCantDevolver(p.cantidad_en_poder);
+                          setMotivoDevolver("");
+                        }}
+                      >
+                        <ArrowLeftRight className="h-3.5 w-3.5" />
+                        Solicitar devolución
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal devolución personal */}
+      <Dialog open={!!personalDevolver} onOpenChange={(o) => !o && setPersonalDevolver(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Devolución de {personalDevolver?.itemNombre}</DialogTitle>
+            <DialogDescription>
+              En poder: <b>{personalDevolver?.cantidad}</b>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Cantidad a devolver</Label>
+              <Input
+                type="number"
+                min="0.01"
+                max={personalDevolver?.cantidad}
+                step="0.01"
+                value={cantDevolver}
+                onChange={(e) => setCantDevolver(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Motivo (opcional)</Label>
+              <Textarea
+                rows={2}
+                placeholder="se rompió, desgastada, ya no la uso..."
+                value={motivoDevolver}
+                onChange={(e) => setMotivoDevolver(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setPersonalDevolver(null)}>
+              Cancelar
+            </Button>
+            {puedePaniol && (
+              <Button
+                onClick={async () => {
+                  if (!personalDevolver || !tecnicoIdAUsar) return;
+                  if (cantDevolver <= 0 || cantDevolver > personalDevolver.cantidad) {
+                    toast.error("Cantidad inválida"); return;
+                  }
+                  try {
+                    await aceptarPersonal.mutateAsync({
+                      tecnico_id: tecnicoIdAUsar,
+                      item_id: personalDevolver.itemId,
+                      cantidad: cantDevolver,
+                      observaciones: motivoDevolver || undefined,
+                    });
+                    toast.success("Devolución registrada");
+                    setPersonalDevolver(null);
+                  } catch (e: any) {
+                    toast.error("Error: " + e.message);
+                  }
+                }}
+                disabled={aceptarPersonal.isPending}
+              >
+                Recibir ahora
+              </Button>
+            )}
+            <Button
+              variant={puedePaniol ? "outline" : "default"}
+              onClick={async () => {
+                if (!personalDevolver || !tecnicoIdAUsar) return;
+                if (cantDevolver <= 0 || cantDevolver > personalDevolver.cantidad) {
+                  toast.error("Cantidad inválida"); return;
+                }
+                try {
+                  await solicitarPersonal.mutateAsync({
+                    tecnico_id: tecnicoIdAUsar,
+                    item_id: personalDevolver.itemId,
+                    cantidad: cantDevolver,
+                    motivo: motivoDevolver || undefined,
+                  });
+                  toast.success("Solicitud registrada");
+                  setPersonalDevolver(null);
+                } catch (e: any) {
+                  toast.error("Error: " + e.message);
+                }
+              }}
+              disabled={solicitarPersonal.isPending}
+            >
+              Solo solicitar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

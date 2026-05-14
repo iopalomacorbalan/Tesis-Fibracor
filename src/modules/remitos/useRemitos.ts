@@ -279,3 +279,61 @@ export function useEliminarRemito() {
     },
   });
 }
+
+/** Editar item del remito (cantidad, descripcion_libre, unidad, observaciones) */
+export function useEditarRemitoItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: {
+      id: string;
+      patch: Partial<{
+        cantidad: number;
+        unidad: string | null;
+        descripcion_libre: string | null;
+        observaciones: string | null;
+      }>;
+    }) => {
+      const { error } = await supabase.from("remito_items").update(patch as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}
+
+/** Eliminar item del remito (no afecta stock - el remito es solo registro de entrega) */
+export function useEliminarRemitoItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("remito_items").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}
+
+/** Agregar item libre a un remito existente */
+export function useAgregarRemitoItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      remito_id: string;
+      item_id: string | null;
+      descripcion_libre: string | null;
+      cantidad: number;
+      unidad: string | null;
+      observaciones?: string;
+    }) => {
+      const { error } = await supabase.from("remito_items").insert({
+        remito_id: args.remito_id,
+        item_id: args.item_id,
+        descripcion_libre: args.descripcion_libre,
+        cantidad: args.cantidad,
+        unidad: args.unidad,
+        observaciones: args.observaciones ?? null,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}

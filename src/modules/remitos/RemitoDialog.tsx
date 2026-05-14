@@ -15,10 +15,12 @@ import {
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   useCrearRemito, useEditarRemito, useItemsRemitables,
+  useEditarRemitoItem, useEliminarRemitoItem, useAgregarRemitoItem,
 } from "./useRemitos";
 import { useObras } from "@/modules/obras/useObras";
 import { useClientes } from "@/modules/crm/clientes/useClientes";
 import { useInventario } from "@/modules/stock/useInventario";
+import { useAuth } from "@/lib/auth";
 import { cn, formatDate } from "@/lib/utils";
 import type { RemitoConRelaciones } from "@/types/database";
 
@@ -41,11 +43,16 @@ type ItemDraft = {
 
 export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) {
   const isEdit = !!remito;
+  const { profile } = useAuth();
+  const puedeEditarItems = profile && ["Direccion", "Operaciones", "Comercial", "Paniol"].includes(profile.area);
   const { data: obras = [] } = useObras();
   const { data: clientes = [] } = useClientes();
   const { data: inventario = [] } = useInventario();
   const crear = useCrearRemito();
   const editar = useEditarRemito();
+  const editarItem = useEditarRemitoItem();
+  const eliminarItem = useEliminarRemitoItem();
+  const agregarItem = useAgregarRemitoItem();
 
   const [modo, setModo] = useState<ModoRemito>(obraIdFijo ? "obra" : "obra");
   const [obraId, setObraId] = useState<string>(obraIdFijo ?? "");
@@ -556,6 +563,28 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
             </>
           )}
 
+          {/* === EN EDICIÓN: editar items existentes === */}
+          {isEdit && remito && puedeEditarItems && (
+            <Card>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold">Items del remito ({(remito.items ?? []).length})</h3>
+                    <p className="text-xs text-muted-foreground">Modificar cantidades, descripciones o agregar/quitar items</p>
+                  </div>
+                </div>
+                <RemitoItemsEditor
+                  remitoId={remito.id}
+                  items={(remito.items ?? []) as any[]}
+                  inventario={inventario}
+                  onEdit={(id, patch) => editarItem.mutateAsync({ id, patch })}
+                  onDelete={(id) => eliminarItem.mutateAsync(id)}
+                  onAdd={(args) => agregarItem.mutateAsync({ remito_id: remito.id, ...args })}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Datos del receptor */}
           <div>
             <h3 className="text-sm font-semibold mb-2">Datos de recepción (opcional)</h3>
@@ -610,5 +639,205 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Editor inline de items de un remito existente */
+function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onDelete, onAdd }: {
+  remitoId: string;
+  items: any[];
+  inventario: any[];
+  onEdit: (id: string, patch: any) => Promise<any>;
+  onDelete: (id: string) => Promise<any>;
+  onAdd: (args: any) => Promise<any>;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editCant, setEditCant] = useState<number>(0);
+  const [editDesc, setEditDesc] = useState<string>("");
+  const [editUnidad, setEditUnidad] = useState<string>("");
+  const [agregando, setAgregando] = useState(false);
+  const [newItemId, setNewItemId] = useState<string | null>(null);
+  const [newDesc, setNewDesc] = useState("");
+  const [newCant, setNewCant] = useState(1);
+  const [newUnidad, setNewUnidad] = useState("ud.");
+
+  const startEdit = (it: any) => {
+    setEditingId(it.id);
+    setEditCant(Number(it.cantidad));
+    setEditDesc(it.descripcion_libre ?? "");
+    setEditUnidad(it.unidad ?? "");
+  };
+
+  const saveEdit = async (id: string) => {
+    try {
+      await onEdit(id, {
+        cantidad: editCant,
+        descripcion_libre: editDesc || null,
+        unidad: editUnidad || null,
+      });
+      toast.success("Item actualizado");
+      setEditingId(null);
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Eliminar este item del remito?")) return;
+    try {
+      await onDelete(id);
+      toast.success("Item eliminado");
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!newItemId && !newDesc.trim()) {
+      toast.error("Elegí un item del catálogo o escribí descripción libre");
+      return;
+    }
+    if (newCant <= 0) {
+      toast.error("Cantidad debe ser mayor a 0");
+      return;
+    }
+    try {
+      const inv = inventario.find(i => i.id === newItemId);
+      await onAdd({
+        item_id: newItemId,
+        descripcion_libre: newItemId ? null : newDesc,
+        cantidad: newCant,
+        unidad: inv?.unidad ?? newUnidad,
+      });
+      toast.success("Item agregado");
+      setAgregando(false);
+      setNewItemId(null);
+      setNewDesc("");
+      setNewCant(1);
+      setNewUnidad("ud.");
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic py-2">Sin items en este remito</p>
+      ) : (
+        <div className="space-y-1.5">
+          {items.map((it: any) => {
+            const isEditing = editingId === it.id;
+            const isLinked = !!it.movimiento_id; // Si está vinculado a un movimiento, no permitimos eliminar
+            return (
+              <div key={it.id} className="border rounded-md p-2 text-sm">
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium">
+                      {it.item?.descripcion ?? it.descripcion_libre ?? "—"}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-[10px]">Cantidad</Label>
+                        <Input type="number" min="0.01" step="0.01"
+                          value={editCant}
+                          onChange={(e) => setEditCant(parseFloat(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <Label className="text-[10px]">Unidad</Label>
+                        <Input value={editUnidad} onChange={(e) => setEditUnidad(e.target.value)} />
+                      </div>
+                      <div>
+                        <Label className="text-[10px]">Descripción libre</Label>
+                        <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
+                          placeholder={it.item?.descripcion ?? "—"} />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancelar</Button>
+                      <Button type="button" size="sm" onClick={() => saveEdit(it.id)}>Guardar</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium">
+                        {it.item?.descripcion ?? it.descripcion_libre ?? "—"}
+                      </span>
+                      {isLinked && (
+                        <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-warning/15 text-warning border border-warning/30">
+                          Vinculado a movimiento
+                        </span>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {Number(it.cantidad)} {it.unidad ?? "ud."}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(it)}>
+                        Editar
+                      </Button>
+                      {!isLinked && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleDelete(it.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Agregar item nuevo */}
+      {agregando ? (
+        <div className="border-2 border-dashed rounded-md p-3 space-y-2 bg-muted/30">
+          <Label className="text-xs">Agregar item</Label>
+          <SearchableSelect
+            value={newItemId}
+            onChange={(v) => setNewItemId(v)}
+            placeholder="Elegir del inventario (o dejá vacío y poné descripción libre)..."
+            options={inventario.filter(i => i.activo).map(i => ({
+              value: i.id,
+              label: i.descripcion,
+              searchText: i.item_id,
+              hint: `${i.unidad}`,
+            }))}
+          />
+          {!newItemId && (
+            <Input
+              placeholder="Descripción libre"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+            />
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-[10px]">Cantidad</Label>
+              <Input type="number" min="0.01" step="0.01"
+                value={newCant}
+                onChange={(e) => setNewCant(parseFloat(e.target.value) || 0)} />
+            </div>
+            <div>
+              <Label className="text-[10px]">Unidad</Label>
+              <Input value={newUnidad} onChange={(e) => setNewUnidad(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAgregando(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" size="sm" onClick={handleAdd}>Agregar</Button>
+          </div>
+        </div>
+      ) : (
+        <Button type="button" variant="outline" size="sm" onClick={() => setAgregando(true)}>
+          <Plus className="h-4 w-4" />
+          Agregar item al remito
+        </Button>
+      )}
+    </div>
   );
 }

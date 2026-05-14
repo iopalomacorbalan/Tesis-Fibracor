@@ -65,7 +65,8 @@ export default function StockPage() {
         return (
           i.descripcion.toLowerCase().includes(s) ||
           i.item_id.toLowerCase().includes(s) ||
-          (i.numero_serie?.toLowerCase().includes(s) ?? false)
+          (i.numero_serie?.toLowerCase().includes(s) ?? false) ||
+          (i.ubicacion_fisica?.toLowerCase().includes(s) ?? false)
         );
       }
       return true;
@@ -343,6 +344,11 @@ function ItemCard({
               {item.numero_serie && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted text-muted-foreground">
                   S/N: {item.numero_serie}
+                </span>
+              )}
+              {item.ubicacion_fisica && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary border border-primary/20 font-mono">
+                  📍 {item.ubicacion_fisica}
                 </span>
               )}
             </div>

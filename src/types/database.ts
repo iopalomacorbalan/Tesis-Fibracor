@@ -12,7 +12,8 @@ export type EstadoObra =
 export type TipoMovimiento =
   | "Ingreso_compra" | "Ingreso_inicial" | "Ajuste_positivo" | "Ajuste_negativo"
   | "Retiro" | "Devolucion_pendiente" | "Devolucion" | "Reactivacion" | "Baja"
-  | "Transferencia";
+  | "Transferencia"
+  | "Asignacion_personal" | "Devolucion_personal_pendiente" | "Devolucion_personal";
 
 export type EstadoCompra =
   | "Solicitada" | "Aprobada" | "Parcial" | "Recibida" | "Rechazada" | "Cancelada";
@@ -82,6 +83,7 @@ export interface Inventario {
   proveedor_principal_id: string | null;
   precio_costo: number;
   precio_lista: number;
+  ubicacion_fisica: string | null;
   activo: boolean;
   created_at: string;
   updated_at: string;
