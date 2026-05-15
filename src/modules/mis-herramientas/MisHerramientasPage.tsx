@@ -234,22 +234,28 @@ export default function MisHerramientasPage() {
                     </div>
 
                     {(esTecnicoActual || puedePaniol) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setPersonalDevolver({
-                            itemId: p.item_id,
-                            itemNombre: p.descripcion,
-                            cantidad: p.cantidad_en_poder,
-                          });
-                          setCantDevolver(p.cantidad_en_poder);
-                          setMotivoDevolver("");
-                        }}
-                      >
-                        <ArrowLeftRight className="h-3.5 w-3.5" />
-                        Solicitar devolución
-                      </Button>
+                      p.cantidad_pendiente > 0 ? (
+                        <span className="text-[11px] text-muted-foreground italic self-center">
+                          Devolución ya solicitada
+                        </span>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPersonalDevolver({
+                              itemId: p.item_id,
+                              itemNombre: p.descripcion,
+                              cantidad: p.cantidad_en_poder,
+                            });
+                            setCantDevolver(p.cantidad_en_poder);
+                            setMotivoDevolver("");
+                          }}
+                        >
+                          <ArrowLeftRight className="h-3.5 w-3.5" />
+                          Solicitar devolución
+                        </Button>
+                      )
                     )}
                   </div>
                 </CardContent>

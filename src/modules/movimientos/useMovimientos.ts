@@ -98,6 +98,22 @@ export function useSolicitarDevolucion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SolicitarDevolucionInput) => {
+      // Chequear que no exista pendiente ya
+      // (necesitamos el tecnico_id que tiene el item — lo buscamos por el item+obra activos)
+      let query = supabase
+        .from("movimientos")
+        .select("id, cantidad, tecnico_id")
+        .eq("tipo", "Devolucion_pendiente")
+        .eq("item_id", input.item_id);
+      if (input.obra_id) query = query.eq("obra_id", input.obra_id);
+      const { data: existentes } = await query.limit(1);
+
+      if (existentes && existentes.length > 0) {
+        throw new Error(
+          `Ya existe una solicitud de devolución pendiente para este item${input.obra_id ? " en esta obra" : ""}. Esperá a que pañol la procese.`
+        );
+      }
+
       const { data, error } = await supabase.rpc("solicitar_devolucion", {
         p_item_id: input.item_id,
         p_cantidad: input.cantidad,
@@ -108,7 +124,10 @@ export function useSolicitarDevolucion() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: [KEY, "devoluciones_pendientes"] });
+    },
   });
 }
 

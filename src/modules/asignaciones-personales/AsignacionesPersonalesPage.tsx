@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Package2, UserPlus, History, Loader2 } from "lucide-react";
+import { Package2, UserPlus, History, Loader2, Bell, Check } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useTecnicos } from "@/modules/obras/useUsuarios";
-import { useHerramientasPersonales } from "./useAsignacionesPersonales";
+import { useHerramientasPersonales, useAceptarDevolucionPersonal } from "./useAsignacionesPersonales";
+import { useDevolucionesPendientes } from "./useDevolucionesPendientes";
 import { AsignarPersonalDialog } from "./AsignarPersonalDialog";
 import { DevolucionPersonalDialog } from "./DevolucionPersonalDialog";
 import { formatDate } from "@/lib/utils";
@@ -36,6 +38,9 @@ export default function AsignacionesPersonalesPage() {
           </p>
         </div>
       </div>
+
+      {/* Bandeja de devoluciones pendientes */}
+      <BandejaPendientes />
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
         {/* Lista de técnicos */}
@@ -179,18 +184,24 @@ function DetalleTecnico({ tecnicoId, tecnicoNombre, onAsignar, onSolicitarDevolu
                       🔔 {it.cantidad_pendiente} pendiente{it.cantidad_pendiente !== 1 ? "s" : ""} de devolución
                     </span>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-auto"
-                    onClick={() => onSolicitarDevolucion({
-                      itemId: it.item_id,
-                      itemNombre: it.descripcion,
-                      cantidad: it.cantidad_en_poder,
-                    })}
-                  >
-                    Solicitar devolución
-                  </Button>
+                  {it.cantidad_pendiente > 0 ? (
+                    <span className="ml-auto text-[11px] text-muted-foreground italic">
+                      Devolución ya solicitada — esperá a procesar la pendiente
+                    </span>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto"
+                      onClick={() => onSolicitarDevolucion({
+                        itemId: it.item_id,
+                        itemNombre: it.descripcion,
+                        cantidad: it.cantidad_en_poder,
+                      })}
+                    >
+                      Solicitar devolución
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -198,5 +209,107 @@ function DetalleTecnico({ tecnicoId, tecnicoNombre, onAsignar, onSolicitarDevolu
         </div>
       )}
     </>
+  );
+}
+
+function BandejaPendientes() {
+  const { data: pendientes = [], isLoading } = useDevolucionesPendientes();
+  const aceptar = useAceptarDevolucionPersonal();
+  const [destinos, setDestinos] = useState<Record<string, "disponible" | "revision" | "baja">>({});
+
+  if (isLoading || pendientes.length === 0) return null;
+
+  const handleAceptar = async (p: typeof pendientes[number]) => {
+    const destino = destinos[p.id] ?? "disponible";
+    try {
+      await aceptar.mutateAsync({
+        tecnico_id: p.tecnico_id,
+        item_id: p.item_id,
+        cantidad: p.cantidad,
+        observaciones: p.observaciones ?? undefined,
+        estado_destino: destino,
+      });
+      const destinoTxt = destino === "disponible" ? "vuelve al stock"
+        : destino === "revision" ? "queda en revisión"
+        : "dado de baja";
+      toast.success(`Devolución de ${p.descripcion} aceptada — ${destinoTxt}`);
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+  };
+
+  return (
+    <Card className="border-warning/40 bg-warning/5">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Bell className="h-5 w-5 text-warning" />
+          <h2 className="font-semibold">Devoluciones pendientes ({pendientes.length})</h2>
+          <span className="text-xs text-muted-foreground">— solicitudes de técnicos</span>
+        </div>
+        <div className="space-y-2">
+          {pendientes.map(p => {
+            const destino = destinos[p.id] ?? "disponible";
+            return (
+              <div key={p.id} className="p-2.5 rounded-md border bg-background space-y-2">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm">{p.descripcion}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                        {p.item_codigo}
+                      </span>
+                      {p.ubicacion_fisica && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
+                          📍 {p.ubicacion_fisica}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      <b>{p.cantidad} {p.unidad}</b> de <b>{p.tecnico_nombre}</b> · {formatDate(p.fecha)}
+                    </div>
+                    {p.observaciones && (
+                      <div className="text-[11px] text-muted-foreground italic mt-1">
+                        "{p.observaciones}"
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Selector de destino */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                  <span className="text-[11px] text-muted-foreground">Destino:</span>
+                  <div className="flex gap-1 flex-wrap">
+                    {(["disponible", "revision", "baja"] as const).map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setDestinos(prev => ({ ...prev, [p.id]: d }))}
+                        className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                          destino === d
+                            ? d === "disponible"
+                              ? "bg-success/15 text-success border-success/40"
+                              : d === "revision"
+                                ? "bg-warning/15 text-warning border-warning/40"
+                                : "bg-destructive/15 text-destructive border-destructive/40"
+                            : "bg-background text-muted-foreground border-input hover:border-primary/30"
+                        }`}
+                      >
+                        {d === "disponible" && "✅ Disponible"}
+                        {d === "revision" && "🔧 En revisión"}
+                        {d === "baja" && "❌ Dañado / Baja"}
+                      </button>
+                    ))}
+                  </div>
+                  <Button size="sm" onClick={() => handleAceptar(p)} disabled={aceptar.isPending} className="ml-auto">
+                    <Check className="h-3.5 w-3.5" />
+                    Recibir
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

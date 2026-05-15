@@ -13,12 +13,21 @@ export function useObras() {
         .select(`
           *,
           cliente:clientes(*),
-          jefe_obra:usuarios!obras_jefe_obra_id_fkey(*)
+          jefe_obra:usuarios!obras_jefe_obra_id_fkey(*),
+          obra_tecnicos(usuario:usuarios!obra_tecnicos_tecnico_id_fkey(*))
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data ?? []) as unknown as ObraConRelaciones[];
+
+      // Aplanar obra_tecnicos -> tecnicos (igual que en useObra)
+      const obrasConTecnicos = ((data ?? []) as any[]).map(obra => {
+        obra.tecnicos = (obra.obra_tecnicos ?? []).map((ot: any) => ot.usuario);
+        delete obra.obra_tecnicos;
+        return obra;
+      });
+
+      return obrasConTecnicos as unknown as ObraConRelaciones[];
     },
   });
 }

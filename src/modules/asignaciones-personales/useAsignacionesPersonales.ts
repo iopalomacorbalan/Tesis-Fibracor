@@ -61,8 +61,7 @@ export function useMovimientosPersonales(tecnicoId: string | null) {
         .from("movimientos")
         .select(`
           id, tipo, cantidad, fecha, observaciones, created_at,
-          item:inventario(id, item_id, descripcion, unidad, numero_serie, ubicacion_fisica),
-          autor:usuarios!movimientos_created_by_fkey(nombre)
+          item:inventario(id, item_id, descripcion, unidad, numero_serie, ubicacion_fisica)
         `)
         .eq("tecnico_id", tecnicoId)
         .in("tipo", ["Asignacion_personal", "Devolucion_personal", "Devolucion_personal_pendiente"])
@@ -86,8 +85,6 @@ export function useAsignarPersonal() {
       items: Array<{ item_id: string; cantidad: number }>;
       observaciones?: string;
     }) => {
-      const userResp = await supabase.auth.getUser();
-      const userId = userResp.data.user?.id;
       const fecha = new Date().toISOString();
 
       const rows = args.items.map(it => ({
@@ -98,7 +95,6 @@ export function useAsignarPersonal() {
         obra_id: null,
         fecha,
         observaciones: args.observaciones ?? null,
-        created_by: userId ?? null,
       }));
 
       const { error } = await supabase.from("movimientos").insert(rows as any);
@@ -121,8 +117,19 @@ export function useSolicitarDevolucionPersonal() {
       cantidad: number;
       motivo?: string;
     }) => {
-      const userResp = await supabase.auth.getUser();
-      const userId = userResp.data.user?.id;
+      // Verificar si ya existe una pendiente para este técnico+item
+      const { data: existente } = await supabase
+        .from("movimientos")
+        .select("id, cantidad")
+        .eq("tipo", "Devolucion_personal_pendiente")
+        .eq("tecnico_id", args.tecnico_id)
+        .eq("item_id", args.item_id)
+        .limit(1)
+        .maybeSingle();
+
+      if (existente) {
+        throw new Error(`Ya existe una solicitud de devolución pendiente para este item (${existente.cantidad} unidades). Esperá a que pañol la procese.`);
+      }
 
       const { error } = await supabase.from("movimientos").insert({
         tipo: "Devolucion_personal_pendiente",
@@ -132,12 +139,12 @@ export function useSolicitarDevolucionPersonal() {
         obra_id: null,
         fecha: new Date().toISOString(),
         observaciones: args.motivo ?? null,
-        created_by: userId ?? null,
       } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
+      qc.invalidateQueries({ queryKey: ["devoluciones_personales_pendientes"] });
     },
   });
 }
@@ -151,12 +158,17 @@ export function useAceptarDevolucionPersonal() {
       item_id: string;
       cantidad: number;
       observaciones?: string;
-      pendiente_id?: string; // si viene de aceptar una pendiente, la borramos
+      estado_destino?: "disponible" | "revision" | "baja";
     }) => {
-      const userResp = await supabase.auth.getUser();
-      const userId = userResp.data.user?.id;
+      // 1. Borrar TODAS las pendientes de este técnico+item
+      await supabase
+        .from("movimientos")
+        .delete()
+        .eq("tecnico_id", args.tecnico_id)
+        .eq("item_id", args.item_id)
+        .eq("tipo", "Devolucion_personal_pendiente");
 
-      // 1. Insertar devolución efectiva
+      // 2. Insertar devolución efectiva con destino
       const { error: errDev } = await supabase.from("movimientos").insert({
         tipo: "Devolucion_personal",
         item_id: args.item_id,
@@ -165,18 +177,15 @@ export function useAceptarDevolucionPersonal() {
         obra_id: null,
         fecha: new Date().toISOString(),
         observaciones: args.observaciones ?? null,
-        created_by: userId ?? null,
+        estado_destino: args.estado_destino ?? "disponible",
       } as any);
       if (errDev) throw errDev;
-
-      // 2. Si vino de una pendiente, borrarla (queda registrada solo la efectiva)
-      if (args.pendiente_id) {
-        await supabase.from("movimientos").delete().eq("id", args.pendiente_id);
-      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["inventario"] });
+      qc.invalidateQueries({ queryKey: ["devoluciones_personales_pendientes"] });
+      qc.invalidateQueries({ queryKey: ["items_en_revision"] });
     },
   });
 }

@@ -39,10 +39,20 @@ export function CalendarioPage() {
   const obrasVisibles = useMemo(() => {
     if (!profile) return [];
     if (esTecnico) {
-      return obras.filter(o =>
+      const filtradas = obras.filter(o =>
         o.tecnicos?.some(t => t.id === profile.id) &&
         (o.estado === "Pendiente OIO" || o.estado === "En ejecucion")
       );
+      // DEBUG: log temporal para diagnosticar visibilidad
+      console.log("[Calendario] Técnico:", profile.nombre, profile.id);
+      console.log("[Calendario] Total obras recibidas:", obras.length);
+      console.log("[Calendario] Obras donde aparezco como técnico:",
+        obras.filter(o => o.tecnicos?.some(t => t.id === profile.id)).map(o => ({
+          id: o.obra_id, estado: o.estado, fecha_inicio: o.fecha_inicio_est,
+        }))
+      );
+      console.log("[Calendario] Obras visibles después de filtros:", filtradas.length);
+      return filtradas;
     }
     return obras;
   }, [obras, profile, esTecnico]);
@@ -50,11 +60,12 @@ export function CalendarioPage() {
   // Convertir obras a eventos de FullCalendar
   const eventos: EventInput[] = useMemo(() => {
     return obrasVisibles
-      .filter(o => o.fecha_inicio_est) // solo obras con fecha
+      .filter(o => o.fecha_inicio_est || o.fecha_inicio_real) // obras con alguna fecha
       .map(o => {
         const color = COLOR_POR_ESTADO[o.estado] ?? COLOR_POR_ESTADO["En ejecucion"];
+        const start = o.fecha_inicio_real ?? o.fecha_inicio_est!;
         // FullCalendar usa "end" como EXCLUSIVO. Sumamos 1 día para que abarque el día final completo.
-        let endDate = o.fecha_fin_est ?? o.fecha_inicio_est;
+        let endDate = o.fecha_fin_real ?? o.fecha_fin_est ?? start;
         if (endDate) {
           const d = new Date(endDate + "T00:00:00");
           d.setDate(d.getDate() + 1);
@@ -63,7 +74,7 @@ export function CalendarioPage() {
         return {
           id: o.id,
           title: `${o.obra_id} — ${o.nombre_obra ?? "Sin nombre"}`,
-          start: o.fecha_inicio_est!,
+          start,
           end: endDate ?? undefined,
           backgroundColor: color.bg,
           borderColor: color.border,
@@ -147,6 +158,45 @@ export function CalendarioPage() {
         <LegendDot color="#34D399" label="En ejecución" />
         <LegendDot color="#F87171" label="Cerrada / Cancelada" />
       </div>
+
+      {/* Para técnicos: lista visible de SUS obras asignadas con diagnóstico */}
+      {esTecnico && (
+        <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1">
+          <div className="font-semibold text-sm">
+            🔍 Tus obras asignadas ({obras.filter(o => o.tecnicos?.some(t => t.id === profile?.id)).length} en total)
+          </div>
+          {obras.filter(o => o.tecnicos?.some(t => t.id === profile?.id)).length === 0 ? (
+            <p className="text-muted-foreground italic">
+              No figurás como técnico en ninguna obra. Pedí a Dirección u Operaciones que te asigne.
+            </p>
+          ) : (
+            <ul className="space-y-0.5">
+              {obras
+                .filter(o => o.tecnicos?.some(t => t.id === profile?.id))
+                .map(o => {
+                  const esActiva = o.estado === "Pendiente OIO" || o.estado === "En ejecucion";
+                  const tieneFecha = !!(o.fecha_inicio_est || o.fecha_inicio_real);
+                  const visible = esActiva && tieneFecha;
+                  return (
+                    <li key={o.id} className="flex items-center gap-2 flex-wrap">
+                      <span className={visible ? "text-foreground" : "text-muted-foreground line-through"}>
+                        {o.obra_id} — {o.nombre_obra ?? "sin nombre"}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">
+                        {o.estado}
+                      </span>
+                      {!visible && (
+                        <span className="text-[10px] text-warning">
+                          {!esActiva && "(no activa)"} {!tieneFecha && "(sin fecha)"}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="bg-card border rounded-lg p-1.5 sm:p-4 overflow-hidden">
         <FullCalendar
