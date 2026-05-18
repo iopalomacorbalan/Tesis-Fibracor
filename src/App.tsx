@@ -18,6 +18,7 @@ import CrmPage from "@/modules/crm/CrmPage";
 import MisHerramientasPage from "@/modules/mis-herramientas/MisHerramientasPage";
 import AsignacionesPersonalesPage from "@/modules/asignaciones-personales/AsignacionesPersonalesPage";
 import ItemsRevisionPage from "@/modules/items-revision/ItemsRevisionPage";
+import GoogleCalendarConfigPage from "@/modules/configuracion/GoogleCalendarConfigPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/mis-herramientas" element={<ErrorBoundary><MisHerramientasPage /></ErrorBoundary>} />
             <Route path="/asignaciones-personales" element={<ErrorBoundary><AsignacionesPersonalesPage /></ErrorBoundary>} />
             <Route path="/items-revision" element={<ErrorBoundary><ItemsRevisionPage /></ErrorBoundary>} />
+            <Route path="/config/google-calendar" element={<ErrorBoundary><GoogleCalendarConfigPage /></ErrorBoundary>} />
             <Route path="/compras" element={<ErrorBoundary><ComprasPage /></ErrorBoundary>} />
             <Route path="/reportes" element={<ErrorBoundary><ReportesPage /></ErrorBoundary>} />
             <Route path="/crm" element={<ErrorBoundary><CrmPage /></ErrorBoundary>} />

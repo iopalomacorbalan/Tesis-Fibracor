@@ -54,9 +54,15 @@ export default function StockPage() {
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
   const puedeVerPrecios = canViewPrices(profile?.area);
+  const esTecnico = profile?.area === "Tecnico";
 
   const filtered = useMemo(() => {
     return items.filter(i => {
+      // Técnicos solo pueden ver herramientas/reutilizables/equipos especiales
+      // (no ven materiales ni consumos por temas de confidencialidad)
+      if (esTecnico && !["Herramienta", "Reutilizable", "Equipo especial"].includes(i.categoria)) {
+        return false;
+      }
       if (filtro === "Críticos") {
         if (i.stock_minimo <= 0 || i.stock_disponible > i.stock_minimo) return false;
       } else if (filtro !== "Todos" && i.categoria !== filtro) return false;
@@ -71,7 +77,7 @@ export default function StockPage() {
       }
       return true;
     });
-  }, [items, search, filtro]);
+  }, [items, search, filtro, esTecnico]);
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -125,10 +131,12 @@ export default function StockPage() {
           label="Stock crítico" value={stats.criticos}
           icon={AlertTriangle} variant={stats.criticos > 0 ? "destructive" : "muted"}
         />
-        <StatCard
-          label="En revisión / FS" value={stats.fueraServicio}
-          icon={Wrench} variant={stats.fueraServicio > 0 ? "warning" : "muted"}
-        />
+        {!esTecnico && (
+          <StatCard
+            label="En revisión / FS" value={stats.fueraServicio}
+            icon={Wrench} variant={stats.fueraServicio > 0 ? "warning" : "muted"}
+          />
+        )}
         {puedeVerPrecios && (
           <StatCard
             label="Valor total"
@@ -139,32 +147,9 @@ export default function StockPage() {
         )}
       </div>
 
-      {/* Banner herramientas en revisión */}
-      {itemsFS.length > 0 && (
-        <Card className="border-warning/40 bg-warning/5">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-warning/15 text-warning flex items-center justify-center">
-                  <Wrench className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="font-semibold text-sm">🔧 Herramientas en revisión / fuera de servicio</div>
-                  <div className="text-xs text-muted-foreground">
-                    {itemsFS.length} {itemsFS.length === 1 ? "ítem" : "ítems"} con {totalFS} unidades totales
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {itemsFS.map(it => (
-                  <span key={it.id} className="px-2 py-1 rounded-md bg-warning/10 border border-warning/30 text-xs">
-                    {it.descripcion} <b>×{it.stock_fuera_servicio}</b>
-                  </span>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Banner herramientas en revisión - expandible */}
+      {itemsFS.length > 0 && !esTecnico && (
+        <FueraServicioCard items={itemsFS} totalFS={totalFS} />
       )}
 
       {/* Filtros */}
@@ -183,9 +168,11 @@ export default function StockPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIAS_FILTROS.map(c => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
+            {CATEGORIAS_FILTROS
+              .filter(c => !esTecnico || !["Material", "Consumo"].includes(c))
+              .map(c => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
           </SelectContent>
         </Select>
         <div className="text-sm text-muted-foreground">
@@ -402,6 +389,67 @@ function ItemCard({
             </div>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FueraServicioCard({ items, totalFS }: { items: any[]; totalFS: number }) {
+  const [expandido, setExpandido] = useState(false);
+  return (
+    <Card className="border-warning/40 bg-warning/5">
+      <CardContent className="p-4">
+        <button
+          type="button"
+          onClick={() => setExpandido(v => !v)}
+          className="w-full flex items-center justify-between gap-3 flex-wrap text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-warning/15 text-warning flex items-center justify-center">
+              <Wrench className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-semibold text-sm">🔧 Items fuera de servicio / en revisión</div>
+              <div className="text-xs text-muted-foreground">
+                {items.length} {items.length === 1 ? "ítem" : "ítems"} con {totalFS} unidades totales · click para {expandido ? "ocultar" : "ver detalles"}
+              </div>
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {expandido ? "▲" : "▼"}
+          </span>
+        </button>
+
+        {expandido && (
+          <div className="mt-3 pt-3 border-t border-warning/20 space-y-2">
+            {items.map(it => (
+              <div key={it.id} className="flex items-start justify-between gap-2 flex-wrap p-2 rounded-md bg-background border">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm">{it.descripcion}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                      {it.item_id}
+                    </span>
+                    {it.numero_serie && (
+                      <span className="text-[10px] text-muted-foreground">S/N: {it.numero_serie}</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {it.categoria} · {it.unidad}
+                    {it.ubicacion_fisica && <> · 📍 {it.ubicacion_fisica}</>}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">Fuera de servicio</div>
+                  <div className="text-lg font-bold text-warning">{Number(it.stock_fuera_servicio)}</div>
+                </div>
+              </div>
+            ))}
+            <div className="text-xs text-muted-foreground italic pt-2 border-t border-warning/20">
+              💡 Para reactivar o dar de baja estos items, ingresá al módulo "Items en revisión" desde el menú lateral.
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

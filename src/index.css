@@ -154,3 +154,238 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ============================================================ */
+/* === FullCalendar - tema completo y legible ============== */
+/* ============================================================ */
+
+/* Variables del calendario que aprovechan los colores del tema */
+.fc {
+  --fc-border-color: hsl(var(--border));
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: hsl(var(--muted) / 0.4);
+  --fc-neutral-text-color: hsl(var(--muted-foreground));
+  --fc-today-bg-color: hsl(var(--primary) / 0.08);
+  --fc-event-bg-color: hsl(var(--primary));
+  --fc-event-border-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--primary-foreground));
+  --fc-event-selected-overlay-color: hsl(var(--primary) / 0.2);
+  --fc-list-event-hover-bg-color: hsl(var(--muted));
+  --fc-button-bg-color: hsl(var(--secondary));
+  --fc-button-border-color: hsl(var(--border));
+  --fc-button-text-color: hsl(var(--secondary-foreground));
+  --fc-button-hover-bg-color: hsl(var(--accent));
+  --fc-button-hover-border-color: hsl(var(--border));
+  --fc-button-active-bg-color: hsl(var(--primary));
+  --fc-button-active-border-color: hsl(var(--primary));
+  font-family: inherit;
+  color: hsl(var(--foreground));
+}
+
+/* === HEADER DE DÍAS (Lun, Mar, ...) === */
+.fc .fc-col-header-cell {
+  background: hsl(var(--muted) / 0.6);
+  border-color: hsl(var(--border));
+}
+.fc .fc-col-header-cell-cushion {
+  padding: 8px 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: hsl(var(--foreground));
+  text-decoration: none;
+}
+
+/* === CELDAS DE DÍAS === */
+.fc .fc-daygrid-day {
+  background: hsl(var(--card));
+  transition: background 0.15s ease;
+}
+.fc .fc-daygrid-day:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+.fc .fc-daygrid-day-number {
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  text-decoration: none;
+}
+.fc .fc-daygrid-day.fc-day-other {
+  background: hsl(var(--muted) / 0.2);
+}
+.fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+/* Día de HOY destacado */
+.fc .fc-day-today {
+  background: hsl(var(--primary) / 0.06) !important;
+}
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: hsl(var(--primary));
+  font-weight: 700;
+}
+
+/* === FINES DE SEMANA - tono distintivo === */
+.fc .fc-day-sat,
+.fc .fc-day-sun {
+  background: hsl(var(--muted) / 0.25);
+}
+.fc .fc-day-sat.fc-day-today,
+.fc .fc-day-sun.fc-day-today {
+  background: hsl(var(--primary) / 0.08) !important;
+}
+
+/* === BORDES DE TABLA === */
+.fc-theme-standard th,
+.fc-theme-standard td,
+.fc-theme-standard .fc-scrollgrid {
+  border-color: hsl(var(--border));
+}
+
+/* === EVENTOS === */
+.fc-daygrid-event {
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin: 1px 2px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.fc-daygrid-event:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.fc-event {
+  border: none;
+}
+.fc-h-event {
+  border: none;
+}
+.fc-event-title {
+  font-weight: 500;
+}
+.fc-daygrid-event-dot {
+  display: none; /* preferimos pill plano */
+}
+
+/* === TÍTULO (Mes Año) === */
+.fc .fc-toolbar-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  text-transform: capitalize;
+}
+
+/* === BOTONES === */
+.fc .fc-button {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  text-transform: capitalize;
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.fc .fc-button-primary:not(:disabled):active,
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  box-shadow: none;
+}
+.fc .fc-button:focus {
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.4);
+}
+
+/* === VISTA LISTA === */
+.fc .fc-list {
+  border-color: hsl(var(--border));
+  border-radius: 8px;
+  overflow: hidden;
+}
+.fc .fc-list-day-cushion {
+  background: hsl(var(--muted) / 0.5);
+  padding: 8px 14px;
+}
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.fc .fc-list-event {
+  background: hsl(var(--card));
+}
+.fc .fc-list-event:hover td {
+  background: hsl(var(--muted) / 0.7);
+}
+.fc .fc-list-event-title,
+.fc .fc-list-event-time {
+  color: hsl(var(--foreground));
+}
+.fc .fc-list-empty {
+  background: hsl(var(--muted) / 0.3);
+  color: hsl(var(--muted-foreground));
+  padding: 2rem;
+}
+
+/* === "+N más" link === */
+.fc .fc-daygrid-more-link {
+  color: hsl(var(--primary));
+  font-weight: 500;
+  font-size: 0.7rem;
+  padding: 2px 4px;
+}
+.fc .fc-daygrid-more-link:hover {
+  background: hsl(var(--primary) / 0.1);
+  border-radius: 3px;
+}
+
+/* === POPOVER al hacer click en "+más" === */
+.fc .fc-popover {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+.fc .fc-popover-header {
+  background: hsl(var(--muted));
+  padding: 8px 12px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.fc .fc-popover-title {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+.fc .fc-popover-close {
+  color: hsl(var(--muted-foreground));
+}
+
+/* === MOBILE - mantenemos los ajustes y mejoramos visibilidad === */
+@media (max-width: 640px) {
+  .fc .fc-toolbar-title {
+    font-size: 1rem !important;
+  }
+  .fc .fc-button {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.75rem !important;
+  }
+  .fc .fc-col-header-cell-cushion {
+    font-size: 0.65rem;
+    padding: 6px 2px;
+    font-weight: 700;
+  }
+  .fc .fc-daygrid-day-number {
+    font-size: 0.7rem;
+    padding: 3px 4px;
+  }
+  .fc-daygrid-event {
+    font-size: 0.62rem;
+    padding: 1px 4px;
+  }
+  .fc .fc-list-event-title {
+    font-size: 0.8rem;
+  }
+}

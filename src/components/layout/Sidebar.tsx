@@ -37,6 +37,8 @@ const NAV: NavItem[] = [
     roles: ["Direccion", "Operaciones", "Paniol"] },
   { to: "/items-revision", icon: AlertCircle, label: "Items en revisión", group: "Operaciones",
     roles: ["Direccion", "Operaciones", "Paniol"] },
+  { to: "/config/google-calendar", icon: CalendarDays, label: "Google Calendar", group: "Configuración",
+    roles: ["Direccion"] },
   { to: "/solicitudes", icon: ClipboardList, label: "Solicitudes", group: "Operaciones" },
   { to: "/movimientos", icon: GitBranch, label: "Movimientos", group: "Operaciones",
     roles: ["Direccion", "Operaciones", "Paniol"] },
