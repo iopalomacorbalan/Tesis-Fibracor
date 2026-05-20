@@ -163,7 +163,7 @@ export function sectionTitle(doc: jsPDF, text: string, y: number): number {
   return y + 10;
 }
 
-export function infoRow(doc: jsPDF, label: string, value: string, x: number, y: number, labelWidth = 35): number {
+export function infoRow(doc: jsPDF, label: string, value: string, x: number, y: number, labelWidth = 35, maxWidth?: number): number {
   doc.setFontSize(8);
   doc.setTextColor(...PDF_COLORS.muted);
   doc.setFont("helvetica", "normal");
@@ -171,8 +171,20 @@ export function infoRow(doc: jsPDF, label: string, value: string, x: number, y: 
   doc.setFontSize(10);
   doc.setTextColor(...PDF_COLORS.text);
   doc.setFont("helvetica", "bold");
-  doc.text(value || "—", x + labelWidth, y);
-  return y + 6;
+
+  // Ancho disponible para el valor (por defecto media página menos el label)
+  const valueX = x + labelWidth;
+  const availWidth = maxWidth ?? (PAGE.width - PAGE.margin - valueX);
+  const text = value || "—";
+
+  // Envolver el texto si es muy largo, para que no se salga de la columna
+  const lines = doc.splitTextToSize(text, Math.max(availWidth, 20));
+  doc.text(lines, valueX, y);
+
+  // Devolver el y según cuántas líneas ocupó
+  const lineHeight = 4.5;
+  const usedHeight = Array.isArray(lines) ? lines.length * lineHeight : lineHeight;
+  return y + Math.max(usedHeight, 6);
 }
 
 // Fuerza salto de página si no entra

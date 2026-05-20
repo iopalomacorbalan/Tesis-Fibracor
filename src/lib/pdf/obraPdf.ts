@@ -78,20 +78,21 @@ export async function generarPdfObra(args: {
   y = sectionTitle(doc, "Datos del proyecto", y);
 
   const colWidth = (PAGE.width - PAGE.margin * 2) / 2;
+  const valueMaxWidth = colWidth - 35 - 2; // ancho de columna menos label menos pequeño margen
   let yLeft = y;
   let yRight = y;
-  yLeft = infoRow(doc, "Cliente:", obra.cliente?.nombre ?? "—", PAGE.margin, yLeft);
-  yLeft = infoRow(doc, "Obra:", obra.nombre_obra ?? obra.obra_id, PAGE.margin, yLeft);
-  if (obra.sitio) yLeft = infoRow(doc, "Sitio:", obra.sitio, PAGE.margin, yLeft);
-  if (obra.jefe_obra) yLeft = infoRow(doc, "Jefe obra:", obra.jefe_obra.nombre, PAGE.margin, yLeft);
+  yLeft = infoRow(doc, "Cliente:", obra.cliente?.nombre ?? "—", PAGE.margin, yLeft, 35, valueMaxWidth);
+  yLeft = infoRow(doc, "Obra:", obra.nombre_obra ?? obra.obra_id, PAGE.margin, yLeft, 35, valueMaxWidth);
+  if (obra.sitio) yLeft = infoRow(doc, "Sitio:", obra.sitio, PAGE.margin, yLeft, 35, valueMaxWidth);
+  if (obra.jefe_obra) yLeft = infoRow(doc, "Jefe obra:", obra.jefe_obra.nombre, PAGE.margin, yLeft, 35, valueMaxWidth);
 
-  yRight = infoRow(doc, "Estado:", obra.estado, PAGE.margin + colWidth, yRight);
-  yRight = infoRow(doc, "Inicio:", fmtDate(obra.fecha_inicio_real || obra.fecha_inicio_est), PAGE.margin + colWidth, yRight);
-  yRight = infoRow(doc, "Fin:", fmtDate(obra.fecha_fin_real || obra.fecha_fin_est), PAGE.margin + colWidth, yRight);
+  yRight = infoRow(doc, "Estado:", obra.estado, PAGE.margin + colWidth, yRight, 35, valueMaxWidth);
+  yRight = infoRow(doc, "Inicio:", fmtDate(obra.fecha_inicio_real || obra.fecha_inicio_est), PAGE.margin + colWidth, yRight, 35, valueMaxWidth);
+  yRight = infoRow(doc, "Fin:", fmtDate(obra.fecha_fin_real || obra.fecha_fin_est), PAGE.margin + colWidth, yRight, 35, valueMaxWidth);
   if (obra.fecha_inicio_real && obra.fecha_fin_real) {
-    yRight = infoRow(doc, "Duración:", `${diasEntre(obra.fecha_inicio_real, obra.fecha_fin_real)} días`, PAGE.margin + colWidth, yRight);
+    yRight = infoRow(doc, "Duración:", `${diasEntre(obra.fecha_inicio_real, obra.fecha_fin_real)} días`, PAGE.margin + colWidth, yRight, 35, valueMaxWidth);
   } else if (obra.fecha_inicio_est && obra.fecha_fin_est) {
-    yRight = infoRow(doc, "Duración est.:", `${diasEntre(obra.fecha_inicio_est, obra.fecha_fin_est)} días`, PAGE.margin + colWidth, yRight);
+    yRight = infoRow(doc, "Duración est.:", `${diasEntre(obra.fecha_inicio_est, obra.fecha_fin_est)} días`, PAGE.margin + colWidth, yRight, 35, valueMaxWidth);
   }
 
   y = Math.max(yLeft, yRight) + 4;
@@ -211,29 +212,60 @@ export async function generarPdfObra(args: {
           doc.text(`Fotos (${validFotos.length}):`, PAGE.margin, y);
           y += 4;
 
-          // Grid: hasta 2 por fila, 75x55mm cada una
-          const fotoW = opts.fotoMaxAncho!;
-          const fotoH = opts.fotoMaxAlto!;
+          // Grid: hasta 2 por fila. Cada foto entra en un "recuadro" de boxW x boxH
+          // pero se dibuja respetando su proporción real (contain, sin estirar).
+          const boxW = opts.fotoMaxAncho!;
+          const boxH = opts.fotoMaxAlto!;
           const gap = 5;
           const fotosPorFila = 2;
 
           for (let i = 0; i < validFotos.length; i += fotosPorFila) {
-            y = ensureSpace(doc, y, fotoH + 4);
+            y = ensureSpace(doc, y, boxH + 4);
             for (let j = 0; j < fotosPorFila && i + j < validFotos.length; j++) {
-              const x = PAGE.margin + j * (fotoW + gap);
+              const boxX = PAGE.margin + j * (boxW + gap);
               const fmt = detectImageFormat(validFotos[i + j]);
               try {
-                doc.addImage(validFotos[i + j], fmt, x, y, fotoW, fotoH);
-              } catch (e) {
-                // Si falla la foto, dibujar un placeholder
+                // Obtener dimensiones reales de la imagen para calcular proporción
+                let drawW = boxW;
+                let drawH = boxH;
+                let offsetX = 0;
+                let offsetY = 0;
+                try {
+                  const props = doc.getImageProperties(validFotos[i + j]);
+                  const imgRatio = props.width / props.height;
+                  const boxRatio = boxW / boxH;
+                  if (imgRatio > boxRatio) {
+                    // Imagen más ancha que el recuadro → limitar por ancho
+                    drawW = boxW;
+                    drawH = boxW / imgRatio;
+                    offsetY = (boxH - drawH) / 2;
+                  } else {
+                    // Imagen más alta → limitar por alto
+                    drawH = boxH;
+                    drawW = boxH * imgRatio;
+                    offsetX = (boxW - drawW) / 2;
+                  }
+                } catch {
+                  // Si no se pueden leer las props, usar el recuadro completo
+                }
+                // Fondo gris claro del recuadro (para fotos con bordes transparentes)
                 doc.setFillColor(...PDF_COLORS.bg_light);
-                doc.rect(x, y, fotoW, fotoH, "F");
+                doc.rect(boxX, y, boxW, boxH, "F");
+                // Dibujar imagen centrada y proporcional
+                doc.addImage(
+                  validFotos[i + j], fmt,
+                  boxX + offsetX, y + offsetY,
+                  drawW, drawH,
+                );
+              } catch (e) {
+                doc.setFillColor(...PDF_COLORS.bg_light);
+                doc.rect(boxX, y, boxW, boxH, "F");
                 doc.setFontSize(7);
                 doc.setTextColor(...PDF_COLORS.muted);
-                doc.text("(foto no disponible)", x + fotoW / 2, y + fotoH / 2, { align: "center" });
+                doc.text("(foto no disponible)", boxX + boxW / 2, y + boxH / 2, { align: "center" });
               }
             }
-            y += fotoH + 4;
+            y += boxH + 4;
           }
         }
       }
