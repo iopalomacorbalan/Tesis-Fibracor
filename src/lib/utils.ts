@@ -7,6 +7,16 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(d: string | Date | null | undefined): string {
   if (!d) return "—";
+  // Fechas tipo "YYYY-MM-DD" (columnas DATE) se parsean como fecha local
+  // para evitar el corrimiento de un día por zona horaria (UTC-3).
+  if (typeof d === "string") {
+    const soloFecha = d.slice(0, 10);
+    const m = soloFecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [, yy, mm, dd] = m;
+      return `${dd}/${mm}/${yy}`;
+    }
+  }
   const date = typeof d === "string" ? new Date(d) : d;
   return date.toLocaleDateString("es-AR", {
     day: "2-digit",

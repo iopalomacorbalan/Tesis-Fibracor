@@ -45,6 +45,16 @@ export function fmtNumber(n: number, decimals = 2): string {
 
 export function fmtDate(d: string | Date | null | undefined): string {
   if (!d) return "—";
+  // Caso fecha tipo "YYYY-MM-DD" (columna DATE): parsear como fecha local,
+  // NO como UTC, para evitar que reste un día por la zona horaria (UTC-3).
+  if (typeof d === "string") {
+    const soloFecha = d.slice(0, 10); // toma YYYY-MM-DD aunque venga con hora
+    const m = soloFecha.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const [, yy, mm, dd] = m;
+      return `${dd}/${mm}/${yy}`;
+    }
+  }
   const date = typeof d === "string" ? new Date(d) : d;
   return date.toLocaleDateString("es-AR", {
     day: "2-digit", month: "2-digit", year: "numeric",
