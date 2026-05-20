@@ -34,8 +34,8 @@ const DEFAULTS: PdfObraOptions = {
   incluirHerramientas: false,
   incluirCostosExtras: false,
   incluirHorasTecnicas: false,
-  fotoMaxAncho: 75,
-  fotoMaxAlto: 55,
+  fotoMaxAncho: 87,
+  fotoMaxAlto: 75,
   mostrarSoloLista: false,
 };
 
