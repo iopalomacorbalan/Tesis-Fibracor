@@ -34,8 +34,8 @@ const DEFAULTS: PdfObraOptions = {
   incluirHerramientas: false,
   incluirCostosExtras: false,
   incluirHorasTecnicas: false,
-  fotoMaxAncho: 87,
-  fotoMaxAlto: 75,
+  fotoMaxAncho: 95,
+  fotoMaxAlto: 88,
   mostrarSoloLista: false,
 };
 
@@ -212,17 +212,18 @@ export async function generarPdfObra(args: {
           doc.text(`Fotos (${validFotos.length}):`, PAGE.margin, y);
           y += 4;
 
-          // Grid: hasta 2 por fila. Cada foto entra en un "recuadro" de boxW x boxH
-          // pero se dibuja respetando su proporción real (contain, sin estirar).
-          const boxW = opts.fotoMaxAncho!;
-          const boxH = opts.fotoMaxAlto!;
-          const gap = 5;
+          // Grid: 2 por fila. Margen lateral reducido (8mm) y gap central chico (3mm)
+          // para que las fotos se vean lo más grande posible.
+          const fotoMargin = 8;
+          const gap = 3;
           const fotosPorFila = 2;
+          const boxW = (PAGE.width - fotoMargin * 2 - gap) / fotosPorFila;
+          const boxH = opts.fotoMaxAlto!;
 
           for (let i = 0; i < validFotos.length; i += fotosPorFila) {
             y = ensureSpace(doc, y, boxH + 4);
             for (let j = 0; j < fotosPorFila && i + j < validFotos.length; j++) {
-              const boxX = PAGE.margin + j * (boxW + gap);
+              const boxX = fotoMargin + j * (boxW + gap);
               const fmt = detectImageFormat(validFotos[i + j]);
               try {
                 // Obtener dimensiones reales de la imagen para calcular proporción
