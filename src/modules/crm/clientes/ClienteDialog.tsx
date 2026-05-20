@@ -26,6 +26,8 @@ const empty: ClienteFormValues = {
   telefono: "",
   direccion: "",
   notas: "",
+  recomendaciones: "",
+  recomendaciones_prioridad: "normal",
 };
 
 export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
@@ -46,6 +48,8 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
         telefono: cliente.telefono ?? "",
         direccion: cliente.direccion ?? "",
         notas: cliente.notas ?? "",
+        recomendaciones: cliente.recomendaciones ?? "",
+        recomendaciones_prioridad: cliente.recomendaciones_prioridad ?? "normal",
       });
     } else if (open) {
       setForm(empty);
@@ -72,6 +76,10 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
         telefono: parsed.data.telefono || null,
         direccion: parsed.data.direccion || null,
         notas: parsed.data.notas || null,
+        recomendaciones: parsed.data.recomendaciones?.trim() || null,
+        recomendaciones_prioridad: parsed.data.recomendaciones?.trim()
+          ? (parsed.data.recomendaciones_prioridad ?? "normal")
+          : null,
       };
       if (isEdit && cliente) {
         await editar.mutateAsync({ id: cliente.id, patch: payload });
@@ -176,6 +184,48 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
               value={form.notas ?? ""}
               onChange={(e) => setForm(f => ({ ...f, notas: e.target.value }))}
             />
+          </div>
+
+          {/* Recomendaciones / Políticas del cliente */}
+          <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
+            <Label htmlFor="recomendaciones" className="flex items-center gap-1.5">
+              📋 Recomendaciones / Políticas del cliente
+            </Label>
+            <p className="text-[11px] text-muted-foreground">
+              Cómo deben manejarse los técnicos con este cliente (acceso, seguridad, contactos, normas). Lo verán al abrir cada obra.
+            </p>
+            <Textarea
+              id="recomendaciones"
+              rows={4}
+              placeholder={"Ej:\n• Ingreso solo por portón lateral\n• Uso obligatorio de casco\n• Contacto en sitio: Ing. Martínez (11-xxxx)"}
+              value={form.recomendaciones ?? ""}
+              onChange={(e) => setForm(f => ({ ...f, recomendaciones: e.target.value }))}
+            />
+            {(form.recomendaciones ?? "").trim() && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nivel de prioridad</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {([
+                    { v: "normal", label: "Normal", cls: "bg-muted text-muted-foreground border-input" },
+                    { v: "importante", label: "Importante", cls: "bg-warning/15 text-warning border-warning/40" },
+                    { v: "critico", label: "Crítico", cls: "bg-destructive/15 text-destructive border-destructive/40" },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, recomendaciones_prioridad: opt.v }))}
+                      className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                        form.recomendaciones_prioridad === opt.v
+                          ? opt.cls
+                          : "bg-background text-muted-foreground border-input hover:border-primary/30"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">

@@ -30,6 +30,7 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
   const { data: totalHoras } = useTotalHorasObra(obra?.id ?? null);
 
   const [incluirReportes, setIncluirReportes] = useState(true);
+  const [incluirRecomendaciones, setIncluirRecomendaciones] = useState(false);
   const [incluirFotos, setIncluirFotos] = useState(true);
   const [incluirFinanciero, setIncluirFinanciero] = useState(false);
   const [incluirMaterialesDetalle, setIncluirMaterialesDetalle] = useState(false);
@@ -76,6 +77,7 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
           incluirHerramientas,
           incluirCostosExtras,
           incluirHorasTecnicas,
+          incluirRecomendaciones,
         },
       });
 
@@ -109,6 +111,15 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
 
         <div className="space-y-3">
           <div className="text-sm font-medium break-words">Contenido del PDF:</div>
+
+          {obra.cliente?.recomendaciones && (
+            <CheckOption
+              checked={incluirRecomendaciones}
+              onChange={setIncluirRecomendaciones}
+              label="Recomendaciones del cliente"
+              description="Incluye las políticas/recomendaciones cargadas en el CRM"
+            />
+          )}
 
           <CheckOption
             checked={incluirReportes}

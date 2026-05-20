@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase, MapPin, Calendar, User, Users, Loader2, Clock,
-  Wrench, ClipboardList, FileText, GitBranch, Wallet, FileDown,
+  Wrench, ClipboardList, FileText, GitBranch, Wallet, FileDown, AlertTriangle,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -123,6 +123,15 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
                 </Button>
               </div>
             </DialogHeader>
+
+            {/* Banner de recomendaciones del cliente */}
+            {obra.cliente?.recomendaciones && (
+              <RecomendacionesClienteBanner
+                texto={obra.cliente.recomendaciones}
+                prioridad={obra.cliente.recomendaciones_prioridad ?? "normal"}
+                clienteNombre={obra.cliente.nombre}
+              />
+            )}
 
             <Tabs defaultValue="resumen">
               <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 pb-1">
@@ -676,6 +685,44 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function RecomendacionesClienteBanner({ texto, prioridad, clienteNombre }: {
+  texto: string;
+  prioridad: "normal" | "importante" | "critico";
+  clienteNombre: string;
+}) {
+  const estilos = {
+    normal: {
+      border: "border-primary/30", bg: "bg-primary/5",
+      icon: "text-primary", titulo: "text-primary",
+      label: "Recomendaciones",
+    },
+    importante: {
+      border: "border-warning/40", bg: "bg-warning/10",
+      icon: "text-warning", titulo: "text-warning",
+      label: "⚠️ Importante",
+    },
+    critico: {
+      border: "border-destructive/40", bg: "bg-destructive/10",
+      icon: "text-destructive", titulo: "text-destructive",
+      label: "🚨 Crítico",
+    },
+  }[prioridad];
+
+  return (
+    <div className={cn("rounded-lg border p-3 sm:p-4 mb-2", estilos.border, estilos.bg)}>
+      <div className="flex items-center gap-2 mb-2">
+        <AlertTriangle className={cn("h-4 w-4 sm:h-5 sm:w-5", estilos.icon)} />
+        <span className={cn("font-semibold text-sm", estilos.titulo)}>
+          {estilos.label} — {clienteNombre}
+        </span>
+      </div>
+      <div className="text-xs sm:text-sm whitespace-pre-line leading-relaxed text-foreground">
+        {texto}
+      </div>
     </div>
   );
 }

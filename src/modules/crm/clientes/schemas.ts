@@ -16,6 +16,8 @@ export const clienteSchema = z.object({
   telefono: z.string().nullable().optional().or(z.literal("")),
   direccion: z.string().nullable().optional().or(z.literal("")),
   notas: z.string().nullable().optional().or(z.literal("")),
+  recomendaciones: z.string().nullable().optional().or(z.literal("")),
+  recomendaciones_prioridad: z.enum(["normal", "importante", "critico"]).nullable().optional(),
 });
 
 export type ClienteFormValues = z.infer<typeof clienteSchema>;

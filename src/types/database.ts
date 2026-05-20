@@ -47,6 +47,8 @@ export interface Cliente {
   telefono: string | null;
   direccion: string | null;
   notas: string | null;
+  recomendaciones: string | null;
+  recomendaciones_prioridad: "normal" | "importante" | "critico" | null;
   activo: boolean;
   created_at: string;
   updated_at: string;

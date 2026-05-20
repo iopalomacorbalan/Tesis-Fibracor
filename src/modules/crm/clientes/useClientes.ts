@@ -42,6 +42,8 @@ type ClienteInput = {
   telefono?: string | null;
   direccion?: string | null;
   notas?: string | null;
+  recomendaciones?: string | null;
+  recomendaciones_prioridad?: "normal" | "importante" | "critico" | null;
 };
 
 async function generarClienteId(): Promise<string> {
@@ -70,6 +72,8 @@ export function useCrearCliente() {
           telefono: input.telefono ?? null,
           direccion: input.direccion ?? null,
           notas: input.notas ?? null,
+          recomendaciones: input.recomendaciones ?? null,
+          recomendaciones_prioridad: input.recomendaciones_prioridad ?? null,
           activo: true,
         } as any)
         .select()

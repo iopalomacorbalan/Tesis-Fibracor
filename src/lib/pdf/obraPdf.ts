@@ -19,6 +19,7 @@ export interface PdfObraOptions {
   incluirHerramientas: boolean;
   incluirCostosExtras: boolean;
   incluirHorasTecnicas: boolean;
+  incluirRecomendaciones: boolean;
   // Calidad de imagen (mm máximo)
   fotoMaxAncho?: number;
   fotoMaxAlto?: number;
@@ -34,6 +35,7 @@ const DEFAULTS: PdfObraOptions = {
   incluirHerramientas: false,
   incluirCostosExtras: false,
   incluirHorasTecnicas: false,
+  incluirRecomendaciones: false,
   fotoMaxAncho: 95,
   fotoMaxAlto: 88,
   mostrarSoloLista: false,
@@ -127,6 +129,44 @@ export async function generarPdfObra(args: {
     const wrapped = doc.splitTextToSize(obra.alcance_tecnico, PAGE.width - PAGE.margin * 2);
     doc.text(wrapped, PAGE.margin, y);
     y += wrapped.length * 4.5 + 4;
+  }
+
+  // Recomendaciones / políticas del cliente (opcional)
+  if (opts.incluirRecomendaciones && obra.cliente?.recomendaciones) {
+    y = ensureSpace(doc, y, 20);
+    const prioridad = obra.cliente.recomendaciones_prioridad ?? "normal";
+    const tituloPrioridad =
+      prioridad === "critico" ? "RECOMENDACIONES DEL CLIENTE (CRÍTICO)" :
+      prioridad === "importante" ? "RECOMENDACIONES DEL CLIENTE (IMPORTANTE)" :
+      "RECOMENDACIONES DEL CLIENTE";
+
+    // Recuadro con fondo según prioridad
+    const colorFondo: [number, number, number] =
+      prioridad === "critico" ? [254, 226, 226] :
+      prioridad === "importante" ? [254, 243, 199] :
+      [219, 234, 254];
+    const colorTexto: [number, number, number] =
+      prioridad === "critico" ? [153, 27, 27] :
+      prioridad === "importante" ? [146, 64, 14] :
+      [30, 64, 175];
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    const wrapped = doc.splitTextToSize(obra.cliente.recomendaciones, PAGE.width - PAGE.margin * 2 - 8);
+    const boxHeight = 10 + wrapped.length * 4.5 + 4;
+
+    doc.setFillColor(...colorFondo);
+    doc.roundedRect(PAGE.margin, y, PAGE.width - PAGE.margin * 2, boxHeight, 2, 2, "F");
+
+    doc.setTextColor(...colorTexto);
+    doc.text(tituloPrioridad, PAGE.margin + 4, y + 6);
+
+    doc.setFontSize(9);
+    doc.setTextColor(40, 40, 40);
+    doc.setFont("helvetica", "normal");
+    doc.text(wrapped, PAGE.margin + 4, y + 12);
+
+    y += boxHeight + 4;
   }
 
   // ====== REPORTES ======
