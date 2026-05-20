@@ -109,6 +109,7 @@ export interface Obra {
   presupuesto: number;
   estado: EstadoObra;
   jefe_obra_id: string | null;
+  maps_url: string | null;
   google_calendar_event_id: string | null;
   observaciones: string | null;
   created_at: string;

@@ -311,6 +311,19 @@ function ResumenObra({ obra, verPrecios }: { obra: ObraConRelaciones; verPrecios
         )}
       </div>
 
+      {/* Botón Cómo llegar (si hay ubicación cargada) */}
+      {obra.maps_url && (
+        <a
+          href={obra.maps_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          <MapPin className="h-4 w-4" />
+          Cómo llegar (Google Maps)
+        </a>
+      )}
+
       {obra.alcance_tecnico && (
         <Card>
           <CardContent className="p-4">

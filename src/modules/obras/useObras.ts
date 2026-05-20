@@ -66,6 +66,7 @@ type CrearObraInput = {
   nombre_obra: string;
   sitio?: string | null;
   alcance_tecnico?: string | null;
+  maps_url?: string | null;
   fecha_inicio_est?: string | null;
   fecha_fin_est?: string | null;
   presupuesto?: number;
@@ -112,6 +113,7 @@ export function useCrearObra() {
           nombre_obra: input.nombre_obra,
           sitio: input.sitio ?? null,
           alcance_tecnico: input.alcance_tecnico ?? null,
+          maps_url: input.maps_url ?? null,
           fecha_inicio_est: input.fecha_inicio_est ?? null,
           fecha_fin_est: input.fecha_fin_est ?? null,
           presupuesto: input.presupuesto ?? 0,

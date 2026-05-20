@@ -5,6 +5,7 @@ export const obraSchema = z.object({
   nombre_obra: z.string().min(2, "Nombre requerido"),
   sitio: z.string().nullable().optional(),
   alcance_tecnico: z.string().nullable().optional(),
+  maps_url: z.string().nullable().optional().or(z.literal("")),
   fecha_inicio_est: z.string().nullable().optional(),
   fecha_fin_est: z.string().nullable().optional(),
   presupuesto: z.coerce.number().min(0, "Presupuesto inválido").optional(),

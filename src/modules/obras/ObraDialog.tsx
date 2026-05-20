@@ -41,6 +41,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
     nombre_obra: "",
     sitio: "",
     alcance_tecnico: "",
+    maps_url: "",
     fecha_inicio_est: "",
     fecha_fin_est: "",
     presupuesto: 0,
@@ -59,6 +60,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
         nombre_obra: obra.nombre_obra ?? "",
         sitio: obra.sitio ?? "",
         alcance_tecnico: obra.alcance_tecnico ?? "",
+        maps_url: obra.maps_url ?? "",
         fecha_inicio_est: obra.fecha_inicio_est ?? "",
         fecha_fin_est: obra.fecha_fin_est ?? "",
         presupuesto: obra.presupuesto ?? 0,
@@ -72,6 +74,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
         nombre_obra: "",
         sitio: "",
         alcance_tecnico: "",
+        maps_url: "",
         fecha_inicio_est: "",
         fecha_fin_est: "",
         presupuesto: 0,
@@ -124,6 +127,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
             nombre_obra: parsed.data.nombre_obra,
             sitio: parsed.data.sitio ?? null,
             alcance_tecnico: parsed.data.alcance_tecnico ?? null,
+            maps_url: parsed.data.maps_url?.trim() || null,
             fecha_inicio_est: parsed.data.fecha_inicio_est || null,
             fecha_fin_est: parsed.data.fecha_fin_est || null,
             presupuesto: parsed.data.presupuesto ?? 0,
@@ -139,6 +143,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
           nombre_obra: parsed.data.nombre_obra,
           sitio: parsed.data.sitio,
           alcance_tecnico: parsed.data.alcance_tecnico,
+          maps_url: parsed.data.maps_url?.trim() || null,
           fecha_inicio_est: parsed.data.fecha_inicio_est || null,
           fecha_fin_est: parsed.data.fecha_fin_est || null,
           presupuesto: parsed.data.presupuesto,
@@ -231,6 +236,27 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
                 onChange={(e) => setForm(f => ({ ...f, sitio: e.target.value }))}
               />
             </div>
+          </div>
+
+          {/* Ubicación Google Maps (opcional) */}
+          <div className="space-y-2">
+            <Label htmlFor="maps_url" className="flex items-center gap-1.5">
+              📍 Link de Google Maps <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            <Input
+              id="maps_url"
+              value={form.maps_url ?? ""}
+              onChange={(e) => setForm(f => ({ ...f, maps_url: e.target.value }))}
+              placeholder="Pegá el link de Google Maps de la ubicación"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              En Google Maps buscá la ubicación → Compartir → Copiar vínculo, y pegalo acá. Los técnicos verán un botón "Cómo llegar".
+            </p>
+            {form.maps_url && !/(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(form.maps_url) && (
+              <p className="text-[11px] text-warning">
+                ⚠️ Esto no parece un link de Google Maps. Verificá que sea correcto.
+              </p>
+            )}
           </div>
 
           {/* Alcance */}
