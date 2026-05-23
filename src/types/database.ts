@@ -259,6 +259,14 @@ export interface Remito {
   dni_receptor: string | null;
   fecha_recepcion: string | null;
   observaciones: string | null;
+  firma_token: string | null;
+  firma_estado: "pendiente" | "firmado" | null;
+  firma_nombre: string | null;
+  firma_dni: string | null;
+  firma_imagen: string | null;
+  firma_fecha: string | null;
+  firma_items_recibidos: Record<string, boolean> | null;
+  firma_observaciones: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;

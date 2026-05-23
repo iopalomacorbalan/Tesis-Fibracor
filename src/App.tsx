@@ -19,6 +19,7 @@ import MisHerramientasPage from "@/modules/mis-herramientas/MisHerramientasPage"
 import AsignacionesPersonalesPage from "@/modules/asignaciones-personales/AsignacionesPersonalesPage";
 import ItemsRevisionPage from "@/modules/items-revision/ItemsRevisionPage";
 import GoogleCalendarConfigPage from "@/modules/configuracion/GoogleCalendarConfigPage";
+import FirmaRemitoPage from "@/modules/firma-publica/FirmaRemitoPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -41,6 +42,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/firmar/:token" element={<ErrorBoundary><FirmaRemitoPage /></ErrorBoundary>} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
             <Route path="/obras" element={<ErrorBoundary><ObrasPage /></ErrorBoundary>} />

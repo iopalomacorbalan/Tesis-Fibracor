@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   Plus, Search, FileText, AlertCircle, Briefcase, User,
-  FileDown, Edit, Trash2, Eye, ScrollText,
+  FileDown, Edit, Trash2, Eye, ScrollText, QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { useRemitos, useEliminarRemito } from "./useRemitos";
 import { RemitoDialog } from "./RemitoDialog";
 import { RemitoExportarDialog } from "./RemitoExportarDialog";
+import { RemitoQRDialog } from "./RemitoQRDialog";
 import { useAuth } from "@/lib/auth";
 import { formatDate, cn } from "@/lib/utils";
 import type { RemitoConRelaciones } from "@/types/database";
@@ -29,6 +30,7 @@ export default function RemitosPage() {
   const [remEditar, setRemEditar] = useState<RemitoConRelaciones | null>(null);
   const [remEliminar, setRemEliminar] = useState<RemitoConRelaciones | null>(null);
   const [remExportar, setRemExportar] = useState<RemitoConRelaciones | null>(null);
+  const [remQR, setRemQR] = useState<RemitoConRelaciones | null>(null);
 
   const puedeCrear = profile && ["Direccion", "Operaciones", "Comercial", "Paniol"].includes(profile.area);
   const puedeEditar = puedeCrear;
@@ -146,6 +148,7 @@ export default function RemitosPage() {
               puedeEditar={!!puedeEditar}
               puedeEliminar={!!puedeEliminar}
               onExportar={() => setRemExportar(r)}
+              onQR={() => setRemQR(r)}
               onEditar={() => { setRemEditar(r); setDialogOpen(true); }}
               onEliminar={() => setRemEliminar(r)}
             />
@@ -162,6 +165,12 @@ export default function RemitosPage() {
         open={!!remExportar}
         onOpenChange={(o) => !o && setRemExportar(null)}
         remito={remExportar}
+      />
+
+      <RemitoQRDialog
+        open={!!remQR}
+        onOpenChange={(o) => !o && setRemQR(null)}
+        remito={remQR}
       />
 
       <ConfirmDialog
@@ -198,12 +207,13 @@ function StatCard({ label, value, variant = "default" }: {
 
 function RemitoCard({
   remito, puedeEditar, puedeEliminar,
-  onExportar, onEditar, onEliminar,
+  onExportar, onQR, onEditar, onEliminar,
 }: {
   remito: RemitoConRelaciones;
   puedeEditar: boolean;
   puedeEliminar: boolean;
   onExportar: () => void;
+  onQR: () => void;
   onEditar: () => void;
   onEliminar: () => void;
 }) {
@@ -256,6 +266,9 @@ function RemitoCard({
           <div className="flex gap-1 flex-wrap pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50 sm:flex-shrink-0">
             <Button variant="ghost" size="sm" onClick={onExportar} title="Descargar PDF">
               <FileDown className="h-3.5 w-3.5" /> PDF
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onQR} title="QR de firma" className={firmado ? "text-success" : "text-primary"}>
+              <QrCode className="h-3.5 w-3.5" /> {firmado ? "Firma" : "QR"}
             </Button>
             {puedeEditar && (
               <Button variant="ghost" size="sm" onClick={onEditar}>
