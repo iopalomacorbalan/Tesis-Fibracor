@@ -30,6 +30,7 @@ const empty: ItemFormValues = {
   stock_inicial: 0,
   stock_minimo: 0,
   numero_serie: "",
+  codigo_barras: "",
   proveedor_principal_id: null,
   precio_costo: 0,
   precio_lista: 0,
@@ -63,6 +64,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
         stock_inicial: undefined,
         stock_minimo: item.stock_minimo,
         numero_serie: item.numero_serie ?? "",
+        codigo_barras: item.codigo_barras ?? "",
         proveedor_principal_id: item.proveedor_principal_id,
         precio_costo: item.precio_costo,
         precio_lista: item.precio_lista,
@@ -94,6 +96,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
             unidad: parsed.data.unidad,
             stock_minimo: parsed.data.stock_minimo ?? 0,
             numero_serie: parsed.data.numero_serie || null,
+            codigo_barras: parsed.data.codigo_barras?.trim() || null,
             proveedor_principal_id: parsed.data.proveedor_principal_id ?? null,
             precio_costo: parsed.data.precio_costo ?? 0,
             precio_lista: parsed.data.precio_lista ?? 0,
@@ -109,6 +112,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
           stock_inicial: parsed.data.stock_inicial,
           stock_minimo: parsed.data.stock_minimo,
           numero_serie: parsed.data.numero_serie || null,
+          codigo_barras: parsed.data.codigo_barras?.trim() || null,
           proveedor_principal_id: parsed.data.proveedor_principal_id ?? null,
           precio_costo: parsed.data.precio_costo,
           precio_lista: parsed.data.precio_lista,
@@ -237,6 +241,23 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                 Para que los técnicos sepan dónde encontrarlo físicamente
               </p>
             </div>
+          </div>
+
+          {/* Código de barras (escaneable con lectora) */}
+          <div className="space-y-2">
+            <Label htmlFor="codigo_barras" className="flex items-center gap-1.5">
+              📷 Código de barras <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            <Input
+              id="codigo_barras"
+              placeholder="Escaneá con la lectora o escribí el código"
+              value={form.codigo_barras ?? ""}
+              onChange={(e) => setForm(f => ({ ...f, codigo_barras: e.target.value }))}
+              autoComplete="off"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Poné el cursor acá y escaneá con la lectora Honeywell, o escribí un código propio. Sirve para buscar y cargar el item rápido.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

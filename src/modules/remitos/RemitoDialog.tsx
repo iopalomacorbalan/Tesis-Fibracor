@@ -72,6 +72,7 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
   const [itemsDraft, setItemsDraft] = useState<ItemDraft[]>([
     { item_id: null, descripcion_libre: "", cantidad: 1, unidad: "ud." },
   ]);
+  const [scanInput, setScanInput] = useState("");
 
   const { data: itemsRemitables = [] } = useItemsRemitables(
     !isEdit && modo === "obra" ? (obraId || null) : null
@@ -145,6 +146,38 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
         descripcion_libre: "",
         unidad: inv?.unidad ?? "ud.",
       });
+    }
+  };
+
+  // Escaneo con lectora: busca por código de barras y agrega/incrementa el item
+  const onEscanearCodigo = (codigo: string) => {
+    const cod = codigo.trim();
+    if (!cod) return;
+    const inv = inventario.find(i => i.codigo_barras && i.codigo_barras.trim() === cod);
+    if (!inv) {
+      toast.error(`Código "${cod}" no encontrado en el inventario`);
+      return;
+    }
+    // ¿Ya está en la lista? → incrementar cantidad
+    const existenteIdx = itemsDraft.findIndex(it => it.item_id === inv.id);
+    if (existenteIdx >= 0) {
+      updateItemDirecto(existenteIdx, { cantidad: itemsDraft[existenteIdx].cantidad + 1 });
+      toast.success(`${inv.descripcion} +1 (${itemsDraft[existenteIdx].cantidad + 1})`);
+    } else {
+      // Si la última fila está vacía, usarla; si no, agregar nueva
+      const ultimaVacia = itemsDraft.length > 0 &&
+        !itemsDraft[itemsDraft.length - 1].item_id &&
+        !itemsDraft[itemsDraft.length - 1].descripcion_libre.trim();
+      if (ultimaVacia) {
+        updateItemDirecto(itemsDraft.length - 1, {
+          item_id: inv.id, descripcion_libre: "", unidad: inv.unidad ?? "ud.", cantidad: 1,
+        });
+      } else {
+        setItemsDraft(prev => [...prev, {
+          item_id: inv.id, descripcion_libre: "", cantidad: 1, unidad: inv.unidad ?? "ud.",
+        }]);
+      }
+      toast.success(`${inv.descripcion} agregado`);
     }
   };
 
@@ -462,6 +495,31 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                       <Button type="button" variant="outline" size="sm" onClick={addItemDirecto}>
                         <Plus className="h-3.5 w-3.5" /> Agregar ítem
                       </Button>
+                    </div>
+
+                    {/* Barra de escaneo con lectora */}
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+                        <span className="text-lg">📷</span>
+                        <input
+                          type="text"
+                          placeholder="Escaneá un código de barras para agregar el item..."
+                          value={scanInput}
+                          onChange={(e) => setScanInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              onEscanearCodigo(scanInput);
+                              setScanInput("");
+                            }
+                          }}
+                          autoComplete="off"
+                          className="flex-1 bg-transparent border-none outline-none text-sm"
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Poné el cursor acá y escaneá con la lectora. Si el item ya está en la lista, suma 1.
+                      </p>
                     </div>
 
                     <div className="space-y-2">

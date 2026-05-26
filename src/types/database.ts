@@ -82,6 +82,7 @@ export interface Inventario {
   stock_fuera_servicio: number;
   stock_minimo: number;
   numero_serie: string | null;
+  codigo_barras: string | null;
   proveedor_principal_id: string | null;
   precio_costo: number;
   precio_lista: number;

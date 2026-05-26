@@ -72,6 +72,7 @@ export default function StockPage() {
           i.descripcion.toLowerCase().includes(s) ||
           i.item_id.toLowerCase().includes(s) ||
           (i.numero_serie?.toLowerCase().includes(s) ?? false) ||
+          (i.codigo_barras?.toLowerCase().includes(s) ?? false) ||
           (i.ubicacion_fisica?.toLowerCase().includes(s) ?? false)
         );
       }
@@ -157,7 +158,7 @@ export default function StockPage() {
         <div className="flex-1 min-w-[280px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por descripción, ID, número de serie..."
+            placeholder="Buscar o escanear código de barras..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -336,6 +337,11 @@ function ItemCard({
               {item.ubicacion_fisica && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary border border-primary/20 font-mono">
                   📍 {item.ubicacion_fisica}
+                </span>
+              )}
+              {item.codigo_barras && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-muted text-muted-foreground font-mono">
+                  📷 {item.codigo_barras}
                 </span>
               )}
             </div>

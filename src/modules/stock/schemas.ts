@@ -7,6 +7,7 @@ export const itemSchema = z.object({
   stock_inicial: z.coerce.number().min(0).optional(),
   stock_minimo: z.coerce.number().min(0).optional(),
   numero_serie: z.string().nullable().optional().or(z.literal("")),
+  codigo_barras: z.string().nullable().optional().or(z.literal("")),
   proveedor_principal_id: z.string().uuid().nullable().optional(),
   precio_costo: z.coerce.number().min(0).optional(),
   precio_lista: z.coerce.number().min(0).optional(),

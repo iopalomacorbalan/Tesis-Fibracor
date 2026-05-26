@@ -223,7 +223,7 @@ export default function FirmaRemitoPage() {
                 style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
                   fontSize: 14, borderBottom: idx < remito.items.length - 1 ? "1px solid #f0f0f0" : "none",
-                  cursor: "pointer",
+                  cursor: "pointer", color: "#111",
                 }}
               >
                 <input
@@ -232,7 +232,7 @@ export default function FirmaRemitoPage() {
                   onChange={(e) => setItemsRecibidos(prev => ({ ...prev, [it.id]: e.target.checked }))}
                   style={{ width: 18, height: 18, flexShrink: 0 }}
                 />
-                <span style={{ flex: 1 }}>{it.descripcion}</span>
+                <span style={{ flex: 1, color: "#111" }}>{it.descripcion}</span>
                 <span style={{ color: "#888" }}>{it.cantidad} {it.unidad}</span>
               </label>
             ))}
@@ -315,4 +315,5 @@ const infoBoxStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box", padding: 10,
   border: "1px solid #ddd", borderRadius: 8, marginBottom: 8, fontSize: 14,
+  color: "#111", background: "#fff",
 };

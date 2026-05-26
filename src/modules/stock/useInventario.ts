@@ -61,6 +61,7 @@ type ItemInput = {
   stock_inicial?: number;
   stock_minimo?: number;
   numero_serie?: string | null;
+  codigo_barras?: string | null;
   proveedor_principal_id?: string | null;
   precio_costo?: number;
   precio_lista?: number;
@@ -98,6 +99,7 @@ export function useCrearItem() {
           unidad: input.unidad ?? "ud.",
           stock_minimo: input.stock_minimo ?? 0,
           numero_serie: input.numero_serie ?? null,
+          codigo_barras: input.codigo_barras ?? null,
           proveedor_principal_id: input.proveedor_principal_id ?? null,
           precio_costo: input.precio_costo ?? 0,
           precio_lista: input.precio_lista ?? 0,
