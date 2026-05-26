@@ -305,7 +305,10 @@ function CompraCard({
             </div>
 
             {verPrecios && compra.total_estimado && (
-              <div className="text-sm font-semibold mt-1">{formatCurrency(compra.total_estimado)}</div>
+              <div className="text-sm font-semibold mt-1">
+                {formatCurrency(compra.total_estimado, (compra.moneda ?? "ARS") as "ARS" | "USD")}
+                {compra.moneda === "USD" && <span className="text-[10px] text-muted-foreground ml-1">USD</span>}
+              </div>
             )}
 
             {(compra.estado === "Aprobada" || compra.estado === "Parcial") && cantSol > 0 && (

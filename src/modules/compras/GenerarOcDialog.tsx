@@ -38,6 +38,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
   const crear = useCrearOcDesdePendientes();
 
   const [proveedorId, setProveedorId] = useState<string>("");
+  const [moneda, setMoneda] = useState<"ARS" | "USD">("ARS");
   const [observaciones, setObservaciones] = useState("");
   const [itemsEdit, setItemsEdit] = useState<ItemEditable[]>([]);
 
@@ -82,6 +83,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
       const oc = await crear.mutateAsync({
         proveedor_id: proveedorId,
         obra_id: obraSugerida,
+        moneda,
         observaciones: observaciones || null,
         items: itemsEdit.map(it => ({
           solicitud_item_id: it.solicitud_item_id,
@@ -127,7 +129,29 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
             />
           </div>
 
-          {/* Items con precio editable */}
+          {/* Moneda */}
+          <div className="space-y-2">
+            <Label>Moneda de la orden</Label>
+            <div className="flex gap-2">
+              {([
+                { v: "ARS", label: "$ Pesos (ARS)" },
+                { v: "USD", label: "US$ Dólares (USD)" },
+              ] as const).map(opt => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setMoneda(opt.v)}
+                  className={`flex-1 text-sm px-3 py-2 rounded-lg border transition-colors ${
+                    moneda === opt.v
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-input hover:border-primary/30"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>Ítems a comprar</Label>
             <div className="space-y-2">
@@ -164,7 +188,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
                   </div>
                   {verPrecios && (
                     <div className="text-xs text-right mt-1">
-                      Subtotal: <b>{formatCurrency(it.cantidad * it.precio_unitario)}</b>
+                      Subtotal: <b>{formatCurrency(it.cantidad * it.precio_unitario, moneda)}</b>
                     </div>
                   )}
                 </div>
@@ -174,7 +198,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
             {verPrecios && (
               <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-sm text-muted-foreground">Total estimado:</span>
-                <span className="text-xl font-bold text-primary">{formatCurrency(total)}</span>
+                <span className="text-xl font-bold text-primary">{formatCurrency(total, moneda)}</span>
               </div>
             )}
           </div>

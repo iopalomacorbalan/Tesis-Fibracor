@@ -29,11 +29,13 @@ export const PAGE = {
 };
 
 // ============ FORMATTERS ============
-export function fmtMoney(n: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency", currency: "ARS",
-    maximumFractionDigits: 0,
+export function fmtMoney(n: number, moneda: "ARS" | "USD" = "ARS"): string {
+  const formatted = new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(n ?? 0);
+  const simbolo = moneda === "USD" ? "US$" : "$";
+  return `${simbolo} ${formatted}`;
 }
 
 export function fmtNumber(n: number, decimals = 2): string {

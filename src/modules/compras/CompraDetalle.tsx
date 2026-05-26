@@ -31,6 +31,7 @@ export function CompraDetalle({ open, onOpenChange, compra, onExportar }: Props)
 
   if (!compra) return null;
 
+  const moneda = (compra.moneda ?? "ARS") as "ARS" | "USD";
   const totalCalc = (compra.items ?? []).reduce(
     (s, it) => s + it.cantidad_solicitada * it.precio_unitario, 0
   );
@@ -46,6 +47,9 @@ export function CompraDetalle({ open, onOpenChange, compra, onExportar }: Props)
               ESTADO_COLOR[compra.estado]
             )}>
               {compra.estado}
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border bg-muted text-muted-foreground whitespace-nowrap">
+              {moneda === "USD" ? "US$ USD" : "$ ARS"}
             </span>
           </DialogTitle>
           <DialogDescription>
@@ -175,10 +179,10 @@ export function CompraDetalle({ open, onOpenChange, compra, onExportar }: Props)
                           {puedeVerPrecios && (
                             <>
                               <td className="py-2 pr-2 text-right">
-                                {formatCurrency(it.precio_unitario)}
+                                {formatCurrency(it.precio_unitario, moneda)}
                               </td>
                               <td className="py-2 text-right font-semibold">
-                                {formatCurrency(subtotal)}
+                                {formatCurrency(subtotal, moneda)}
                               </td>
                             </>
                           )}
@@ -193,7 +197,7 @@ export function CompraDetalle({ open, onOpenChange, compra, onExportar }: Props)
                           Total estimado:
                         </td>
                         <td colSpan={2} className="pt-2 text-right text-lg font-bold text-primary">
-                          {formatCurrency(totalCalc)}
+                          {formatCurrency(totalCalc, moneda)}
                         </td>
                       </tr>
                     </tfoot>

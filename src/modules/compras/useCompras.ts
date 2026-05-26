@@ -30,6 +30,7 @@ export function useCompras() {
 type CompraInput = {
   proveedor_id: string | null;
   obra_id?: string | null;
+  moneda?: "ARS" | "USD";
   observaciones?: string | null;
   items: Array<{
     item_id: string;
@@ -70,6 +71,7 @@ export function useCrearCompra() {
           estado: "Solicitada",
           solicitado_por: userId ?? null,
           total_estimado: total,
+          moneda: input.moneda ?? "ARS",
           observaciones: input.observaciones ?? null,
         } as any)
         .select()

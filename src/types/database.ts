@@ -208,6 +208,7 @@ export interface Compra {
   solicitado_por: string | null;
   aprobador_id: string | null;
   total_estimado: number | null;
+  moneda: "ARS" | "USD";
   observaciones: string | null;
   created_at: string;
   updated_at: string;

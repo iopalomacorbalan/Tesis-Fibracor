@@ -37,6 +37,7 @@ export function useItemsPendientesOc() {
 export interface CrearOcDesdePendientesInput {
   proveedor_id: string;
   obra_id?: string | null;
+  moneda?: "ARS" | "USD";
   observaciones?: string | null;
   items: Array<{
     solicitud_item_id: string;
@@ -67,6 +68,7 @@ export function useCrearOcDesdePendientes() {
           fecha_solicitud: new Date().toISOString().slice(0, 10),
           estado: "Solicitada",
           total_estimado: total,
+          moneda: input.moneda ?? "ARS",
           observaciones: input.observaciones ?? "Generada desde pendientes de OC",
           solicitado_por: userId ?? null,
         } as any)

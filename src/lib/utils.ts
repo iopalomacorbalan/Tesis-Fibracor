@@ -25,12 +25,12 @@ export function formatDate(d: string | Date | null | undefined): string {
   });
 }
 
-export function formatCurrency(n: number | null | undefined): string {
+export function formatCurrency(n: number | null | undefined, moneda: "ARS" | "USD" = "ARS"): string {
   if (n == null) return "—";
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 0,
+  const formatted = new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);
+  const simbolo = moneda === "USD" ? "US$" : "$";
+  return `${simbolo} ${formatted}`;
 }

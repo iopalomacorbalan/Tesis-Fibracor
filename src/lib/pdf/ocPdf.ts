@@ -22,6 +22,7 @@ export async function generarPdfOc(args: {
     ...args.options,
   };
   const { compra } = args;
+  const moneda = (compra.moneda ?? "ARS") as "ARS" | "USD";
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   let y = await drawHeader(doc, "Orden de compra", compra.compra_id);
@@ -102,8 +103,8 @@ export async function generarPdfOc(args: {
         it.descripcion,
         fmtNumber(it.cantidad_solicitada, 2),
         (it as any).item?.unidad ?? "ud.",
-        fmtMoney(it.precio_unitario),
-        fmtMoney(it.cantidad_solicitada * it.precio_unitario),
+        fmtMoney(it.precio_unitario, moneda),
+        fmtMoney(it.cantidad_solicitada * it.precio_unitario, moneda),
       ]),
       margin: { left: PAGE.margin, right: PAGE.margin },
     });
@@ -144,10 +145,10 @@ export async function generarPdfOc(args: {
     doc.setFontSize(11);
     doc.setTextColor(...PDF_COLORS.text);
     doc.setFont("helvetica", "bold");
-    doc.text("TOTAL ESTIMADO:", PAGE.width - PAGE.margin - 80, y);
+    doc.text(`TOTAL ESTIMADO (${moneda}):`, PAGE.width - PAGE.margin - 80, y);
     doc.setFontSize(13);
     doc.setTextColor(...PDF_COLORS.primary);
-    doc.text(fmtMoney(totalItems), PAGE.width - PAGE.margin, y, { align: "right" });
+    doc.text(fmtMoney(totalItems, moneda), PAGE.width - PAGE.margin, y, { align: "right" });
     y += 8;
   }
 

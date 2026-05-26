@@ -42,6 +42,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
 
   const [proveedorId, setProveedorId] = useState<string | null>(null);
   const [obraId, setObraId] = useState<string | null>(null);
+  const [moneda, setMoneda] = useState<"ARS" | "USD">("ARS");
   const [observaciones, setObservaciones] = useState("");
   const [itemsDraft, setItemsDraft] = useState<ItemDraft[]>([
     { item_id: "", descripcion: "", cantidad_solicitada: 1, precio_unitario: 0 },
@@ -51,6 +52,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
     if (open) {
       setProveedorId(null);
       setObraId(null);
+      setMoneda("ARS");
       setObservaciones("");
       setItemsDraft([{ item_id: "", descripcion: "", cantidad_solicitada: 1, precio_unitario: 0 }]);
     }
@@ -96,6 +98,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
       const oc = await crear.mutateAsync({
         proveedor_id: proveedorId,
         obra_id: obraId,
+        moneda,
         observaciones: observaciones || null,
         items: itemsValid,
       });
@@ -145,6 +148,30 @@ export function CompraDialog({ open, onOpenChange }: Props) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Moneda */}
+          <div className="space-y-2">
+            <Label>Moneda de la orden</Label>
+            <div className="flex gap-2">
+              {([
+                { v: "ARS", label: "$ Pesos (ARS)" },
+                { v: "USD", label: "US$ Dólares (USD)" },
+              ] as const).map(opt => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setMoneda(opt.v)}
+                  className={`flex-1 text-sm px-3 py-2 rounded-lg border transition-colors ${
+                    moneda === opt.v
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-input hover:border-primary/30"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -211,7 +238,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
                           <div>
                             <Label className="text-[10px]">Subtotal</Label>
                             <div className="h-10 flex items-center px-3 text-sm font-medium border rounded-md bg-background">
-                              {formatCurrency(subtotal)}
+                              {formatCurrency(subtotal, moneda)}
                             </div>
                           </div>
                         </>
@@ -226,7 +253,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
               <div className="flex justify-end pt-2">
                 <div className="text-right">
                   <div className="text-xs text-muted-foreground">Total estimado</div>
-                  <div className="text-2xl font-bold">{formatCurrency(totalCalc)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(totalCalc, moneda)}</div>
                 </div>
               </div>
             )}
