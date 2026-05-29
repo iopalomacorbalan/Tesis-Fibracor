@@ -158,23 +158,70 @@ export async function generarPdfRemito(args: {
   doc.text("Firma y aclaración", boxRightX + halfW / 2, y + 22, { align: "center" });
 
   if (!opts.paraFirmar) {
-    // Versión final - mostrar datos del receptor
+    // Versión final - mostrar datos del receptor + firma dibujada si existe
+    if (remito.firma_imagen) {
+      // Firma dibujada: la dibujamos dentro del recuadro derecho, arriba de la línea
+      try {
+        // El recuadro tiene halfW de ancho. Margen 5mm a cada lado → firma de halfW-10
+        const firmaW = halfW - 10;
+        const firmaH = 14; // alto del bloque de firma
+        const firmaX = boxRightX + 5;
+        const firmaY = y + 2;
+
+        // Calcular dimensiones reales para no deformar
+        let drawW = firmaW;
+        let drawH = firmaH;
+        let offsetX = 0;
+        try {
+          const props = doc.getImageProperties(remito.firma_imagen);
+          const ratio = props.width / props.height;
+          const boxRatio = firmaW / firmaH;
+          if (ratio > boxRatio) {
+            drawW = firmaW;
+            drawH = firmaW / ratio;
+          } else {
+            drawH = firmaH;
+            drawW = firmaH * ratio;
+            offsetX = (firmaW - drawW) / 2;
+          }
+        } catch { /* usar defaults */ }
+
+        doc.addImage(
+          remito.firma_imagen, "PNG",
+          firmaX + offsetX, firmaY,
+          drawW, drawH,
+        );
+      } catch (e) {
+        // Si falla, mostrar texto indicador
+        doc.setFontSize(7);
+        doc.setTextColor(...PDF_COLORS.muted);
+        doc.text("(firma no disponible)", boxRightX + halfW / 2, y + 10, { align: "center" });
+      }
+    }
+
     if (remito.recibido_por) {
       doc.setFontSize(10);
       doc.setTextColor(...PDF_COLORS.text);
       doc.setFont("helvetica", "bold");
-      doc.text(remito.recibido_por, boxRightX + halfW / 2, y + 16, { align: "center" });
+      doc.text(remito.recibido_por, boxRightX + halfW / 2, y + 22, { align: "center" });
     }
     if (remito.dni_receptor) {
       doc.setFontSize(8);
       doc.setTextColor(...PDF_COLORS.muted);
       doc.setFont("helvetica", "normal");
-      doc.text(`DNI: ${remito.dni_receptor}`, boxRightX + halfW / 2, y + 30, { align: "center" });
+      doc.text(`DNI: ${remito.dni_receptor}`, boxRightX + halfW / 2, y + 27, { align: "center" });
     }
     if (remito.fecha_recepcion) {
       doc.setFontSize(8);
       doc.setTextColor(...PDF_COLORS.muted);
-      doc.text(`Fecha: ${fmtDate(remito.fecha_recepcion)}`, boxRightX + halfW / 2, y + 34, { align: "center" });
+      doc.text(`Fecha: ${fmtDate(remito.fecha_recepcion)}`, boxRightX + halfW / 2, y + 31, { align: "center" });
+    }
+    // Sello "FIRMADO DIGITALMENTE"
+    if (remito.firma_estado === "firmado" || remito.firma_imagen) {
+      doc.setFontSize(7);
+      doc.setTextColor(...PDF_COLORS.success);
+      doc.setFont("helvetica", "bold");
+      doc.text("✓ FIRMADO DIGITALMENTE", boxRightX + halfW / 2, y + 36, { align: "center" });
     }
   } else {
     // Versión para firmar - dejar campos en blanco con guías
