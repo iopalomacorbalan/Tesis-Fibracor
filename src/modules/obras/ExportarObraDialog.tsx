@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, FileDown, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -39,7 +39,15 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
   const [incluirHorasTecnicas, setIncluirHorasTecnicas] = useState(false);
   const [incluirCostoHoras, setIncluirCostoHoras] = useState(false);
   const [incluirDesgloseHoras, setIncluirDesgloseHoras] = useState(true);
+  const [reportesSeleccionados, setReportesSeleccionados] = useState<Set<string>>(
+    () => new Set(reportes.map(r => r.id))
+  );
   const [generando, setGenerando] = useState(false);
+
+  // Sincronizar reportes seleccionados cuando cambia la lista (al abrir/cambiar obra)
+  useEffect(() => {
+    setReportesSeleccionados(new Set(reportes.map(r => r.id)));
+  }, [reportes]);
 
   if (!obra) return null;
 
@@ -57,7 +65,8 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
         .eq("obra_id", obra.id)
         .order("fecha", { ascending: true });
 
-      const reportesParaPdf = (repsConFotos as any[] ?? []) as ReporteConRelaciones[];
+      const reportesParaPdf = (repsConFotos as any[] ?? [])
+        .filter((r: any) => reportesSeleccionados.has(r.id)) as ReporteConRelaciones[];
 
       const doc = await generarPdfObra({
         obra,
@@ -125,11 +134,11 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
             checked={incluirReportes}
             onChange={setIncluirReportes}
             label="Reportes de obra"
-            description={`${reportes.length} reportes ${incluirReportes && incluirFotos ? `con fotos` : "sin fotos"}`}
+            description={`${reportesSeleccionados.size} de ${reportes.length} reportes seleccionados ${incluirReportes && incluirFotos ? `· con fotos` : ""}`}
           />
 
           {incluirReportes && (
-            <div className="ml-6">
+            <div className="ml-6 space-y-2">
               <CheckOption
                 checked={incluirFotos}
                 onChange={setIncluirFotos}
@@ -137,6 +146,68 @@ export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos 
                 description={`${numFotos} foto${numFotos !== 1 ? "s" : ""} en total`}
                 disabled={!incluirReportes}
               />
+
+              {/* Selección de reportes individuales */}
+              {reportes.length > 0 && (
+                <div className="rounded-md border border-input bg-background/50 p-2 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium">Reportes a incluir:</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setReportesSeleccionados(new Set(reportes.map(r => r.id)))}
+                        className="text-[10px] px-2 py-0.5 rounded-full border border-input hover:bg-accent transition-colors"
+                      >
+                        Todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReportesSeleccionados(new Set())}
+                        className="text-[10px] px-2 py-0.5 rounded-full border border-input hover:bg-accent transition-colors"
+                      >
+                        Ninguno
+                      </button>
+                    </div>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto space-y-0.5">
+                    {reportes.map(r => {
+                      const checked = reportesSeleccionados.has(r.id);
+                      return (
+                        <label
+                          key={r.id}
+                          className="flex items-center gap-2 text-xs px-1.5 py-1 rounded hover:bg-accent/30 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setReportesSeleccionados(prev => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(r.id);
+                                else next.delete(r.id);
+                                return next;
+                              });
+                            }}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span className="font-mono text-muted-foreground">{r.reporte_id}</span>
+                          <span className="text-muted-foreground">·</span>
+                          <span>{r.fecha}</span>
+                          {r.tecnico?.nombre && (
+                            <>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-muted-foreground truncate">{r.tecnico.nombre}</span>
+                            </>
+                          )}
+                          {(r.fotos?.length ?? 0) > 0 && (
+                            <span className="text-[9px] text-primary ml-auto">📷 {r.fotos!.length}</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

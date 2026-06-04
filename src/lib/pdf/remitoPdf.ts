@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import QRCode from "qrcode";
 import {
   PDF_COLORS, PAGE,
   drawHeader, paginarTodo,
@@ -9,7 +10,8 @@ import {
 import type { RemitoConRelaciones } from "@/types/database";
 
 export interface PdfRemitoOptions {
-  paraFirmar: boolean; // si true, omite los datos del receptor (queda en blanco para firmar)
+  paraFirmar: boolean;
+  incluirQR: boolean;
 }
 
 export async function generarPdfRemito(args: {
@@ -18,6 +20,7 @@ export async function generarPdfRemito(args: {
 }): Promise<jsPDF> {
   const opts: PdfRemitoOptions = {
     paraFirmar: false,
+    incluirQR: false,
     ...args.options,
   };
   const { remito } = args;
@@ -158,20 +161,19 @@ export async function generarPdfRemito(args: {
   doc.text("Firma y aclaración", boxRightX + halfW / 2, y + 22, { align: "center" });
 
   if (!opts.paraFirmar) {
-    // Versión final - mostrar datos del receptor + firma dibujada si existe
+    // Versión final - dibujar firma arriba de la línea, datos abajo
     if (remito.firma_imagen) {
-      // Firma dibujada: la dibujamos dentro del recuadro derecho, arriba de la línea
+      // Firma dentro del área entre el título "RECIBE" (y) y la línea (y+18)
       try {
-        // El recuadro tiene halfW de ancho. Margen 5mm a cada lado → firma de halfW-10
         const firmaW = halfW - 10;
-        const firmaH = 14; // alto del bloque de firma
+        const firmaH = 13;
         const firmaX = boxRightX + 5;
-        const firmaY = y + 2;
+        const firmaY = y + 3;
 
-        // Calcular dimensiones reales para no deformar
         let drawW = firmaW;
         let drawH = firmaH;
         let offsetX = 0;
+        let offsetY = 0;
         try {
           const props = doc.getImageProperties(remito.firma_imagen);
           const ratio = props.width / props.height;
@@ -179,49 +181,44 @@ export async function generarPdfRemito(args: {
           if (ratio > boxRatio) {
             drawW = firmaW;
             drawH = firmaW / ratio;
+            offsetY = (firmaH - drawH) / 2;
           } else {
             drawH = firmaH;
             drawW = firmaH * ratio;
             offsetX = (firmaW - drawW) / 2;
           }
-        } catch { /* usar defaults */ }
+        } catch { /* defaults */ }
 
         doc.addImage(
           remito.firma_imagen, "PNG",
-          firmaX + offsetX, firmaY,
+          firmaX + offsetX, firmaY + offsetY,
           drawW, drawH,
         );
       } catch (e) {
-        // Si falla, mostrar texto indicador
         doc.setFontSize(7);
         doc.setTextColor(...PDF_COLORS.muted);
         doc.text("(firma no disponible)", boxRightX + halfW / 2, y + 10, { align: "center" });
       }
     }
 
+    // Datos del receptor: DEBAJO de la línea de firma (y+18) y del label "Firma y aclaración" (y+22)
+    // Empezamos en y+28 para que no se pisen.
     if (remito.recibido_por) {
       doc.setFontSize(10);
       doc.setTextColor(...PDF_COLORS.text);
       doc.setFont("helvetica", "bold");
-      doc.text(remito.recibido_por, boxRightX + halfW / 2, y + 22, { align: "center" });
+      doc.text(remito.recibido_por, boxRightX + halfW / 2, y + 30, { align: "center" });
     }
     if (remito.dni_receptor) {
       doc.setFontSize(8);
       doc.setTextColor(...PDF_COLORS.muted);
       doc.setFont("helvetica", "normal");
-      doc.text(`DNI: ${remito.dni_receptor}`, boxRightX + halfW / 2, y + 27, { align: "center" });
+      doc.text(`DNI: ${remito.dni_receptor}`, boxRightX + halfW / 2, y + 35, { align: "center" });
     }
     if (remito.fecha_recepcion) {
       doc.setFontSize(8);
       doc.setTextColor(...PDF_COLORS.muted);
-      doc.text(`Fecha: ${fmtDate(remito.fecha_recepcion)}`, boxRightX + halfW / 2, y + 31, { align: "center" });
-    }
-    // Sello "FIRMADO DIGITALMENTE"
-    if (remito.firma_estado === "firmado" || remito.firma_imagen) {
-      doc.setFontSize(7);
-      doc.setTextColor(...PDF_COLORS.success);
-      doc.setFont("helvetica", "bold");
-      doc.text("✓ FIRMADO DIGITALMENTE", boxRightX + halfW / 2, y + 36, { align: "center" });
+      doc.text(`Fecha: ${fmtDate(remito.fecha_recepcion)}`, boxRightX + halfW / 2, y + 40, { align: "center" });
     }
   } else {
     // Versión para firmar - dejar campos en blanco con guías
@@ -237,6 +234,38 @@ export async function generarPdfRemito(args: {
     doc.setTextColor(...PDF_COLORS.warning);
     doc.setFont("helvetica", "bold");
     doc.text("VERSIÓN PARA FIRMAR", PAGE.width / 2, PAGE.height - 16, { align: "center" });
+  }
+
+  // QR de firma en la esquina inferior derecha (opcional)
+  if (opts.incluirQR && remito.firma_token) {
+    try {
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+      const firmaUrl = `${baseUrl}/firmar/${remito.firma_token}`;
+      const qrDataUrl = await QRCode.toDataURL(firmaUrl, {
+        width: 200,
+        margin: 1,
+        color: { dark: "#111111", light: "#ffffff" },
+      });
+
+      // Posicionar en última página, esquina inferior derecha
+      doc.setPage(doc.getNumberOfPages());
+      const qrSize = 28; // mm
+      const qrX = PAGE.width - PAGE.margin - qrSize;
+      const qrY = PAGE.height - 38; // dejar 38mm desde abajo (espacio para QR + label)
+      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+
+      // Label arriba del QR
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...PDF_COLORS.text);
+      doc.text("Escaneá para firmar", qrX + qrSize / 2, qrY - 2, { align: "center" });
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...PDF_COLORS.muted);
+      doc.text("Confirmación digital", qrX + qrSize / 2, qrY + qrSize + 3, { align: "center" });
+    } catch (e) {
+      // Si falla, no rompemos el PDF
+    }
   }
 
   paginarTodo(doc);

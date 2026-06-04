@@ -17,18 +17,20 @@ interface Props {
 
 export function RemitoExportarDialog({ open, onOpenChange, remito }: Props) {
   const [version, setVersion] = useState<"final" | "firmar">("firmar");
+  const [incluirQR, setIncluirQR] = useState(true);
   const [generando, setGenerando] = useState(false);
 
   if (!remito) return null;
 
   const tieneDatosReceptor = !!remito.recibido_por;
+  const tieneToken = !!remito.firma_token;
 
   const handleExportar = async () => {
     setGenerando(true);
     try {
       const doc = await generarPdfRemito({
         remito,
-        options: { paraFirmar: version === "firmar" },
+        options: { paraFirmar: version === "firmar", incluirQR: incluirQR && tieneToken },
       });
       const sufijo = version === "firmar" ? "para-firmar" : "final";
       const filename = `${remito.remito_id}-${sufijo}.pdf`;
@@ -107,6 +109,26 @@ export function RemitoExportarDialog({ open, onOpenChange, remito }: Props) {
             </div>
           </button>
         </div>
+
+        {/* Incluir QR para firma digital */}
+        {tieneToken && (
+          <label className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 cursor-pointer hover:bg-primary/10 transition-colors">
+            <input
+              type="checkbox"
+              checked={incluirQR}
+              onChange={(e) => setIncluirQR(e.target.checked)}
+              className="h-4 w-4 mt-0.5"
+            />
+            <div>
+              <div className="text-sm font-medium flex items-center gap-1.5">
+                📷 Incluir QR de firma digital
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Aparece en la esquina inferior derecha. El cliente puede escanearlo desde la hoja impresa para firmar.
+              </div>
+            </div>
+          </label>
+        )}
 
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={generando}>
