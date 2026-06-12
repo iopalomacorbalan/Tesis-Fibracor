@@ -34,7 +34,7 @@ type ItemDraft = {
 export function SolicitudDialog({ open, onOpenChange, obraIdFijo }: Props) {
   const { data: obras = [] } = useObras();
   const { data: items = [] } = useInventario();
-  const { data: paniol = [] } = useUsuarios(["Direccion", "Operaciones", "Paniol"]);
+  const { data: paniol = [] } = useUsuarios(["Direccion", "Operaciones", "Contabilidad", "Paniol"]);
   const crear = useCrearSolicitud();
 
   const [obraId, setObraId] = useState<string | null>(obraIdFijo ?? null);

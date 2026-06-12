@@ -16,7 +16,7 @@ export type UserArea =
   | "Contabilidad"
   | "Tecnico";
 
-const AREAS_CON_PRECIOS: UserArea[] = ["Direccion", "Contabilidad", "Comercial"];
+const AREAS_CON_PRECIOS: UserArea[] = ["Direccion", "Contabilidad", "Comercial", "Operaciones"];
 
 /** ¿Puede ver precios (presupuestos, costos, márgenes)? */
 export function puedeVerPrecios(area: string | null | undefined): boolean {
@@ -40,7 +40,7 @@ export function puedeVerPreciosEnOC(area: string | null | undefined): boolean {
 export function puedeVerFinanciero(area: string | null | undefined): boolean {
   // Solo Direccion y Contabilidad ven el detalle completo financiero
   if (!area) return false;
-  return ["Direccion", "Contabilidad"].includes(area);
+  return ["Direccion", "Contabilidad", "Operaciones"].includes(area);
 }
 
 /** ¿Puede crear/editar costos extras de una obra? */
@@ -52,5 +52,5 @@ export function puedeEditarCostosExtras(area: string | null | undefined): boolea
 /** ¿Puede aprobar OCs (órdenes de compra)? */
 export function puedeAprobarOC(area: string | null | undefined): boolean {
   if (!area) return false;
-  return ["Direccion", "Operaciones"].includes(area);
+  return ["Direccion", "Operaciones", "Contabilidad"].includes(area);
 }

@@ -32,7 +32,7 @@ export default function RemitosPage() {
   const [remExportar, setRemExportar] = useState<RemitoConRelaciones | null>(null);
   const [remQR, setRemQR] = useState<RemitoConRelaciones | null>(null);
 
-  const puedeCrear = profile && ["Direccion", "Operaciones", "Comercial", "Paniol"].includes(profile.area);
+  const puedeCrear = profile && ["Direccion", "Operaciones", "Contabilidad", "Comercial", "Paniol"].includes(profile.area);
   const puedeEditar = puedeCrear;
   const puedeEliminar = profile && ["Direccion", "Operaciones"].includes(profile.area);
 

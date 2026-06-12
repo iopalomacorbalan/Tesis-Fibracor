@@ -43,7 +43,7 @@ export default function SolicitudesPage() {
   const [solCancelar, setSolCancelar] = useState<SolicitudConRelaciones | null>(null);
 
   const esTecnico = profile?.area === "Tecnico";
-  const esResponsable = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const esResponsable = profile && ["Direccion", "Operaciones", "Contabilidad", "Paniol"].includes(profile.area);
 
   const filtered = useMemo(() => {
     return solicitudes.filter(s => {

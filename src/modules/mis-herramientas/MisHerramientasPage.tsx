@@ -36,7 +36,7 @@ export default function MisHerramientasPage() {
   const { profile } = useAuth();
   const { data: tecnicos = [] } = useTecnicos();
 
-  const esResponsable = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const esResponsable = profile && ["Direccion", "Operaciones", "Contabilidad", "Paniol"].includes(profile.area);
   // Si soy técnico, solo veo las mías. Si soy responsable, puedo elegir.
   const [tecnicoSelId, setTecnicoSelId] = useState<string | null>(
     profile?.area === "Tecnico" ? profile.id : null

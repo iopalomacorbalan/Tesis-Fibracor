@@ -52,7 +52,7 @@ export default function StockPage() {
   const [accionReactivar, setAccionReactivar] = useState<"reactivar" | "dar_de_baja">("reactivar");
   const [itemHistorial, setItemHistorial] = useState<Inventario | null>(null);
 
-  const puedeEditar = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const puedeEditar = profile && ["Direccion", "Operaciones", "Contabilidad", "Paniol"].includes(profile.area);
   const puedeVerPrecios = canViewPrices(profile?.area);
   const esTecnico = profile?.area === "Tecnico";
 

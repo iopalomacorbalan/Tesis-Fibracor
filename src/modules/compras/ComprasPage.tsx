@@ -48,7 +48,7 @@ export default function ComprasPage() {
   const { data: pendientes = [] } = useItemsPendientesOc();
 
   const puedeAprobar = profile && ["Direccion", "Operaciones"].includes(profile.area);
-  const puedeRecibir = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const puedeRecibir = profile && ["Direccion", "Operaciones", "Contabilidad", "Paniol"].includes(profile.area);
   const verPrecios = puedeVerPreciosEnOC(profile?.area);
 
   const filtered = useMemo(() => {

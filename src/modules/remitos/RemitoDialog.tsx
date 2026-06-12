@@ -44,7 +44,7 @@ type ItemDraft = {
 export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) {
   const isEdit = !!remito;
   const { profile } = useAuth();
-  const puedeEditarItems = profile && ["Direccion", "Operaciones", "Comercial", "Paniol"].includes(profile.area);
+  const puedeEditarItems = profile && ["Direccion", "Operaciones", "Contabilidad", "Comercial", "Paniol"].includes(profile.area);
   const { data: obras = [] } = useObras();
   const { data: clientes = [] } = useClientes();
   const { data: inventario = [] } = useInventario();

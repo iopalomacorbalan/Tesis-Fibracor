@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye,
   Briefcase, MapPin, Calendar, User, AlertCircle,
-  Play, CheckCircle, Lock, Loader2,
+  Play, CheckCircle, Lock, Loader2, DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -53,12 +53,14 @@ export default function ObrasPage() {
   const [obraEliminar, setObraEliminar] = useState<ObraConRelaciones | null>(null);
   const [obraDetalle, setObraDetalle] = useState<ObraConRelaciones | null>(null);
   const [obraExtras, setObraExtras] = useState<ObraConRelaciones | null>(null); // paso 1: costos extras
+  const [obraExtrasSimple, setObraExtrasSimple] = useState<ObraConRelaciones | null>(null); // gestionar sin cerrar
   const [obraCerrar, setObraCerrar] = useState<ObraConRelaciones | null>(null); // paso 2: confirmar
   const [obraFinalizar, setObraFinalizar] = useState<ObraConRelaciones | null>(null);
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Comercial"].includes(profile.area);
-  const puedeEliminar = profile?.area === "Direccion";
-  const puedeCerrar = profile && ["Direccion", "Operaciones"].includes(profile.area);
+  const puedeEliminar = !!profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeCerrar = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeGestionarExtras = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
   const verPrecios = puedeVerPrecios(profile?.area);
 
   const obrasFiltradas = useMemo(() => {
@@ -194,6 +196,8 @@ export default function ObrasPage() {
               onEliminar={(o) => setObraEliminar(o)}
               onIniciar={(o) => cambiarEstado.mutate({ id: o.id, estado: "En ejecucion" })}
               onParaCierre={(o) => setObraExtras(o)}
+              puedeGestionarExtras={!!puedeGestionarExtras}
+              onGestionarExtras={(o) => setObraExtrasSimple(o)}
               onFinalizar={(o) => setObraFinalizar(o)}
             />
           ))}
@@ -219,6 +223,15 @@ export default function ObrasPage() {
             setObraExtras(null);
           }
         }}
+      />
+
+      {/* Gestionar costos extras SIN cerrar la obra */}
+      <CostosExtrasDialog
+        open={!!obraExtrasSimple}
+        onOpenChange={(o) => !o && setObraExtrasSimple(null)}
+        obra={obraExtrasSimple}
+        onContinuar={() => setObraExtrasSimple(null)}
+        modoSimple
       />
 
       {/* Iniciar cierre (genera devoluciones automáticas) */}
@@ -296,19 +309,21 @@ function StatCard({ label, value, variant = "default" }: { label: string; value:
 }
 
 function ObraCard({
-  obra, puedeEditar, puedeEliminar, puedeCerrar, verPrecios,
-  onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar,
+  obra, puedeEditar, puedeEliminar, puedeCerrar, verPrecios, puedeGestionarExtras,
+  onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar, onGestionarExtras,
 }: {
   obra: ObraConRelaciones;
   puedeEditar: boolean;
   puedeEliminar: boolean;
   puedeCerrar: boolean;
+  puedeGestionarExtras: boolean;
   verPrecios: boolean;
   onVer: (o: ObraConRelaciones) => void;
   onEditar: (o: ObraConRelaciones) => void;
   onEliminar: (o: ObraConRelaciones) => void;
   onIniciar: (o: ObraConRelaciones) => void;
   onParaCierre: (o: ObraConRelaciones) => void;
+  onGestionarExtras: (o: ObraConRelaciones) => void;
   onFinalizar: (o: ObraConRelaciones) => void;
 }) {
   return (
@@ -389,6 +404,13 @@ function ObraCard({
               <Button variant="ghost" size="sm" onClick={() => onEditar(obra)}>
                 <Edit className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Editar</span>
+              </Button>
+            )}
+            {puedeGestionarExtras && obra.estado !== "Cerrada" && (
+              <Button variant="ghost" size="sm" onClick={() => onGestionarExtras(obra)} title="Cargar costos extras sin cerrar la obra">
+                <DollarSign className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Costos extras</span>
+                <span className="sm:hidden">$+</span>
               </Button>
             )}
             {puedeEliminar && (

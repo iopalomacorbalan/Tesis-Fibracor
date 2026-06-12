@@ -389,7 +389,7 @@ function CostosTab({ costos, horasObra, area }: {
   }
 
   // Direccion y Contabilidad ven la fila de horas técnicas
-  const verHoras = area === "Direccion" || area === "Contabilidad";
+  const verHoras = ["Direccion", "Contabilidad", "Operaciones"].includes(area ?? "");
   const costoHoras = verHoras ? (horasObra?.costo_total ?? 0) : 0;
   const totalEjecutadoCostoConHoras = costos.total_ejecutado_costo + costoHoras;
   const totalEjecutadoListaConHoras = costos.total_ejecutado_lista + costoHoras;
@@ -403,7 +403,7 @@ function CostosTab({ costos, horasObra, area }: {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Presupuesto" value={formatCurrency(costos.presupuesto)} />
         <KpiCard label="Materiales" value={formatCurrency(costos.total_materiales_costo)} variant="primary" />
-        <KpiCard label="OCs vinculadas" value={formatCurrency(costos.total_ocs)} variant="primary" />
+        <KpiCard label="OCs vinculadas (info)" value={formatCurrency(costos.total_ocs)} variant="default" />
         <KpiCard
           label="Margen"
           value={`${margenCostoConHoras >= 0 ? "+" : ""}${formatCurrency(margenCostoConHoras)}`}
@@ -428,7 +428,7 @@ function CostosTab({ costos, horasObra, area }: {
               lista={costos.total_materiales_lista}
             />
             <ComparativaRow
-              label="Compras (OCs)"
+              label="Compras (OCs) — informativo, no suma al total"
               costo={costos.total_ocs}
               lista={costos.total_ocs}
             />
@@ -564,7 +564,7 @@ function HorasTecnicasTab({ obraId, area }: { obraId: string | null; area: strin
   const { data: porDia = [], isLoading: l1 } = useHorasPorDiaObra(obraId);
   const { data: totales, isLoading: l2 } = useTotalHorasObra(obraId);
   const { data: porTecnico = [] } = useHorasTecnicasObra(obraId);
-  const verCosto = area === "Direccion";
+  const verCosto = ["Direccion", "Contabilidad", "Operaciones"].includes(area ?? "");
 
   if (l1 || l2) {
     return (

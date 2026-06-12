@@ -341,7 +341,7 @@ export async function generarPdfObra(args: {
     const tableBody: any[] = [
       ["Presupuesto de obra", fmtMoney(costos.presupuesto), fmtMoney(costos.presupuesto)],
       ["Materiales consumidos", fmtMoney(costos.total_materiales_costo), fmtMoney(costos.total_materiales_lista)],
-      ["Compras vinculadas (OCs)", fmtMoney(costos.total_ocs), fmtMoney(costos.total_ocs)],
+      ["Compras vinculadas (OCs) — informativo, no suma", fmtMoney(costos.total_ocs), fmtMoney(costos.total_ocs)],
       ["Herramientas no devueltas", fmtMoney(costos.total_herramientas_no_devueltas), fmtMoney(costos.total_herramientas_no_devueltas)],
       ["Costos extras (tercerizados, etc.)", fmtMoney(costos.total_costos_extras), fmtMoney(costos.total_costos_extras)],
     ];

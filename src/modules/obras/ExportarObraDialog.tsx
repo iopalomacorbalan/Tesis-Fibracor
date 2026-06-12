@@ -24,7 +24,7 @@ interface Props {
 export function ExportarObraDialog({ open, onOpenChange, obra, reportes, costos }: Props) {
   const { profile } = useAuth();
   const puedeFinanciero = puedeVerPrecios(profile?.area);
-  const verCostoHoras = profile?.area === "Direccion";
+  const verCostoHoras = !!profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
 
   const { data: horasPorDia = [] } = useHorasPorDiaObra(obra?.id ?? null);
   const { data: totalHoras } = useTotalHorasObra(obra?.id ?? null);

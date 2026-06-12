@@ -24,7 +24,7 @@ export default function ItemsRevisionPage() {
   const reactivar = useReactivarItem();
   const darBaja = useDarBajaItem();
 
-  const puedeAcceder = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const puedeAcceder = profile && ["Direccion", "Operaciones", "Contabilidad", "Paniol"].includes(profile.area);
   if (profile && !puedeAcceder) {
     return <Navigate to="/" replace />;
   }

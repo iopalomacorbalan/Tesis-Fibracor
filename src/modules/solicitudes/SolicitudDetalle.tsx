@@ -33,7 +33,7 @@ export function SolicitudDetalle({ open, onOpenChange, solicitud }: Props) {
 
   if (!solicitud) return null;
 
-  const esPaniol = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const esPaniol = profile && ["Direccion", "Operaciones", "Contabilidad", "Paniol"].includes(profile.area);
 
   const handleEntregar = async (item: any) => {
     if (!item.item_id) {

@@ -25,7 +25,7 @@ export function RemitoQRDialog({ open, onOpenChange, remito }: Props) {
   const [reseteando, setReseteando] = useState(false);
 
   const firmado = remito?.firma_estado === "firmado" || !!remito?.recibido_por;
-  const puedeResetear = profile && ["Direccion", "Operaciones", "Comercial", "Paniol"].includes(profile.area);
+  const puedeResetear = profile && ["Direccion", "Operaciones", "Contabilidad", "Comercial", "Paniol"].includes(profile.area);
 
   // URL pública de firma
   const firmaUrl = remito?.firma_token

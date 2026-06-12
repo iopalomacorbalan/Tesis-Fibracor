@@ -44,7 +44,7 @@ export default function MovimientosPage() {
   const [movAceptar, setMovAceptar] = useState<MovimientoConRelaciones | null>(null);
   const [movCancelar, setMovCancelar] = useState<MovimientoConRelaciones | null>(null);
 
-  const esPaniol = profile && ["Direccion", "Operaciones", "Paniol"].includes(profile.area);
+  const esPaniol = profile && ["Direccion", "Operaciones", "Contabilidad", "Paniol"].includes(profile.area);
 
   const filtered = useMemo(() => {
     return movimientos.filter(m => {

@@ -202,9 +202,11 @@ export function useObraCostos(obraId: string | null) {
         .reduce((s, c) => s + c.total_estimado, 0);
 
       // 4. Totales agregados
-      // Costo = materiales consumibles + OCs + herramientas no devueltas + costos extras
-      const totalEjecutadoCosto = totalMatCosto + totalOcs + totalHerrNoDev + totalExtras;
-      const totalEjecutadoLista = totalMatLista + totalOcs + totalHerrNoDev + totalExtras;
+      // Costo = materiales consumibles entregados desde stock + herramientas no devueltas + costos extras
+      // ⚠️ Las OCs NO suman al total: son informativas. Sus materiales ya se computan
+      // cuando se entregan desde el stock (si las sumáramos, se duplicaría el costo).
+      const totalEjecutadoCosto = totalMatCosto + totalHerrNoDev + totalExtras;
+      const totalEjecutadoLista = totalMatLista + totalHerrNoDev + totalExtras;
 
       const margenCosto = presupuesto - totalEjecutadoCosto;
       const margenCostoPct = presupuesto > 0 ? (margenCosto / presupuesto) * 100 : 0;

@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle,
+  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle, Clock,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -34,14 +34,16 @@ const NAV: NavItem[] = [
   { to: "/stock", icon: Package, label: "Stock", group: "Operaciones" },
   { to: "/mis-herramientas", icon: Wrench, label: "Mis herramientas", group: "Operaciones" },
   { to: "/asignaciones-personales", icon: Package2, label: "Asignaciones diarias", group: "Operaciones",
-    roles: ["Direccion", "Operaciones", "Paniol"] },
+    roles: ["Direccion", "Operaciones", "Contabilidad", "Paniol"] },
   { to: "/items-revision", icon: AlertCircle, label: "Items en revisión", group: "Operaciones",
-    roles: ["Direccion", "Operaciones", "Paniol"] },
+    roles: ["Direccion", "Operaciones", "Contabilidad", "Paniol"] },
+  { to: "/liquidacion", icon: Clock, label: "Liquidación de horas", group: "Administración",
+    roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/config/google-calendar", icon: CalendarDays, label: "Google Calendar", group: "Configuración",
-    roles: ["Direccion"] },
+    roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/solicitudes", icon: ClipboardList, label: "Solicitudes", group: "Operaciones" },
   { to: "/movimientos", icon: GitBranch, label: "Movimientos", group: "Operaciones",
-    roles: ["Direccion", "Operaciones", "Paniol"] },
+    roles: ["Direccion", "Operaciones", "Contabilidad", "Paniol"] },
   { to: "/compras", icon: ShoppingCart, label: "Compras", group: "Operaciones",
     roles: ["Direccion", "Operaciones", "Paniol", "Contabilidad"] },
 ];

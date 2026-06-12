@@ -135,7 +135,7 @@ export default function DashboardPage() {
       )}
 
       {/* Precio hora técnica - solo Dirección */}
-      {profile?.area === "Direccion" && <PrecioHoraCard />}
+      {!!profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area) && <PrecioHoraCard />}
 
       {/* Dos columnas con últimas obras y reportes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

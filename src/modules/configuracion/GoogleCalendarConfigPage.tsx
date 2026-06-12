@@ -31,7 +31,7 @@ export default function GoogleCalendarConfigPage() {
   }, [config]);
 
   // Solo Direccion
-  if (profile && profile.area !== "Direccion") {
+  if (profile && !["Direccion", "Operaciones", "Contabilidad"].includes(profile.area)) {
     return <Navigate to="/" replace />;
   }
 
