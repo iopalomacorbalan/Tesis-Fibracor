@@ -20,28 +20,54 @@ import {
   useTecnicosValores, useGuardarValorTecnico, type TecnicoLiquidacion,
 } from "./useLiquidacion";
 
-function primerDiaMes(yyyymm: string) { return `${yyyymm}-01`; }
-function ultimoDiaMes(yyyymm: string) {
-  const [y, m] = yyyymm.split("-").map(Number);
-  const last = new Date(y, m, 0).getDate();
-  return `${yyyymm}-${String(last).padStart(2, "0")}`;
-}
+function fmtMonto(n: number) { return formatCurrency(n); }
 
 export default function LiquidacionPage() {
   const { profile } = useAuth();
   const hoy = new Date();
-  const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
-  const [mes, setMes] = useState(mesActual);
+  const y = hoy.getFullYear();
+  const m = hoy.getMonth();
+  // Por defecto: mes actual completo
+  const primerDia = `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  const ultimoDiaN = new Date(y, m + 1, 0).getDate();
+  const ultimoDia = `${y}-${String(m + 1).padStart(2, "0")}-${String(ultimoDiaN).padStart(2, "0")}`;
+
+  const [desde, setDesde] = useState(primerDia);
+  const [hasta, setHasta] = useState(ultimoDia);
   const [configOpen, setConfigOpen] = useState(false);
 
-  const desde = primerDiaMes(mes);
-  const hasta = ultimoDiaMes(mes);
-
   const { data: tecnicos = [], isLoading } = useLiquidacionHoras(desde, hasta);
-  const { data: valores } = useValoresGlobales();
 
   const puedeAcceder = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
   if (profile && !puedeAcceder) return <Navigate to="/" replace />;
+
+  // Presets rápidos de período
+  const setMesActual = () => {
+    const yy = hoy.getFullYear(); const mm = hoy.getMonth();
+    setDesde(`${yy}-${String(mm + 1).padStart(2, "0")}-01`);
+    const ud = new Date(yy, mm + 1, 0).getDate();
+    setHasta(`${yy}-${String(mm + 1).padStart(2, "0")}-${String(ud).padStart(2, "0")}`);
+  };
+  const setMesAnterior = () => {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+    const yy = d.getFullYear(); const mm = d.getMonth();
+    setDesde(`${yy}-${String(mm + 1).padStart(2, "0")}-01`);
+    const ud = new Date(yy, mm + 1, 0).getDate();
+    setHasta(`${yy}-${String(mm + 1).padStart(2, "0")}-${String(ud).padStart(2, "0")}`);
+  };
+  const setQuincena1 = () => {
+    const yy = hoy.getFullYear(); const mm = hoy.getMonth();
+    setDesde(`${yy}-${String(mm + 1).padStart(2, "0")}-01`);
+    setHasta(`${yy}-${String(mm + 1).padStart(2, "0")}-15`);
+  };
+  const setQuincena2 = () => {
+    const yy = hoy.getFullYear(); const mm = hoy.getMonth();
+    setDesde(`${yy}-${String(mm + 1).padStart(2, "0")}-16`);
+    const ud = new Date(yy, mm + 1, 0).getDate();
+    setHasta(`${yy}-${String(mm + 1).padStart(2, "0")}-${String(ud).padStart(2, "0")}`);
+  };
+
+  const periodoLabel = `${desde}_${hasta}`;
 
   const totales = useMemo(() => ({
     horas: tecnicos.reduce((s, t) => s + t.total_horas, 0),
@@ -95,7 +121,7 @@ export default function LiquidacionPage() {
       XLSX.utils.book_append_sheet(wb, ws, nombre || t.tecnico_id.slice(0, 8));
     }
 
-    XLSX.writeFile(wb, `Liquidacion_${mes}.xlsx`);
+    XLSX.writeFile(wb, `Liquidacion_${periodoLabel}.xlsx`);
     toast.success("Excel descargado");
   };
 
@@ -103,7 +129,7 @@ export default function LiquidacionPage() {
   const exportarPdf = async () => {
     if (tecnicos.length === 0) { toast.error("No hay datos para exportar"); return; }
     const doc = new jsPDF({ unit: "mm", format: "a4" });
-    let y = await drawHeader(doc, "Liquidación de horas", mes);
+    let y = await drawHeader(doc, "Liquidación de horas", `${desde} al ${hasta}`);
 
     // Resumen general
     autoTable(doc, {
@@ -160,7 +186,7 @@ export default function LiquidacionPage() {
     }
 
     paginarTodo(doc);
-    doc.save(`Liquidacion_${mes}.pdf`);
+    doc.save(`Liquidacion_${periodoLabel}.pdf`);
     toast.success("PDF descargado");
   };
 
@@ -183,23 +209,55 @@ export default function LiquidacionPage() {
 
       {/* Selector de período + exportar */}
       <Card>
-        <CardContent className="p-4 flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Período (mes)</Label>
-            <Input
-              type="month"
-              value={mes}
-              onChange={(e) => setMes(e.target.value)}
-              className="w-44"
-            />
+        <CardContent className="p-4 space-y-3">
+          {/* Presets rápidos */}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={setMesActual}
+              className="text-xs px-3 py-1.5 rounded-full border border-input hover:bg-accent transition-colors">
+              Mes actual
+            </button>
+            <button type="button" onClick={setMesAnterior}
+              className="text-xs px-3 py-1.5 rounded-full border border-input hover:bg-accent transition-colors">
+              Mes anterior
+            </button>
+            <button type="button" onClick={setQuincena1}
+              className="text-xs px-3 py-1.5 rounded-full border border-input hover:bg-accent transition-colors">
+              1ª quincena
+            </button>
+            <button type="button" onClick={setQuincena2}
+              className="text-xs px-3 py-1.5 rounded-full border border-input hover:bg-accent transition-colors">
+              2ª quincena
+            </button>
           </div>
-          <div className="flex gap-2 ml-auto">
-            <Button variant="outline" onClick={exportarPdf} disabled={tecnicos.length === 0}>
-              <FileDown className="h-4 w-4 mr-1" /> PDF
-            </Button>
-            <Button variant="outline" onClick={exportarExcel} disabled={tecnicos.length === 0}>
-              <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
-            </Button>
+
+          {/* Rango de fechas libre */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Desde</Label>
+              <Input
+                type="date"
+                value={desde}
+                onChange={(e) => setDesde(e.target.value)}
+                className="w-full sm:w-44"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Hasta</Label>
+              <Input
+                type="date"
+                value={hasta}
+                onChange={(e) => setHasta(e.target.value)}
+                className="w-full sm:w-44"
+              />
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={exportarPdf} disabled={tecnicos.length === 0}>
+                <FileDown className="h-4 w-4 mr-1" /> PDF
+              </Button>
+              <Button variant="outline" onClick={exportarExcel} disabled={tecnicos.length === 0}>
+                <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

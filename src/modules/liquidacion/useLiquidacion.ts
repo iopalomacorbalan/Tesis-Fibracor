@@ -98,7 +98,13 @@ export function useValoresGlobales() {
         .from("configuracion_global")
         .select("clave, valor")
         .in("clave", ["valor_hora_liquidacion", "valor_hora_extra_liquidacion"]);
-      const map = new Map((data ?? []).map((r: any) => [r.clave, Number(r.valor) || 0]));
+      const map = new Map((data ?? []).map((r: any) => {
+        // valor es JSONB: puede venir como número o string
+        let n = 0;
+        if (typeof r.valor === "number") n = r.valor;
+        else if (typeof r.valor === "string") n = Number(r.valor.replace(",", ".")) || 0;
+        return [r.clave, n];
+      }));
       return {
         valor_hora: map.get("valor_hora_liquidacion") ?? 0,
         valor_hora_extra: map.get("valor_hora_extra_liquidacion") ?? 0,
@@ -112,18 +118,17 @@ export function useGuardarValoresGlobales() {
   return useMutation({
     mutationFn: async (v: { valor_hora: number; valor_hora_extra: number }) => {
       const updates = [
-        { clave: "valor_hora_liquidacion", valor: String(v.valor_hora) },
-        { clave: "valor_hora_extra_liquidacion", valor: String(v.valor_hora_extra) },
+        { clave: "valor_hora_liquidacion", valor: v.valor_hora, descripcion: "Valor global hora normal liquidación (ARS)" },
+        { clave: "valor_hora_extra_liquidacion", valor: v.valor_hora_extra, descripcion: "Valor global hora extra liquidación (ARS)" },
       ];
-      for (const u of updates) {
-        const { error } = await supabase
-          .from("configuracion_global")
-          .update({ valor: u.valor })
-          .eq("clave", u.clave);
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from("configuracion_global")
+        .upsert(updates, { onConflict: "clave" });
+      if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [KEY] });
+    },
   });
 }
 
