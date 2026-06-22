@@ -19,6 +19,7 @@ export interface CajaChicaGasto {
   fecha: string;
   comprobante_url: string | null;
   medio_pago: string | null;
+  descuenta_caja: boolean;
   observaciones: string | null;
   costo_extra_id: string | null;
   created_at: string;
@@ -68,6 +69,7 @@ export function useAgregarGasto() {
       fecha: string;
       medio_pago: string | null;
       observaciones: string | null;
+      descuenta_caja: boolean;
       comprobante?: File | null;
     }) => {
       const userResp = await supabase.auth.getUser();
@@ -107,6 +109,7 @@ export function useAgregarGasto() {
         comprobante_url,
         medio_pago: input.medio_pago,
         observaciones: input.observaciones,
+        descuenta_caja: input.descuenta_caja,
         costo_extra_id,
         created_by: uid,
       } as any);
@@ -116,6 +119,7 @@ export function useAgregarGasto() {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["costos_extras"] });
       qc.invalidateQueries({ queryKey: ["obra_costos"] });
+      qc.invalidateQueries({ queryKey: ["caja_saldo"] });
     },
   });
 }
@@ -135,6 +139,60 @@ export function useEliminarGasto() {
       qc.invalidateQueries({ queryKey: [KEY] });
       qc.invalidateQueries({ queryKey: ["costos_extras"] });
       qc.invalidateQueries({ queryKey: ["obra_costos"] });
+      qc.invalidateQueries({ queryKey: ["caja_saldo"] });
+    },
+  });
+}
+
+// ===== Saldo y movimientos de caja =====
+export interface CajaMovimiento {
+  id: string;
+  tipo: "ingreso" | "ajuste";
+  monto: number;
+  concepto: string | null;
+  fecha: string;
+  created_at: string;
+}
+
+export function useSaldoCaja() {
+  return useQuery({
+    queryKey: ["caja_saldo"],
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase.rpc("get_saldo_caja_chica");
+      if (error) { console.warn("Error saldo caja:", error.message); return 0; }
+      return Number(data) || 0;
+    },
+  });
+}
+
+export function useMovimientosCaja() {
+  return useQuery({
+    queryKey: ["caja_movimientos"],
+    queryFn: async (): Promise<CajaMovimiento[]> => {
+      const { data, error } = await supabase
+        .from("caja_chica_movimientos")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) { console.warn(error.message); return []; }
+      return (data ?? []) as CajaMovimiento[];
+    },
+  });
+}
+
+export function useAgregarMovimientoCaja() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { tipo: "ingreso" | "ajuste"; monto: number; concepto: string | null; fecha: string }) => {
+      const userResp = await supabase.auth.getUser();
+      const uid = userResp.data.user?.id ?? null;
+      const { error } = await supabase.from("caja_chica_movimientos").insert({
+        tipo: input.tipo, monto: input.monto, concepto: input.concepto, fecha: input.fecha, created_by: uid,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["caja_saldo"] });
+      qc.invalidateQueries({ queryKey: ["caja_movimientos"] });
     },
   });
 }

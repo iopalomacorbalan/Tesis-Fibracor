@@ -19,6 +19,7 @@ import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { useObras } from "@/modules/obras/useObras";
 import {
   useCajaChica, useAgregarGasto, useEliminarGasto,
+  useSaldoCaja, useMovimientosCaja, useAgregarMovimientoCaja,
   CATEGORIAS_CAJA, MEDIOS_PAGO, type CajaChicaGasto,
 } from "./useCajaChica";
 
@@ -32,7 +33,9 @@ export default function CajaChicaPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: gastos = [], isLoading } = useCajaChica(desde, hasta);
+  const { data: saldo = 0 } = useSaldoCaja();
   const eliminar = useEliminarGasto();
+  const [movDialogOpen, setMovDialogOpen] = useState(false);
 
   const puedeAcceder = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
   if (profile && !puedeAcceder) return <Navigate to="/" replace />;
@@ -91,6 +94,22 @@ export default function CajaChicaPage() {
           <Plus className="h-4 w-4 mr-1" /> Nuevo gasto
         </Button>
       </div>
+
+      {/* Saldo disponible destacado */}
+      <Card className={cn("border-2", saldo < 0 ? "border-destructive/40 bg-destructive/5" : "border-primary/30 bg-primary/5")}>
+        <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">Saldo disponible en caja chica</div>
+            <div className={cn("text-3xl font-bold mt-1", saldo < 0 ? "text-destructive" : "text-primary")}>
+              {formatCurrency(saldo)}
+            </div>
+            {saldo < 0 && <div className="text-xs text-destructive mt-0.5">⚠️ La caja está en negativo</div>}
+          </div>
+          <Button variant="outline" onClick={() => setMovDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Ingreso / Ajuste
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Filtro de período + exportar */}
       <Card>
@@ -171,12 +190,13 @@ export default function CajaChicaPage() {
         </div>
       )}
 
-      <NuevoGastoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <NuevoGastoDialog open={dialogOpen} onOpenChange={setDialogOpen} saldo={saldo} />
+      <MovimientoCajaDialog open={movDialogOpen} onOpenChange={setMovDialogOpen} saldoActual={saldo} />
     </div>
   );
 }
 
-function NuevoGastoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NuevoGastoDialog({ open, onOpenChange, saldo }: { open: boolean; onOpenChange: (o: boolean) => void; saldo: number }) {
   const { data: obras = [] } = useObras();
   const agregar = useAgregarGasto();
 
@@ -188,13 +208,14 @@ function NuevoGastoDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   const [monto, setMonto] = useState<number>(0);
   const [fecha, setFecha] = useState(hoy);
   const [medioPago, setMedioPago] = useState<string>("Efectivo");
+  const [descuentaCaja, setDescuentaCaja] = useState(true);
   const [observaciones, setObservaciones] = useState("");
   const [comprobante, setComprobante] = useState<File | null>(null);
 
   const reset = () => {
     setTipo("administrativo"); setObraId(null); setCategoria(CATEGORIAS_CAJA[0]);
     setConcepto(""); setMonto(0); setFecha(hoy); setMedioPago("Efectivo");
-    setObservaciones(""); setComprobante(null);
+    setObservaciones(""); setComprobante(null); setDescuentaCaja(true);
   };
 
   const handleGuardar = async () => {
@@ -206,6 +227,7 @@ function NuevoGastoDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
         tipo, obra_id: obraId, categoria, concepto: concepto.trim(),
         monto, fecha, medio_pago: medioPago,
         observaciones: observaciones.trim() || null,
+        descuenta_caja: descuentaCaja,
         comprobante,
       });
       toast.success("Gasto cargado");
@@ -307,6 +329,17 @@ function NuevoGastoDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
             <Label className="text-xs">Observaciones (opcional)</Label>
             <Textarea rows={2} value={observaciones} onChange={e => setObservaciones(e.target.value)} />
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-input p-2.5">
+            <input type="checkbox" checked={descuentaCaja} onChange={e => setDescuentaCaja(e.target.checked)} className="h-4 w-4" />
+            <span className="text-sm">Descontar del saldo de caja chica</span>
+          </label>
+
+          {descuentaCaja && monto > saldo && (
+            <div className="text-xs text-warning bg-warning/10 border border-warning/30 rounded-lg p-2">
+              ⚠️ El monto ({formatCurrency(monto)}) supera el saldo disponible ({formatCurrency(saldo)}). Se va a cargar igual y la caja quedará en negativo.
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -314,6 +347,104 @@ function NuevoGastoDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
           <Button onClick={handleGuardar} disabled={agregar.isPending}>
             {agregar.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
             Guardar gasto
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MovimientoCajaDialog({ open, onOpenChange, saldoActual }: { open: boolean; onOpenChange: (o: boolean) => void; saldoActual: number }) {
+  const agregar = useAgregarMovimientoCaja();
+  const { data: movimientos = [] } = useMovimientosCaja();
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const [tipo, setTipo] = useState<"ingreso" | "ajuste">("ingreso");
+  const [monto, setMonto] = useState<number>(0);
+  const [concepto, setConcepto] = useState("");
+  const [fecha, setFecha] = useState(hoy);
+
+  const handleGuardar = async () => {
+    if (monto < 0) { toast.error("El monto no puede ser negativo"); return; }
+    if (tipo === "ingreso" && monto <= 0) { toast.error("Ingresá un monto mayor a 0"); return; }
+    try {
+      await agregar.mutateAsync({ tipo, monto, concepto: concepto.trim() || null, fecha });
+      toast.success(tipo === "ingreso" ? "Ingreso registrado" : "Saldo ajustado");
+      setMonto(0); setConcepto(""); setTipo("ingreso");
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Ingreso / Ajuste de caja</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setTipo("ingreso")}
+              className={cn("flex-1 text-sm px-3 py-2 rounded-lg border transition-colors",
+                tipo === "ingreso" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input")}>
+              Ingreso (suma)
+            </button>
+            <button type="button" onClick={() => setTipo("ajuste")}
+              className={cn("flex-1 text-sm px-3 py-2 rounded-lg border transition-colors",
+                tipo === "ajuste" ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input")}>
+              Ajustar saldo
+            </button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            {tipo === "ingreso"
+              ? "Suma este monto al saldo actual (ej: reposición de caja)."
+              : `Fija el saldo a este valor exacto (corrige el actual de ${formatCurrency(saldoActual)}).`}
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{tipo === "ingreso" ? "Monto a sumar" : "Nuevo saldo"}</Label>
+              <Input type="number" min="0" step="0.01" value={monto || ""} onChange={e => setMonto(parseFloat(e.target.value) || 0)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Fecha</Label>
+              <Input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Concepto (opcional)</Label>
+            <Input value={concepto} onChange={e => setConcepto(e.target.value)} placeholder={tipo === "ingreso" ? "Ej: reposición mensual" : "Ej: corrección de arqueo"} />
+          </div>
+
+          {movimientos.length > 0 && (
+            <div className="pt-2 border-t">
+              <Label className="text-xs text-muted-foreground">Últimos movimientos</Label>
+              <div className="mt-1 space-y-1 max-h-32 overflow-y-auto">
+                {movimientos.slice(0, 8).map(m => (
+                  <div key={m.id} className="flex justify-between text-xs py-1 border-b last:border-0">
+                    <span className="text-muted-foreground">
+                      {formatDate(m.fecha)} · {m.tipo === "ingreso" ? "Ingreso" : "Ajuste"}
+                      {m.concepto && ` · ${m.concepto}`}
+                    </span>
+                    <span className={m.tipo === "ingreso" ? "text-success" : ""}>
+                      {m.tipo === "ingreso" ? "+" : "="}{formatCurrency(m.monto)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleGuardar} disabled={agregar.isPending}>
+            {agregar.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+            Guardar
           </Button>
         </DialogFooter>
       </DialogContent>
