@@ -24,6 +24,7 @@ export interface CajaChicaGasto {
   costo_extra_id: string | null;
   created_at: string;
   created_by: string | null;
+  creador?: { nombre: string } | null;
   obra?: { id: string; obra_id: string; nombre_obra: string | null; cliente?: { nombre: string } | null } | null;
 }
 
@@ -35,7 +36,7 @@ export function useCajaChica(desde?: string, hasta?: string) {
     queryFn: async (): Promise<CajaChicaGasto[]> => {
       let q = supabase
         .from("caja_chica")
-        .select(`*, obra:obras(id, obra_id, nombre_obra, cliente:clientes(nombre))`)
+        .select(`*, obra:obras(id, obra_id, nombre_obra, cliente:clientes(nombre)), creador:usuarios(nombre)`)
         .order("fecha", { ascending: false });
       if (desde) q = q.gte("fecha", desde);
       if (hasta) q = q.lte("fecha", hasta);
@@ -152,6 +153,8 @@ export interface CajaMovimiento {
   concepto: string | null;
   fecha: string;
   created_at: string;
+  created_by: string | null;
+  creador?: { nombre: string } | null;
 }
 
 export function useSaldoCaja() {
@@ -171,7 +174,7 @@ export function useMovimientosCaja() {
     queryFn: async (): Promise<CajaMovimiento[]> => {
       const { data, error } = await supabase
         .from("caja_chica_movimientos")
-        .select("*")
+        .select("*, creador:usuarios(nombre)")
         .order("created_at", { ascending: false });
       if (error) { console.warn(error.message); return []; }
       return (data ?? []) as CajaMovimiento[];

@@ -34,6 +34,7 @@ export default function CajaChicaPage() {
 
   const { data: gastos = [], isLoading } = useCajaChica(desde, hasta);
   const { data: saldo = 0 } = useSaldoCaja();
+  const { data: movimientos = [] } = useMovimientosCaja();
   const eliminar = useEliminarGasto();
   const [movDialogOpen, setMovDialogOpen] = useState(false);
 
@@ -57,7 +58,10 @@ export default function CajaChicaPage() {
   };
 
   const exportarExcel = () => {
-    if (gastos.length === 0) { toast.error("No hay gastos para exportar"); return; }
+    if (gastos.length === 0 && movimientos.length === 0) { toast.error("No hay datos para exportar"); return; }
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: Gastos
     const rows = gastos.map(g => ({
       "Fecha": formatDate(g.fecha),
       "Tipo": g.tipo === "obra" ? "Obra" : "Administrativo",
@@ -66,14 +70,32 @@ export default function CajaChicaPage() {
       "Categoría": g.categoria,
       "Concepto": g.concepto,
       "Monto": g.monto,
+      "Descuenta caja": g.descuenta_caja ? "Sí" : "No",
       "Medio de pago": g.medio_pago ?? "",
       "Comprobante": g.comprobante_url ? "Sí" : "No",
+      "Cargado por": g.creador?.nombre ?? "",
       "Observaciones": g.observaciones ?? "",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 20 }, { wch: 16 }, { wch: 30 }, { wch: 12 }, { wch: 14 }, { wch: 11 }, { wch: 30 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Caja Chica");
+    if (rows.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = [{ wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 20 }, { wch: 16 }, { wch: 30 }, { wch: 12 }, { wch: 13 }, { wch: 14 }, { wch: 11 }, { wch: 18 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, ws, "Gastos");
+    }
+
+    // Hoja 2: Ingresos y ajustes de saldo
+    const movRows = movimientos.map(m => ({
+      "Fecha": formatDate(m.fecha),
+      "Tipo": m.tipo === "ingreso" ? "Ingreso (suma)" : "Ajuste de saldo",
+      "Monto": m.monto,
+      "Concepto": m.concepto ?? "",
+      "Cargado por": m.creador?.nombre ?? "",
+    }));
+    if (movRows.length > 0) {
+      const wsMov = XLSX.utils.json_to_sheet(movRows);
+      wsMov["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 30 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, wsMov, "Ingresos y ajustes");
+    }
+
     XLSX.writeFile(wb, `CajaChica_${desde}_${hasta}.xlsx`);
     toast.success("Excel descargado");
   };
@@ -122,7 +144,7 @@ export default function CajaChicaPage() {
             <Label className="text-xs">Hasta</Label>
             <Input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="w-full sm:w-44" />
           </div>
-          <Button variant="outline" onClick={exportarExcel} disabled={gastos.length === 0} className="ml-auto">
+          <Button variant="outline" onClick={exportarExcel} disabled={gastos.length === 0 && movimientos.length === 0} className="ml-auto">
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
           </Button>
         </CardContent>
@@ -175,6 +197,8 @@ export default function CajaChicaPage() {
                     {formatDate(g.fecha)}
                     {g.obra && <> · Obra <b>{g.obra.obra_id}</b>{g.obra.cliente?.nombre && ` (${g.obra.cliente.nombre})`}</>}
                     {g.medio_pago && <> · {g.medio_pago}</>}
+                    {g.creador?.nombre && <> · cargó <b>{g.creador.nombre}</b></>}
+                    {!g.descuenta_caja && <> · <span className="text-muted-foreground italic">no descuenta caja</span></>}
                   </div>
                   {g.observaciones && <div className="text-[11px] text-muted-foreground italic mt-1">"{g.observaciones}"</div>}
                 </div>
@@ -429,6 +453,7 @@ function MovimientoCajaDialog({ open, onOpenChange, saldoActual }: { open: boole
                     <span className="text-muted-foreground">
                       {formatDate(m.fecha)} · {m.tipo === "ingreso" ? "Ingreso" : "Ajuste"}
                       {m.concepto && ` · ${m.concepto}`}
+                      {m.creador?.nombre && ` · ${m.creador.nombre}`}
                     </span>
                     <span className={m.tipo === "ingreso" ? "text-success" : ""}>
                       {m.tipo === "ingreso" ? "+" : "="}{formatCurrency(m.monto)}
