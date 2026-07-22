@@ -6,6 +6,7 @@ import {
 import { Lightbox } from "@/components/ui/lightbox";
 import { formatDate } from "@/lib/utils";
 import type { ReporteConRelaciones } from "@/types/database";
+import { FotoThumb } from "@/components/FotoThumb";
 
 interface Props {
   open: boolean;
@@ -88,12 +89,11 @@ export function ReporteDetalle({ open, onOpenChange, reporte }: Props) {
                       onClick={() => setLightboxIndex(idx)}
                       className="aspect-square rounded-md overflow-hidden border hover:border-primary transition-colors"
                     >
-                      <img
-                        loading="lazy"
-                        decoding="async"
-                        src={f.url ?? ""}
+                      <FotoThumb
+                        thumbUrl={(f as any).thumb_url}
+                        url={f.url}
                         alt={f.caption ?? ""}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform"
+                        className="w-full h-full hover:scale-105 transition-transform"
                       />
                     </button>
                   ))}

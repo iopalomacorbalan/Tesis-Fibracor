@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { comprimirImagen } from "@/lib/imagenes";
+import { prepararFoto } from "@/lib/imagenes";
 import type { Reporte, ReporteConRelaciones, ReporteFoto } from "@/types/database";
 
 const KEY = "reportes";
@@ -104,24 +104,43 @@ export function useCrearReporte() {
       // Subir fotos si las hay
       if (input.fotos && input.fotos.length > 0) {
         for (const original of input.fotos) {
-          // Comprimir antes de subir (reduce ~90% el peso)
-          const { file } = await comprimirImagen(original);
+          // Comprimir + generar miniatura antes de subir
+          const { principal, miniatura } = await prepararFoto(original);
           const ts = Date.now();
-          const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
-          const path = `${repRow.id}/${ts}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const rnd = Math.random().toString(36).slice(2, 8);
+          const ext = (principal.name.split(".").pop() ?? "jpg").toLowerCase();
+          const path = `${repRow.id}/${ts}-${rnd}.${ext}`;
 
           const { error: errUp } = await supabase.storage
             .from(BUCKET)
-            .upload(path, file, { upsert: false });
+            .upload(path, principal, { upsert: false });
           if (errUp) {
             console.error("Error subiendo foto:", errUp);
             continue;
           }
           const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+
+          // Subir miniatura (si falla, la foto igual queda cargada)
+          let thumbPath: string | null = null;
+          let thumbUrl: string | null = null;
+          if (miniatura) {
+            thumbPath = `${repRow.id}/${ts}-${rnd}_thumb.jpg`;
+            const { error: errTh } = await supabase.storage
+              .from(BUCKET)
+              .upload(thumbPath, miniatura, { upsert: false });
+            if (errTh) { thumbPath = null; }
+            else {
+              const { data: pubT } = supabase.storage.from(BUCKET).getPublicUrl(thumbPath);
+              thumbUrl = pubT.publicUrl;
+            }
+          }
+
           await supabase.from("reporte_fotos").insert({
             reporte_id: repRow.id,
             storage_path: path,
             url: pub.publicUrl,
+            thumb_path: thumbPath,
+            thumb_url: thumbUrl,
             caption: null,
           } as any);
         }
@@ -139,20 +158,39 @@ export function useAgregarFotos() {
     mutationFn: async ({ reporteId, fotos }: { reporteId: string; fotos: File[] }) => {
       const subidas: ReporteFoto[] = [];
       for (const original of fotos) {
-        // Comprimir antes de subir
-        const { file } = await comprimirImagen(original);
+        // Comprimir + generar miniatura antes de subir
+        const { principal, miniatura } = await prepararFoto(original);
         const ts = Date.now();
-        const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
-        const path = `${reporteId}/${ts}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const rnd = Math.random().toString(36).slice(2, 8);
+        const ext = (principal.name.split(".").pop() ?? "jpg").toLowerCase();
+        const path = `${reporteId}/${ts}-${rnd}.${ext}`;
         const { error: errUp } = await supabase.storage
           .from(BUCKET)
-          .upload(path, file, { upsert: false });
+          .upload(path, principal, { upsert: false });
         if (errUp) throw errUp;
         const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+
+        // Subir miniatura (si falla, la foto igual queda cargada)
+        let thumbPath: string | null = null;
+        let thumbUrl: string | null = null;
+        if (miniatura) {
+          thumbPath = `${reporteId}/${ts}-${rnd}_thumb.jpg`;
+          const { error: errTh } = await supabase.storage
+            .from(BUCKET)
+            .upload(thumbPath, miniatura, { upsert: false });
+          if (errTh) { thumbPath = null; }
+          else {
+            const { data: pubT } = supabase.storage.from(BUCKET).getPublicUrl(thumbPath);
+            thumbUrl = pubT.publicUrl;
+          }
+        }
+
         const { data: row } = await supabase.from("reporte_fotos").insert({
           reporte_id: reporteId,
           storage_path: path,
           url: pub.publicUrl,
+          thumb_path: thumbPath,
+          thumb_url: thumbUrl,
           caption: null,
         } as any).select().single();
         if (row) subidas.push(row as any);
@@ -167,7 +205,9 @@ export function useEliminarFoto() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (foto: ReporteFoto) => {
-      await supabase.storage.from(BUCKET).remove([foto.storage_path]);
+      // Borrar la foto y su miniatura (si tiene)
+      const paths = [foto.storage_path, (foto as any).thumb_path].filter(Boolean) as string[];
+      await supabase.storage.from(BUCKET).remove(paths);
       const { error } = await supabase.from("reporte_fotos").delete().eq("id", foto.id);
       if (error) throw error;
     },

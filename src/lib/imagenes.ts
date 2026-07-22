@@ -7,6 +7,8 @@
 
 const MAX_DIMENSION = 1600; // lado más largo en píxeles
 const JPEG_QUALITY = 0.82;  // 0-1; 0.82 es buen balance calidad/peso
+const THUMB_DIMENSION = 320; // miniatura para grillas y overview
+const THUMB_QUALITY = 0.7;
 
 /** Tipos que sí conviene comprimir. Los demás se suben tal cual. */
 const COMPRIMIBLES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -85,6 +87,59 @@ export async function comprimirImagen(file: File): Promise<ResultadoCompresion> 
 /** Comprime varias imágenes en paralelo. */
 export async function comprimirImagenes(files: File[]): Promise<ResultadoCompresion[]> {
   return Promise.all(files.map(f => comprimirImagen(f)));
+}
+
+/**
+ * Genera una miniatura (~320px) para grillas y previsualizaciones.
+ * Devuelve null si no se pudo generar (se usará la original como fallback).
+ */
+export async function generarMiniatura(file: File): Promise<File | null> {
+  if (!COMPRIMIBLES.includes(file.type.toLowerCase())) return null;
+  try {
+    const blob = await redimensionar(file, THUMB_DIMENSION, THUMB_QUALITY);
+    if (!blob) return null;
+    const nombreBase = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${nombreBase}_thumb.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch (e) {
+    console.warn("No se pudo generar miniatura:", e);
+    return null;
+  }
+}
+
+/**
+ * Procesa una foto para subir: devuelve la versión comprimida y su miniatura.
+ */
+export async function prepararFoto(file: File): Promise<{ principal: File; miniatura: File | null }> {
+  const { file: principal } = await comprimirImagen(file);
+  const miniatura = await generarMiniatura(principal);
+  return { principal, miniatura };
+}
+
+/** Redimensiona un archivo de imagen al lado máximo indicado. */
+async function redimensionar(file: File, maxLado: number, calidad: number): Promise<Blob | null> {
+  const bitmap = await cargarImagen(file);
+  const anchoOrig = (bitmap as any).width as number;
+  const altoOrig = (bitmap as any).height as number;
+
+  const escala = Math.min(1, maxLado / Math.max(anchoOrig, altoOrig));
+  const w = Math.round(anchoOrig * escala);
+  const h = Math.round(altoOrig * escala);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) { cerrarBitmap(bitmap); return null; }
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bitmap as any, 0, 0, w, h);
+  cerrarBitmap(bitmap);
+
+  return new Promise(resolve => canvas.toBlob(b => resolve(b), "image/jpeg", calidad));
 }
 
 // ===== helpers internos =====

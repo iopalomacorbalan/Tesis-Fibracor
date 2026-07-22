@@ -22,6 +22,8 @@ import GoogleCalendarConfigPage from "@/modules/configuracion/GoogleCalendarConf
 import FirmaRemitoPage from "@/modules/firma-publica/FirmaRemitoPage";
 import LiquidacionPage from "@/modules/liquidacion/LiquidacionPage";
 import CajaChicaPage from "@/modules/caja-chica/CajaChicaPage";
+import MigracionFotosPage from "@/modules/configuracion/MigracionFotosPage";
+import BackupPage from "@/modules/configuracion/BackupPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -58,6 +60,8 @@ export default function App() {
             <Route path="/config/google-calendar" element={<ErrorBoundary><GoogleCalendarConfigPage /></ErrorBoundary>} />
             <Route path="/liquidacion" element={<ErrorBoundary><LiquidacionPage /></ErrorBoundary>} />
             <Route path="/caja-chica" element={<ErrorBoundary><CajaChicaPage /></ErrorBoundary>} />
+            <Route path="/config/optimizar-fotos" element={<ErrorBoundary><MigracionFotosPage /></ErrorBoundary>} />
+            <Route path="/config/backup" element={<ErrorBoundary><BackupPage /></ErrorBoundary>} />
             <Route path="/compras" element={<ErrorBoundary><ComprasPage /></ErrorBoundary>} />
             <Route path="/reportes" element={<ErrorBoundary><ReportesPage /></ErrorBoundary>} />
             <Route path="/crm" element={<ErrorBoundary><CrmPage /></ErrorBoundary>} />

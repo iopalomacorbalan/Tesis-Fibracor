@@ -5,6 +5,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FotoThumb } from "@/components/FotoThumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useReportes, useEliminarReporte } from "./useReportes";
@@ -199,12 +200,11 @@ function ReporteCard({
     >
       {numFotos > 0 && reporte.fotos && reporte.fotos[0].url && (
         <div className="aspect-video w-full bg-muted relative">
-          <img
-            loading="lazy"
-            decoding="async"
-            src={reporte.fotos[0].url}
+          <FotoThumb
+            thumbUrl={(reporte.fotos[0] as any).thumb_url}
+            url={reporte.fotos[0].url}
             alt="Reporte"
-            className="w-full h-full object-cover"
+            className="w-full h-full"
           />
           {numFotos > 1 && (
             <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/70 text-white text-xs flex items-center gap-1">
