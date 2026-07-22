@@ -89,6 +89,8 @@ export function ReporteDetalle({ open, onOpenChange, reporte }: Props) {
                       className="aspect-square rounded-md overflow-hidden border hover:border-primary transition-colors"
                     >
                       <img
+                        loading="lazy"
+                        decoding="async"
                         src={f.url ?? ""}
                         alt={f.caption ?? ""}
                         className="w-full h-full object-cover hover:scale-105 transition-transform"

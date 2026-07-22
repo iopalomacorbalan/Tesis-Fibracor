@@ -200,6 +200,8 @@ function ReporteCard({
       {numFotos > 0 && reporte.fotos && reporte.fotos[0].url && (
         <div className="aspect-video w-full bg-muted relative">
           <img
+            loading="lazy"
+            decoding="async"
             src={reporte.fotos[0].url}
             alt="Reporte"
             className="w-full h-full object-cover"

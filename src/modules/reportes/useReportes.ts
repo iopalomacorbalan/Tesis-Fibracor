@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { comprimirImagen } from "@/lib/imagenes";
 import type { Reporte, ReporteConRelaciones, ReporteFoto } from "@/types/database";
 
 const KEY = "reportes";
@@ -102,7 +103,9 @@ export function useCrearReporte() {
 
       // Subir fotos si las hay
       if (input.fotos && input.fotos.length > 0) {
-        for (const file of input.fotos) {
+        for (const original of input.fotos) {
+          // Comprimir antes de subir (reduce ~90% el peso)
+          const { file } = await comprimirImagen(original);
           const ts = Date.now();
           const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
           const path = `${repRow.id}/${ts}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -135,7 +138,9 @@ export function useAgregarFotos() {
   return useMutation({
     mutationFn: async ({ reporteId, fotos }: { reporteId: string; fotos: File[] }) => {
       const subidas: ReporteFoto[] = [];
-      for (const file of fotos) {
+      for (const original of fotos) {
+        // Comprimir antes de subir
+        const { file } = await comprimirImagen(original);
         const ts = Date.now();
         const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
         const path = `${reporteId}/${ts}-${Math.random().toString(36).slice(2, 8)}.${ext}`;

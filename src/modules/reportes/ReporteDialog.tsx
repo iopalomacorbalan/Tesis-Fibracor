@@ -378,6 +378,8 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
                 {fotosExistentes.map((f: any) => (
                   <div key={f.id} className="relative aspect-square">
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={f.url}
                       alt=""
                       className="w-full h-full object-cover rounded-md border"
@@ -465,6 +467,8 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
                 {previews.map((src, idx) => (
                   <div key={idx} className="relative aspect-square">
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={src}
                       alt={`Foto ${idx + 1}`}
                       className="w-full h-full object-cover rounded-md border"
