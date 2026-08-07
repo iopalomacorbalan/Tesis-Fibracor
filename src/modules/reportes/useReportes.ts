@@ -67,26 +67,16 @@ type ReporteInput = {
   fotos?: File[];
 };
 
-async function generarReporteId(): Promise<string> {
-  const { data } = await supabase.from("reportes").select("reporte_id");
-  const max = ((data as any[]) ?? [])
-    .map((r: any) => parseInt(String(r.reporte_id ?? "").split("-").pop() || "0"))
-    .reduce((m: number, n: number) => Math.max(m, n), 0);
-  return `REP-${String(max + 1).padStart(3, "0")}`;
-}
-
 export function useCrearReporte() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: ReporteInput) => {
-      const reporte_id = await generarReporteId();
       const userResp = await supabase.auth.getUser();
       const userId = userResp.data.user?.id;
 
       const { data: rep, error } = await supabase
         .from("reportes")
         .insert({
-          reporte_id,
           obra_id: input.obra_id,
           tecnico_id: userId ?? null,
           fecha: input.fecha ?? new Date().toISOString().slice(0, 10),
