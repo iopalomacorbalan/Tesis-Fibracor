@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye,
   Briefcase, MapPin, Calendar, User, AlertCircle,
-  Play, CheckCircle, Lock, Loader2, DollarSign,
+  Play, CheckCircle, Lock, Loader2, DollarSign, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   useObras, useCambiarEstadoObra,
-  useCerrarObra, useFinalizarObra,
+  useCerrarObra, useFinalizarObra, useReabrirObra,
 } from "./useObras";
 import { ObraDialog } from "./ObraDialog";
 import { ObraDetalle } from "./ObraDetalle";
@@ -45,6 +45,7 @@ export default function ObrasPage() {
   const cambiarEstado = useCambiarEstadoObra();
   const cerrarObra = useCerrarObra();
   const finalizarObra = useFinalizarObra();
+  const reabrirObra = useReabrirObra();
 
   const [search, setSearch] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<EstadoObra | "todos">("todos");
@@ -56,11 +57,13 @@ export default function ObrasPage() {
   const [obraExtrasSimple, setObraExtrasSimple] = useState<ObraConRelaciones | null>(null); // gestionar sin cerrar
   const [obraCerrar, setObraCerrar] = useState<ObraConRelaciones | null>(null); // paso 2: confirmar
   const [obraFinalizar, setObraFinalizar] = useState<ObraConRelaciones | null>(null);
+  const [obraReabrir, setObraReabrir] = useState<ObraConRelaciones | null>(null);
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Comercial"].includes(profile.area);
   const puedeEliminar = !!profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
   const puedeCerrar = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
   const puedeGestionarExtras = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
+  const puedeReabrir = profile && profile.area === "Direccion";
   const verPrecios = puedeVerPrecios(profile?.area);
 
   const obrasFiltradas = useMemo(() => {
@@ -199,6 +202,8 @@ export default function ObrasPage() {
               puedeGestionarExtras={!!puedeGestionarExtras}
               onGestionarExtras={(o) => setObraExtrasSimple(o)}
               onFinalizar={(o) => setObraFinalizar(o)}
+              puedeReabrir={!!puedeReabrir}
+              onReabrir={(o) => setObraReabrir(o)}
             />
           ))}
         </div>
@@ -282,6 +287,25 @@ export default function ObrasPage() {
           }
         }}
       />
+      {/* Reabrir (de Cerrada → En ejecucion, solo Dirección) */}
+      <ConfirmDialog
+        open={!!obraReabrir}
+        onOpenChange={(o) => !o && setObraReabrir(null)}
+        title={`¿Reabrir ${obraReabrir?.obra_id}?`}
+        description="La obra volverá al estado 'En ejecución' para que puedas editarla o cargar gastos. Podés volver a cerrarla cuando termines."
+        confirmText="Reabrir obra"
+        loading={reabrirObra.isPending}
+        onConfirm={async () => {
+          if (!obraReabrir) return;
+          try {
+            await reabrirObra.mutateAsync(obraReabrir.id);
+            toast.success(`Obra ${obraReabrir.obra_id} reabierta`);
+            setObraReabrir(null);
+          } catch (e: any) {
+            toast.error("Error: " + e.message);
+          }
+        }}
+      />
       <EliminarObraDialog
         open={!!obraEliminar}
         onOpenChange={(o) => !o && setObraEliminar(null)}
@@ -309,14 +333,15 @@ function StatCard({ label, value, variant = "default" }: { label: string; value:
 }
 
 function ObraCard({
-  obra, puedeEditar, puedeEliminar, puedeCerrar, verPrecios, puedeGestionarExtras,
-  onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar, onGestionarExtras,
+  obra, puedeEditar, puedeEliminar, puedeCerrar, verPrecios, puedeGestionarExtras, puedeReabrir,
+  onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar, onGestionarExtras, onReabrir,
 }: {
   obra: ObraConRelaciones;
   puedeEditar: boolean;
   puedeEliminar: boolean;
   puedeCerrar: boolean;
   puedeGestionarExtras: boolean;
+  puedeReabrir: boolean;
   verPrecios: boolean;
   onVer: (o: ObraConRelaciones) => void;
   onEditar: (o: ObraConRelaciones) => void;
@@ -325,6 +350,7 @@ function ObraCard({
   onParaCierre: (o: ObraConRelaciones) => void;
   onGestionarExtras: (o: ObraConRelaciones) => void;
   onFinalizar: (o: ObraConRelaciones) => void;
+  onReabrir: (o: ObraConRelaciones) => void;
 }) {
   return (
     <Card className="hover:border-primary/40 transition-colors">
@@ -397,6 +423,12 @@ function ObraCard({
               <Button variant="success" size="sm" onClick={() => onFinalizar(obra)}>
                 <CheckCircle className="h-3.5 w-3.5" />
                 Finalizar
+              </Button>
+            )}
+            {puedeReabrir && obra.estado === "Cerrada" && (
+              <Button variant="ghost" size="sm" className="text-primary" onClick={() => onReabrir(obra)} title="Reabrir la obra para editarla o cargar gastos">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reabrir
               </Button>
             )}
 

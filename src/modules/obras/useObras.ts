@@ -233,3 +233,22 @@ export function useFinalizarObra() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
   });
 }
+
+// Reabrir una obra cerrada (solo Dirección) → vuelve a "En ejecucion"
+// para poder editarla o cargar gastos. Limpia el cierre.
+export function useReabrirObra() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("obras")
+        .update({
+          estado: "En ejecucion",
+          closed_at: null,
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
+  });
+}
