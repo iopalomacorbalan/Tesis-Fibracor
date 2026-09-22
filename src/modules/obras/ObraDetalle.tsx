@@ -14,11 +14,12 @@ import { useObra } from "./useObras";
 import { useObraCostos } from "./useObraCostos";
 import { useHorasTecnicasObra, useTotalHorasObra, useHorasPorDiaObra, type TotalHorasObra } from "./useHorasTecnicas";
 import { ExportarObraDialog } from "./ExportarObraDialog";
+import { ReporteDetalle } from "@/modules/reportes/ReporteDetalle";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
 import { supabase } from "@/lib/supabase";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
-import type { ObraConRelaciones, EstadoObra } from "@/types/database";
+import type { ObraConRelaciones, EstadoObra, ReporteConRelaciones } from "@/types/database";
 import { Link } from "react-router-dom";
 
 interface Props {
@@ -83,6 +84,7 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
   // Total de horas técnicas para incluir en el centro de costos
   const { data: totalHorasParaCostos } = useTotalHorasObra(puedeVerCostos ? obraId : null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [repDetalle, setRepDetalle] = useState<ReporteConRelaciones | null>(null);
 
   if (!obraId) return null;
 
@@ -233,7 +235,11 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
                 ) : (
                   <div className="space-y-2">
                     {datos!.reportes.map((r: any) => (
-                      <Card key={r.id}>
+                      <Card
+                        key={r.id}
+                        className="cursor-pointer hover:border-primary/50 transition-colors"
+                        onClick={() => setRepDetalle(r)}
+                      >
                         <CardContent className="p-3">
                           <div className="flex justify-between items-start gap-2 flex-wrap">
                             <div>
@@ -276,6 +282,11 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
         obra={obra ?? null}
         reportes={(datos?.reportes ?? []) as any}
         costos={costos ?? null}
+      />
+      <ReporteDetalle
+        open={!!repDetalle}
+        onOpenChange={(o) => { if (!o) setRepDetalle(null); }}
+        reporte={repDetalle}
       />
     </Dialog>
   );
