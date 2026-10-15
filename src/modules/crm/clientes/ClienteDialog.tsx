@@ -16,6 +16,8 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cliente?: Cliente | null;
+  /** Se llama al crear un cliente nuevo (ej: para seleccionarlo en la obra) */
+  onCreated?: (cliente: Cliente) => void;
 }
 
 const empty: ClienteFormValues = {
@@ -30,7 +32,7 @@ const empty: ClienteFormValues = {
   recomendaciones_prioridad: "normal",
 };
 
-export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
+export function ClienteDialog({ open, onOpenChange, cliente, onCreated }: Props) {
   const isEdit = !!cliente;
   const crear = useCrearCliente();
   const editar = useEditarCliente();
@@ -70,12 +72,12 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
     try {
       const payload = {
         nombre: parsed.data.nombre,
-        cuit: parsed.data.cuit || null,
-        contacto: parsed.data.contacto || null,
-        email: parsed.data.email || null,
-        telefono: parsed.data.telefono || null,
-        direccion: parsed.data.direccion || null,
-        notas: parsed.data.notas || null,
+        cuit: parsed.data.cuit,
+        contacto: parsed.data.contacto,
+        email: parsed.data.email,
+        telefono: parsed.data.telefono,
+        direccion: parsed.data.direccion,
+        notas: parsed.data.notas?.trim() || null,
         recomendaciones: parsed.data.recomendaciones?.trim() || null,
         recomendaciones_prioridad: parsed.data.recomendaciones?.trim()
           ? (parsed.data.recomendaciones_prioridad ?? "normal")
@@ -87,6 +89,7 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
       } else {
         const c = await crear.mutateAsync(payload);
         toast.success(`Cliente ${c.cliente_id} creado`);
+        onCreated?.(c);
       }
       onOpenChange(false);
     } catch (e: any) {
@@ -121,7 +124,7 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="cuit">CUIT</Label>
+              <Label htmlFor="cuit">CUIT *</Label>
               <Input
                 id="cuit"
                 placeholder="20-12345678-9"
@@ -132,19 +135,21 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
               {errors["cuit"] && <p className="text-sm text-destructive">{errors["cuit"]}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contacto">Persona de contacto</Label>
+              <Label htmlFor="contacto">Persona de contacto *</Label>
               <Input
                 id="contacto"
                 placeholder="Nombre del referente"
                 value={form.contacto ?? ""}
                 onChange={(e) => setForm(f => ({ ...f, contacto: e.target.value }))}
+                className={errors["contacto"] ? "border-destructive" : ""}
               />
+              {errors["contacto"] && <p className="text-sm text-destructive">{errors["contacto"]}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -156,23 +161,27 @@ export function ClienteDialog({ open, onOpenChange, cliente }: Props) {
               {errors["email"] && <p className="text-sm text-destructive">{errors["email"]}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="telefono">Teléfono</Label>
+              <Label htmlFor="telefono">Teléfono *</Label>
               <Input
                 id="telefono"
                 placeholder="+54 9 351..."
                 value={form.telefono ?? ""}
                 onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value }))}
+                className={errors["telefono"] ? "border-destructive" : ""}
               />
+              {errors["telefono"] && <p className="text-sm text-destructive">{errors["telefono"]}</p>}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="direccion">Dirección</Label>
+            <Label htmlFor="direccion">Dirección *</Label>
             <Input
               id="direccion"
               value={form.direccion ?? ""}
               onChange={(e) => setForm(f => ({ ...f, direccion: e.target.value }))}
+              className={errors["direccion"] ? "border-destructive" : ""}
             />
+            {errors["direccion"] && <p className="text-sm text-destructive">{errors["direccion"]}</p>}
           </div>
 
           <div className="space-y-2">

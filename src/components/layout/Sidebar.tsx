@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle, Clock, Wallet, Images, HardDriveDownload,
+  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle, Clock, Wallet, Images, HardDriveDownload, UserCog,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ const NAV: NavItem[] = [
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/caja-chica", icon: Wallet, label: "Caja Chica", group: "Administración",
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
+  { to: "/usuarios", icon: UserCog, label: "Usuarios", group: "Administración",
+    roles: ["Direccion", "Operaciones"] },
   { to: "/config/google-calendar", icon: CalendarDays, label: "Google Calendar", group: "Configuración",
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/config/optimizar-fotos", icon: Images, label: "Optimizar fotos", group: "Configuración",
@@ -53,6 +55,16 @@ const NAV: NavItem[] = [
   { to: "/compras", icon: ShoppingCart, label: "Compras", group: "Operaciones",
     roles: ["Direccion", "Operaciones", "Paniol", "Contabilidad"] },
 ];
+
+/**
+ * ¿El área puede entrar a esta ruta? Usa los mismos roles que el menú,
+ * para que una pantalla oculta tampoco se pueda abrir escribiendo la URL.
+ */
+export function puedeVerRuta(pathname: string, area: string | undefined): boolean {
+  const item = NAV.find(n => n.to !== "/" && (pathname === n.to || pathname.startsWith(n.to + "/")));
+  if (!item?.roles) return true;
+  return !!area && item.roles.includes(area);
+}
 
 export function Sidebar() {
   const { profile } = useAuth();

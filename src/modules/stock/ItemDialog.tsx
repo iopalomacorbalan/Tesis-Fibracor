@@ -79,13 +79,20 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = itemSchema.safeParse(form);
+    const errs: Record<string, string> = {};
     if (!parsed.success) {
-      const errs: Record<string, string> = {};
-      parsed.error.issues.forEach(i => { errs[i.path.join(".")] = i.message; });
+      parsed.error.issues.forEach(i => { errs[i.path.join(".")] ??= i.message; });
+    }
+    // El costo solo lo carga quien puede ver precios
+    if (puedeVerPrecios && !((form.precio_costo ?? 0) > 0)) {
+      errs["precio_costo"] = "Precio de costo requerido";
+    }
+    if (!parsed.success || Object.keys(errs).length > 0) {
       setErrors(errs);
-      toast.error("Revisá los errores del formulario");
+      toast.error("Completá los campos obligatorios");
       return;
     }
+    setErrors({});
     try {
       if (isEdit && item) {
         await editar.mutateAsync({
@@ -97,7 +104,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
             stock_minimo: parsed.data.stock_minimo ?? 0,
             numero_serie: parsed.data.numero_serie || null,
             codigo_barras: parsed.data.codigo_barras?.trim() || null,
-            proveedor_principal_id: parsed.data.proveedor_principal_id ?? null,
+            proveedor_principal_id: parsed.data.proveedor_principal_id,
             precio_costo: parsed.data.precio_costo ?? 0,
             precio_lista: parsed.data.precio_lista ?? 0,
             ubicacion_fisica: parsed.data.ubicacion_fisica?.trim() || null,
@@ -194,7 +201,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.stock_minimo ?? 0}
+                value={form.stock_minimo || ""}
                 onChange={(e) => setForm(f => ({ ...f, stock_minimo: parseFloat(e.target.value) || 0 }))}
               />
             </div>
@@ -208,7 +215,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.stock_inicial ?? 0}
+                value={form.stock_inicial || ""}
                 onChange={(e) => setForm(f => ({ ...f, stock_inicial: parseFloat(e.target.value) || 0 }))}
               />
               <p className="text-xs text-muted-foreground">
@@ -219,24 +226,30 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="numero_serie">Número de serie</Label>
+              <Label htmlFor="numero_serie">
+                Número de serie{form.categoria === "Equipo especial" ? " *" : ""}
+              </Label>
               <Input
                 id="numero_serie"
                 placeholder="Ej: DSX#0092"
                 value={form.numero_serie ?? ""}
                 onChange={(e) => setForm(f => ({ ...f, numero_serie: e.target.value }))}
+                className={errors["numero_serie"] ? "border-destructive" : ""}
               />
+              {errors["numero_serie"] && <p className="text-sm text-destructive">{errors["numero_serie"]}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ubicacion_fisica">Ubicación en pañol</Label>
+              <Label htmlFor="ubicacion_fisica">Ubicación en pañol *</Label>
               <Input
                 id="ubicacion_fisica"
                 placeholder="Ej: AB-105, Estante 3, Caja 12"
                 value={form.ubicacion_fisica ?? ""}
                 onChange={(e) => setForm(f => ({ ...f, ubicacion_fisica: e.target.value }))}
                 maxLength={50}
+                className={errors["ubicacion_fisica"] ? "border-destructive" : ""}
               />
+              {errors["ubicacion_fisica"] && <p className="text-sm text-destructive">{errors["ubicacion_fisica"]}</p>}
               <p className="text-[10px] text-muted-foreground">
                 Para que los técnicos sepan dónde encontrarlo físicamente
               </p>
@@ -262,48 +275,57 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Proveedor principal</Label>
+              <Label>Proveedor principal *</Label>
               <Select
-                value={form.proveedor_principal_id ?? "ninguno"}
-                onValueChange={(v) => setForm(f => ({
-                  ...f,
-                  proveedor_principal_id: v === "ninguno" ? null : v,
-                }))}
+                value={form.proveedor_principal_id ?? ""}
+                onValueChange={(v) => setForm(f => ({ ...f, proveedor_principal_id: v || null }))}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="— sin asignar —" />
+                <SelectTrigger className={errors["proveedor_principal_id"] ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Seleccionar proveedor..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ninguno">— Sin proveedor —</SelectItem>
                   {proveedores.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
                   ))}
+                  {proveedores.length === 0 && (
+                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                      No hay proveedores. Cargalos en CRM → Proveedores.
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
+              {errors["proveedor_principal_id"] && (
+                <p className="text-sm text-destructive">{errors["proveedor_principal_id"]}</p>
+              )}
             </div>
           </div>
 
           {puedeVerPrecios && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="precio_costo">Precio costo ($)</Label>
+                <Label htmlFor="precio_costo">Precio costo ($) *</Label>
                 <Input
                   id="precio_costo"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={form.precio_costo ?? 0}
+                  placeholder="0,00"
+                  value={form.precio_costo || ""}
                   onChange={(e) => setForm(f => ({ ...f, precio_costo: parseFloat(e.target.value) || 0 }))}
+                  className={errors["precio_costo"] ? "border-destructive" : ""}
                 />
+                {errors["precio_costo"] && <p className="text-sm text-destructive">{errors["precio_costo"]}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="precio_lista">Precio lista ($)</Label>
+                <Label htmlFor="precio_lista">
+                  Precio lista ($) <span className="text-xs text-muted-foreground font-normal">(si se revende)</span>
+                </Label>
                 <Input
                   id="precio_lista"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={form.precio_lista ?? 0}
+                  value={form.precio_lista || ""}
                   onChange={(e) => setForm(f => ({ ...f, precio_lista: parseFloat(e.target.value) || 0 }))}
                 />
               </div>

@@ -163,7 +163,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
                       <Label className="text-[10px]">Cantidad</Label>
                       <Input
                         type="number" min="0.01" step="0.01"
-                        value={it.cantidad}
+                        value={it.cantidad || ""}
                         onChange={(e) => handleEditar(idx, { cantidad: parseFloat(e.target.value) || 0 })}
                       />
                     </div>

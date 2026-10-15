@@ -234,6 +234,44 @@ export function useFinalizarObra() {
   });
 }
 
+export interface ObraHistorialItem {
+  id: string;
+  tipo: "creada" | "estado";
+  estado_anterior: string | null;
+  estado_nuevo: string | null;
+  comentario: string | null;
+  created_at: string;
+  usuario: { nombre: string } | null;
+}
+
+// Historial de creación y cambios de estado (lo llena un trigger, ver sql/064)
+export function useObraHistorial(obraId: string | undefined) {
+  return useQuery({
+    queryKey: [KEY, obraId, "historial"],
+    enabled: !!obraId,
+    queryFn: async (): Promise<ObraHistorialItem[]> => {
+      const { data, error } = await supabase
+        .from("obra_historial")
+        .select("id, tipo, estado_anterior, estado_nuevo, comentario, created_at, usuario:usuarios(nombre)")
+        .eq("obra_id", obraId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as ObraHistorialItem[];
+    },
+    retry: false,
+  });
+}
+
+// Agrega el comentario/motivo al último cambio de estado que hizo el usuario
+export async function comentarCambioEstado(obraId: string, comentario: string) {
+  if (!comentario.trim()) return;
+  const { error } = await supabase.rpc("comentar_cambio_estado_obra", {
+    p_obra_id: obraId,
+    p_comentario: comentario,
+  } as any);
+  if (error) throw error;
+}
+
 // Reabrir una obra cerrada (solo Dirección) → vuelve a "En ejecucion"
 // para poder editarla o cargar gastos. Limpia el cierre.
 export function useReabrirObra() {

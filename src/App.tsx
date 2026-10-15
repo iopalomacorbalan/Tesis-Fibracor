@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import LoginPage from "@/modules/auth/LoginPage";
 import DashboardPage from "@/modules/dashboard/DashboardPage";
 import ObrasPage from "@/modules/obras/ObrasPage";
+import ObraDetallePage from "@/modules/obras/ObraDetalle";
 import StockPage from "@/modules/stock/StockPage";
 import SolicitudesPage from "@/modules/solicitudes/SolicitudesPage";
 import MovimientosPage from "@/modules/movimientos/MovimientosPage";
@@ -25,6 +26,7 @@ import CajaChicaPage from "@/modules/caja-chica/CajaChicaPage";
 import MigracionFotosPage from "@/modules/configuracion/MigracionFotosPage";
 import BackupPage from "@/modules/configuracion/BackupPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
+import UsuariosPage from "@/modules/usuarios/UsuariosPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
@@ -50,6 +52,7 @@ export default function App() {
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
             <Route path="/obras" element={<ErrorBoundary><ObrasPage /></ErrorBoundary>} />
+            <Route path="/obras/:id" element={<ErrorBoundary><ObraDetallePage /></ErrorBoundary>} />
             <Route path="/calendario" element={<ErrorBoundary><CalendarioPage /></ErrorBoundary>} />
             <Route path="/stock" element={<ErrorBoundary><StockPage /></ErrorBoundary>} />
             <Route path="/solicitudes" element={<ErrorBoundary><SolicitudesPage /></ErrorBoundary>} />
@@ -62,6 +65,7 @@ export default function App() {
             <Route path="/caja-chica" element={<ErrorBoundary><CajaChicaPage /></ErrorBoundary>} />
             <Route path="/config/optimizar-fotos" element={<ErrorBoundary><MigracionFotosPage /></ErrorBoundary>} />
             <Route path="/config/backup" element={<ErrorBoundary><BackupPage /></ErrorBoundary>} />
+            <Route path="/usuarios" element={<ErrorBoundary><UsuariosPage /></ErrorBoundary>} />
             <Route path="/compras" element={<ErrorBoundary><ComprasPage /></ErrorBoundary>} />
             <Route path="/reportes" element={<ErrorBoundary><ReportesPage /></ErrorBoundary>} />
             <Route path="/crm" element={<ErrorBoundary><CrmPage /></ErrorBoundary>} />

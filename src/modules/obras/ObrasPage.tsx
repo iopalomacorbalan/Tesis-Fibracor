@@ -18,7 +18,7 @@ import {
   useCerrarObra, useFinalizarObra, useReabrirObra,
 } from "./useObras";
 import { ObraDialog } from "./ObraDialog";
-import { ObraDetalle } from "./ObraDetalle";
+import { useNavigate } from "react-router-dom";
 import { CostosExtrasDialog } from "./CostosExtrasDialog";
 import { EliminarObraDialog } from "./EliminarObraDialog";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
@@ -52,7 +52,7 @@ export default function ObrasPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [obraEditar, setObraEditar] = useState<ObraConRelaciones | null>(null);
   const [obraEliminar, setObraEliminar] = useState<ObraConRelaciones | null>(null);
-  const [obraDetalle, setObraDetalle] = useState<ObraConRelaciones | null>(null);
+  const navigate = useNavigate();
   const [obraExtras, setObraExtras] = useState<ObraConRelaciones | null>(null); // paso 1: costos extras
   const [obraExtrasSimple, setObraExtrasSimple] = useState<ObraConRelaciones | null>(null); // gestionar sin cerrar
   const [obraCerrar, setObraCerrar] = useState<ObraConRelaciones | null>(null); // paso 2: confirmar
@@ -194,7 +194,7 @@ export default function ObrasPage() {
               puedeEliminar={!!puedeEliminar}
               puedeCerrar={!!puedeCerrar}
               verPrecios={verPrecios}
-              onVer={(o) => setObraDetalle(o)}
+              onVer={(o) => navigate(`/obras/${o.id}`)}
               onEditar={handleEditarObra}
               onEliminar={(o) => setObraEliminar(o)}
               onIniciar={(o) => cambiarEstado.mutate({ id: o.id, estado: "En ejecucion" })}
@@ -211,11 +211,6 @@ export default function ObrasPage() {
 
       {/* Dialogs */}
       <ObraDialog open={dialogOpen} onOpenChange={setDialogOpen} obra={obraEditar} />
-      <ObraDetalle
-        open={!!obraDetalle}
-        onOpenChange={(o) => !o && setObraDetalle(null)}
-        obraId={obraDetalle?.id ?? null}
-      />
 
       {/* Paso 1: Costos extras antes del cierre */}
       <CostosExtrasDialog

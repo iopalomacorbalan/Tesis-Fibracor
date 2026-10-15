@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase, MapPin, Calendar, User, Users, Loader2, Clock,
-  Wrench, ClipboardList, FileText, GitBranch, Wallet, FileDown, AlertTriangle,
+  Wrench, ClipboardList, FileText, GitBranch, Wallet, FileDown, AlertTriangle, MessageCircle,
 } from "lucide-react";
-import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,18 +13,14 @@ import { useObra } from "./useObras";
 import { useObraCostos } from "./useObraCostos";
 import { useHorasTecnicasObra, useTotalHorasObra, useHorasPorDiaObra, type TotalHorasObra } from "./useHorasTecnicas";
 import { ExportarObraDialog } from "./ExportarObraDialog";
+import { ObraResumen } from "./ObraResumen";
+import { ReporteDetalle } from "@/modules/reportes/ReporteDetalle";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
 import { supabase } from "@/lib/supabase";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import type { ObraConRelaciones, EstadoObra } from "@/types/database";
 import { Link } from "react-router-dom";
-
-interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  obraId: string | null;
-}
 
 const ESTADO_COLOR: Record<EstadoObra, string> = {
   "Pendiente OIO": "bg-warning/15 text-warning border-warning/30",
@@ -69,7 +64,11 @@ function useObraDatos(obraId: string | null) {
   });
 }
 
-export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
+/** Página de detalle de obra: /obras/:id */
+export default function ObraDetallePage() {
+  const { id } = useParams<{ id: string }>();
+  const obraId = id ?? null;
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const { data: obra, isLoading, error } = useObra(obraId ?? undefined);
   const { data: datos } = useObraDatos(obraId);
@@ -83,46 +82,64 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
   // Total de horas técnicas para incluir en el centro de costos
   const { data: totalHorasParaCostos } = useTotalHorasObra(puedeVerCostos ? obraId : null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [tab, setTab] = useState("resumen");
+  const [reporteVer, setReporteVer] = useState<any | null>(null);
+
+  // Cada obra abre en el resumen
+  useEffect(() => { setTab("resumen"); }, [obraId]);
 
   if (!obraId) return null;
 
+  // Volver a donde estaba (lista, calendario...) o a Obras si entró por link directo
+  const volver = () => {
+    if (window.history.state?.idx > 0) navigate(-1);
+    else navigate("/obras");
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[calc(100vw-1rem)] sm:w-auto max-h-[92vh] sm:max-h-[88vh] overflow-y-auto p-4 sm:p-6">
+    <div className="space-y-4 sm:space-y-5 max-w-6xl mx-auto">
+        {/* Barra superior: volver · título · estado · exportar */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={volver} title="Volver">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight flex-1 min-w-0 truncate">
+            Detalle de obra
+          </h1>
+          {obra && (
+            <>
+              <span className={cn(
+                "px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap",
+                ESTADO_COLOR[obra.estado],
+              )}>
+                {obra.estado}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => setExportOpen(true)} title="Exportar PDF">
+                <FileDown className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Exportar PDF</span>
+              </Button>
+            </>
+          )}
+        </div>
+
         {isLoading ? (
           <div className="py-12 text-center">
             <Loader2 className="h-6 w-6 animate-spin mx-auto" />
           </div>
         ) : error || !obra ? (
-          <div className="py-12 text-center space-y-3">
-            <p className="text-destructive font-medium">No se pudo cargar la obra</p>
-            <p className="text-sm text-muted-foreground">
-              {error?.message ?? "Es posible que no tengas permisos para verla."}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Cerrar
-            </Button>
-          </div>
+          <Card>
+            <CardContent className="py-12 text-center space-y-3">
+              <p className="text-destructive font-medium">No se pudo cargar la obra</p>
+              <p className="text-sm text-muted-foreground">
+                {error?.message ?? "Es posible que no exista o que no tengas permisos para verla."}
+              </p>
+              <Button variant="outline" size="sm" onClick={() => navigate("/obras")}>
+                Ir a Obras
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <span className="text-xl sm:text-2xl">{obra.obra_id}</span>
-                <span className={cn("px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap", ESTADO_COLOR[obra.estado])}>
-                  {obra.estado}
-                </span>
-              </DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{obra.cliente?.nombre}</span>
-                {obra.nombre_obra && <> · {obra.nombre_obra}</>}
-              </DialogDescription>
-              <div className="pt-2">
-                <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
-                  <FileDown className="h-3.5 w-3.5" />
-                  Exportar PDF
-                </Button>
-              </div>
-            </DialogHeader>
 
             {/* Banner de recomendaciones del cliente */}
             {obra.cliente?.recomendaciones && (
@@ -133,7 +150,7 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
               />
             )}
 
-            <Tabs defaultValue="resumen">
+            <Tabs value={tab} onValueChange={setTab}>
               <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 pb-1">
                 <TabsList className="w-max">
                   <TabsTrigger value="resumen">📋 <span className="hidden sm:inline ml-1">Resumen</span></TabsTrigger>
@@ -170,7 +187,13 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
               </div>
 
               <TabsContent value="resumen" className="space-y-4">
-                <ResumenObra obra={obra} verPrecios={verPrecios} />
+                <ObraResumen
+                  obra={obra}
+                  verPrecios={verPrecios}
+                  cantidadReportes={datos?.reportes.length ?? 0}
+                  cantidadFotos={(datos?.reportes ?? []).reduce((n: number, r: any) => n + (r.fotos?.length ?? 0), 0)}
+                  onVerReportes={() => setTab("reportes")}
+                />
               </TabsContent>
 
               <TabsContent value="solicitudes">
@@ -233,7 +256,14 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
                 ) : (
                   <div className="space-y-2">
                     {datos!.reportes.map((r: any) => (
-                      <Card key={r.id}>
+                      <Card
+                        key={r.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setReporteVer(r)}
+                        onKeyDown={(e) => { if (e.key === "Enter") setReporteVer(r); }}
+                        className="cursor-pointer hover:border-primary/40 transition-colors"
+                      >
                         <CardContent className="p-3">
                           <div className="flex justify-between items-start gap-2 flex-wrap">
                             <div>
@@ -269,7 +299,6 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
             </Tabs>
           </>
         )}
-      </DialogContent>
       <ExportarObraDialog
         open={exportOpen}
         onOpenChange={setExportOpen}
@@ -277,99 +306,11 @@ export function ObraDetalle({ open, onOpenChange, obraId }: Props) {
         reportes={(datos?.reportes ?? []) as any}
         costos={costos ?? null}
       />
-    </Dialog>
-  );
-}
-
-function ResumenObra({ obra, verPrecios }: { obra: ObraConRelaciones; verPrecios: boolean }) {
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {obra.cliente && (
-          <InfoRow icon={<Users className="h-4 w-4" />} label="Cliente" value={obra.cliente.nombre} />
-        )}
-        {obra.sitio && (
-          <InfoRow icon={<MapPin className="h-4 w-4" />} label="Sitio" value={obra.sitio} />
-        )}
-        {obra.jefe_obra && (
-          <InfoRow icon={<User className="h-4 w-4" />} label="Jefe de obra" value={obra.jefe_obra.nombre} />
-        )}
-        {verPrecios && obra.presupuesto > 0 && (
-          <InfoRow icon={<Wallet className="h-4 w-4" />} label="Presupuesto" value={formatCurrency(obra.presupuesto)} />
-        )}
-        {obra.fecha_inicio_est && (
-          <InfoRow icon={<Calendar className="h-4 w-4" />} label="Inicio estimado" value={formatDate(obra.fecha_inicio_est)} />
-        )}
-        {obra.fecha_fin_est && (
-          <InfoRow icon={<Calendar className="h-4 w-4" />} label="Fin estimado" value={formatDate(obra.fecha_fin_est)} />
-        )}
-        {obra.fecha_inicio_real && (
-          <InfoRow icon={<Calendar className="h-4 w-4 text-success" />} label="Inicio real" value={formatDate(obra.fecha_inicio_real)} />
-        )}
-        {obra.fecha_fin_real && (
-          <InfoRow icon={<Calendar className="h-4 w-4 text-primary" />} label="Fin real" value={formatDate(obra.fecha_fin_real)} />
-        )}
-      </div>
-
-      {/* Botón Cómo llegar (si hay ubicación cargada) */}
-      {obra.maps_url && (
-        <a
-          href={obra.maps_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          <MapPin className="h-4 w-4" />
-          Cómo llegar (Google Maps)
-        </a>
-      )}
-
-      {obra.alcance_tecnico && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Alcance técnico</div>
-            <div className="text-sm whitespace-pre-wrap">{obra.alcance_tecnico}</div>
-          </CardContent>
-        </Card>
-      )}
-
-      {obra.tecnicos && obra.tecnicos.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-              Técnicos asignados ({obra.tecnicos.length})
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {obra.tecnicos.map((t: any) => (
-                <span key={t.id} className="px-2 py-1 rounded-md text-xs bg-secondary border">
-                  👤 {t.nombre}
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {obra.observaciones && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Observaciones</div>
-            <div className="text-sm whitespace-pre-wrap">{obra.observaciones}</div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <div className="text-muted-foreground mt-0.5">{icon}</div>
-      <div className="flex-1">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="text-sm font-medium break-words">{value}</div>
-      </div>
+      <ReporteDetalle
+        open={!!reporteVer}
+        onOpenChange={(o) => { if (!o) setReporteVer(null); }}
+        reporte={reporteVer ? { ...reporteVer, obra: obra ?? null } : null}
+      />
     </div>
   );
 }

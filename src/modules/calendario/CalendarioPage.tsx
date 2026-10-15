@@ -11,7 +11,7 @@ import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useObras } from "@/modules/obras/useObras";
-import { ObraDetalle } from "@/modules/obras/ObraDetalle";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import type { EstadoObra } from "@/types/database";
 
@@ -26,7 +26,7 @@ const COLOR_POR_ESTADO: Record<EstadoObra, { bg: string; text: string; border: s
 export function CalendarioPage() {
   const { profile } = useAuth();
   const { data: obras = [], refetch, isLoading } = useObras();
-  const [obraDetalleId, setObraDetalleId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const calendarRef = useRef<FullCalendar | null>(null);
 
@@ -130,7 +130,7 @@ export function CalendarioPage() {
   };
 
   const handleEventClick = (info: EventClickArg) => {
-    setObraDetalleId(info.event.id);
+    navigate(`/obras/${info.event.id}`);
   };
 
   return (
@@ -237,11 +237,6 @@ export function CalendarioPage() {
       </div>
 
       {/* Modal de detalle de obra (reusa el existente) */}
-      <ObraDetalle
-        open={obraDetalleId !== null}
-        onOpenChange={(o) => { if (!o) setObraDetalleId(null); }}
-        obraId={obraDetalleId}
-      />
     </div>
   );
 }
