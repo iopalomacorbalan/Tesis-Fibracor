@@ -14,10 +14,8 @@ se suben a **Fibracor real**. Respetar el orden: **1. Base de datos → 2. Edge 
 | # | Archivo | Qué hace | Probado en pruebas |
 |---|---------|----------|--------------------|
 | 1 | `sql/062_usuarios_telefono.sql` | Agrega `telefono` a `usuarios` y la función `set_telefono_usuario` | ✅ (aplicado) |
-
-| 2 | `sql/063_diagnostico_datos_vacios.sql` | **Solo lectura.** Informe de campos vacíos por tabla. Correrlo ANTES de subir la app, para saber qué datos viejos completar | ⬜ |
-
-| 3 | `sql/064_obra_historial.sql` | Tabla `obra_historial` + trigger que registra creación y cambios de estado de obras + carga la creación de las obras existentes | ⬜ |
+| 2 | `sql/063_diagnostico_datos_vacios.sql` | **Solo lectura.** Informe de campos vacíos por tabla. Correrlo ANTES de subir la app, para saber qué datos viejos completar | ✅ (corrido; en pruebas las 5 obras no tienen técnico) |
+| 3 | `sql/064_obra_historial.sql` | Tabla `obra_historial` + trigger que registra creación y cambios de estado de obras + carga la creación de las obras existentes | ✅ (aplicado y probado en la app) |
 
 > `sql/crear_tecnico.sql` se corrigió (ahora completa `user_id`), pero no hay que correrlo:
 > es un script de uso manual, reemplazado por el módulo Usuarios.
@@ -26,7 +24,7 @@ se suben a **Fibracor real**. Respetar el orden: **1. Base de datos → 2. Edge 
 
 | Función | Archivo | Probado en pruebas |
 |---------|---------|--------------------|
-| `gestionar-usuarios` | `supabase/functions/gestionar-usuarios/index.ts` | ⬜ |
+| `gestionar-usuarios` | `supabase/functions/gestionar-usuarios/index.ts` | 🟡 (desplegada, falta probar desde la app) |
 
 ⚠️ El nombre tiene que quedar exacto: la URL de la función debe terminar en
 `/functions/v1/gestionar-usuarios`. Por terminal:
