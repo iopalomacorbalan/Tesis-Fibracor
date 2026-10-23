@@ -125,7 +125,7 @@ export default function FirmaRemitoPage() {
 
   const handleEnviar = async () => {
     if (!nombre.trim()) { alert("Ingresá nombre y apellido"); return; }
-    if (!dni.trim()) { alert("Ingresá el DNI"); return; }
+    if (!/^\d{7,8}$/.test(dni)) { alert("Ingresá un DNI válido (7 u 8 números)"); return; }
     if (firmaVacia.current) { alert("Por favor, firmá en el recuadro"); return; }
 
     const firmaImagen = canvasRef.current?.toDataURL("image/png") ?? "";
@@ -248,8 +248,9 @@ export default function FirmaRemitoPage() {
           <input
             placeholder="DNI"
             value={dni}
-            onChange={(e) => setDni(e.target.value)}
+            onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
             inputMode="numeric"
+            maxLength={8}
             style={inputStyle}
           />
           <textarea

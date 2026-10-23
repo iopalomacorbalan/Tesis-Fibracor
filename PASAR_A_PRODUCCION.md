@@ -16,6 +16,14 @@ se suben a **Fibracor real**. Respetar el orden: **1. Base de datos → 2. Edge 
 | 1 | `sql/062_usuarios_telefono.sql` | Agrega `telefono` a `usuarios` y la función `set_telefono_usuario` | ✅ (aplicado) |
 | 2 | `sql/063_diagnostico_datos_vacios.sql` | **Solo lectura.** Informe de campos vacíos por tabla. Correrlo ANTES de subir la app, para saber qué datos viejos completar | ✅ (corrido; en pruebas las 5 obras no tienen técnico) |
 | 3 | `sql/064_obra_historial.sql` | Tabla `obra_historial` + trigger que registra creación y cambios de estado de obras + carga la creación de las obras existentes | ✅ (aplicado y probado en la app) |
+| 4 | `sql/065_renombrar_historial_cambios_obras.sql` | Renombra `obra_historial` a `historial_cambios_obras` (índice, política y funciones). Correr después del 064 | ✅ (aplicado y probado en la app) |
+| 5 | `sql/066_catalogo_unidades.sql` | Diagnóstico de unidades fuera del catálogo + CHECK (NOT VALID) en `inventario.unidad` y `remito_items.unidad` | ⏳ (pendiente de aplicar en pruebas) |
+| 6 | `sql/067_auditoria.sql` | Tabla `auditoria` (solo lectura para Dirección) + trigger genérico `auditar_cambio` en obras, remitos, compras, inventario, caja_chica, clientes, proveedores y usuarios | ✅ (aplicado y probado en la app) |
+| 7 | `sql/068_rubros.sql` | Tablas `rubros` y `proveedor_rubros` (cada rubro una sola vez), pasa los rubros actuales de `proveedores.rubros`, y la función `set_rubros_proveedor`. **No borra** la columna vieja `proveedores.rubros` | ⏳ (pendiente de aplicar en pruebas) |
+| 8 | `sql/069_tablero_control.sql` | Función `get_tablero_control()` con los indicadores del tablero del Dashboard (solo Dirección, Contabilidad y Operaciones). Usa `get_herramientas_obra` y `get_herramientas_personales`, que ya tienen que existir | ⏳ (pendiente de aplicar en pruebas) |
+
+> **Después de desplegar la app con el 068 funcionando**, la columna `proveedores.rubros` queda sin uso y se puede eliminar:
+> `ALTER TABLE public.proveedores DROP COLUMN rubros;` (antes, quitar ese campo del diagnóstico 063).
 
 > `sql/crear_tecnico.sql` se corrigió (ahora completa `user_id`), pero no hay que correrlo:
 > es un script de uso manual, reemplazado por el módulo Usuarios.
@@ -104,7 +112,50 @@ ficha (cliente, jefe, fechas, sitio, presupuesto) con lápiz para editar · barr
 - Modificado: `src/modules/obras/ObraDetalle.tsx` (ahora página), `src/modules/obras/useObras.ts`
   (`useObraHistorial`, `comentarCambioEstado`), `src/App.tsx` (ruta `/obras/:id`),
   `src/modules/obras/ObrasPage.tsx`, `src/modules/calendario/CalendarioPage.tsx`, `src/lib/whatsapp.ts`
-- Depende de: SQL 064
+- Depende de: SQL 064 y 065 (`useObraHistorial` ahora lee `historial_cambios_obras`; `ObraResumen.tsx` actualiza el mensaje de error)
+
+### Catálogo de unidades (selector en vez de texto libre)
+- Nuevo: `src/lib/unidades.ts` (lista única), `src/components/ui/unidad-select.tsx`
+- Modificado: `remitos/RemitoDialog.tsx` (3 campos), `compras/GenerarOcDialog.tsx`, `stock/ItemDialog.tsx` (usa la lista compartida)
+- Un valor viejo fuera del catálogo se sigue mostrando en el selector.
+- Depende de: SQL 066
+
+### Módulo Auditoría (solo Dirección)
+Lista los últimos 300 altas/modificaciones/bajas con usuario, fecha y el detalle antes → después. Filtros por módulo, acción y búsqueda.
+- Nuevo: `src/modules/auditoria/` (`AuditoriaPage.tsx`, `useAuditoria.ts`)
+- Modificado: `src/App.tsx` (ruta `/auditoria`), `src/components/layout/Sidebar.tsx` (menú, solo Dirección)
+- Depende de: SQL 067
+
+### Rubros de proveedores en tablas
+Los rubros se eligen de un catálogo único (sin duplicados por mayúsculas); se pueden agregar nuevos desde el formulario de proveedor.
+- Modificado: `crm/proveedores/useProveedores.ts` (lee `proveedor_rubros`, nuevo `useRubros`, guarda con la función `set_rubros_proveedor`), `crm/proveedores/ProveedorDialog.tsx`
+- Depende de: SQL 068 (sin el 068, la lista de proveedores no carga)
+
+### Reportes dentro de la obra (ya no es un módulo suelto del menú)
+- En el detalle de obra, pestaña **Reportes**, nuevo botón **Nuevo reporte** (abre el mismo formulario con la obra ya elegida).
+- "Reportes" se quitó del menú lateral. La ruta `/reportes` sigue existiendo (la usa el Dashboard: "Reportes 7d" y "Ver todos") como lista global para buscar y editar.
+- Modificado: `obras/ObraDetalle.tsx`, `components/layout/Sidebar.tsx`
+- Sin dependencias (solo app). La tabla `reporte_tecnicos` no cambia: es la relación reporte ↔ técnicos que participaron.
+
+### Tablero de control en el Dashboard (solo Dirección, Contabilidad y Operaciones)
+Seis bloques: plata de las obras en curso (presupuesto / costo / margen y obras con margen menor al 10 %), gasto de los últimos
+6 meses (compras en pesos + caja chica), materiales que más costo generan, clientes (activos, con obra en curso, repitieron, top 5),
+personal técnico del mes (horas, reportes, herramientas a su cargo) y plazos (obras atrasadas, % cerradas a tiempo).
+- Nuevo: `src/modules/dashboard/TableroControl.tsx`, `src/modules/dashboard/useTableroControl.ts`
+- Modificado: `src/modules/dashboard/DashboardPage.tsx`
+- Depende de: SQL 069
+- Límites: no hay cobros/facturas en el sistema, por eso "plata" es presupuesto vs. costo; las OC en dólares no entran al gráfico de gasto.
+
+### DNI solo con números en remitos
+El campo DNI aceptaba letras. Ahora solo deja números (máximo 8) en el formulario del remito y en la firma pública por QR; la firma pública exige 7 u 8 dígitos.
+- Modificado: `remitos/RemitoDialog.tsx`, `firma-publica/FirmaRemitoPage.tsx`
+- Sin dependencias (solo app)
+
+### Corrección de errores de TypeScript (sin cambio de comportamiento)
+- `calendario/CalendarioPage.tsx`: `EventDropArg` se importa de `@fullcalendar/core`
+- `movimientos/MovimientosPage.tsx` y `stock/HistorialDialog.tsx`: faltaban los 3 tipos de movimiento personales (antes mostraban el tipo sin etiqueta/icono)
+- `reportes/useReportes.ts`: el `patch` de edición acepta `hora_entrada` / `hora_salida`
+- Sin dependencias (solo app)
 
 ---
 

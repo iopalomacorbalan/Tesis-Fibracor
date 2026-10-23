@@ -251,7 +251,7 @@ export function useObraHistorial(obraId: string | undefined) {
     enabled: !!obraId,
     queryFn: async (): Promise<ObraHistorialItem[]> => {
       const { data, error } = await supabase
-        .from("obra_historial")
+        .from("historial_cambios_obras")
         .select("id, tipo, estado_anterior, estado_nuevo, comentario, created_at, usuario:usuarios(nombre)")
         .eq("obra_id", obraId!)
         .order("created_at", { ascending: false });

@@ -23,6 +23,9 @@ const TIPO_INFO: Record<TipoMovimiento, { label: string; color: string; icon: an
   "Reactivacion":        { label: "Reactivación", color: "text-success", icon: RotateCcw, sign: "+" },
   "Baja":                { label: "Baja / descarte", color: "text-destructive", icon: Trash, sign: "-" },
   "Transferencia":       { label: "Transferencia", color: "text-primary", icon: ArrowLeftRight, sign: "=" },
+  "Asignacion_personal":  { label: "Asignación personal", color: "text-primary", icon: Wrench, sign: "-" },
+  "Devolucion_personal_pendiente": { label: "Devolución personal pendiente", color: "text-warning", icon: ArrowLeftRight, sign: "=" },
+  "Devolucion_personal": { label: "Devolución personal", color: "text-success", icon: ArrowUp, sign: "+" },
 };
 
 export function HistorialDialog({ open, onOpenChange, item }: Props) {

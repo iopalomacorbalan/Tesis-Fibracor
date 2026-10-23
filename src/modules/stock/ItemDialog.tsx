@@ -41,7 +41,7 @@ const CATEGORIAS: CategoriaItem[] = [
   "Material", "Consumo", "Herramienta", "Reutilizable", "Equipo especial",
 ];
 
-const UNIDADES = ["ud.", "m", "km", "kg", "lt", "caja", "rollo", "bolsa", "par"];
+import { UNIDADES } from "@/lib/unidades";
 
 export function ItemDialog({ open, onOpenChange, item }: Props) {
   const isEdit = !!item;

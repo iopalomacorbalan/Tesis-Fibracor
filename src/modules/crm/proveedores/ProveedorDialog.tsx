@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { useCrearProveedor, useEditarProveedor } from "./useProveedores";
+import { useCrearProveedor, useEditarProveedor, useRubros } from "./useProveedores";
 import { proveedorSchema, RUBROS_SUGERIDOS, type ProveedorFormValues } from "./schemas";
 import type { Proveedor } from "@/types/database";
 
@@ -27,6 +27,9 @@ export function ProveedorDialog({ open, onOpenChange, proveedor }: Props) {
   const isEdit = !!proveedor;
   const crear = useCrearProveedor();
   const editar = useEditarProveedor();
+  const { data: rubrosDb = [] } = useRubros();
+  // Catálogo de la base; si todavía no cargó, las sugerencias de siempre
+  const rubrosCatalogo = rubrosDb.length > 0 ? rubrosDb : RUBROS_SUGERIDOS;
 
   const [form, setForm] = useState<ProveedorFormValues>(empty);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,9 +64,11 @@ export function ProveedorDialog({ open, onOpenChange, proveedor }: Props) {
   };
 
   const agregarNuevoRubro = () => {
-    const r = nuevoRubro.trim();
-    if (!r) return;
-    if (!form.rubros?.includes(r)) {
+    const escrito = nuevoRubro.trim();
+    if (!escrito) return;
+    // Si ya existe con otras mayúsculas, se usa el del catálogo (no se duplica)
+    const r = rubrosCatalogo.find(c => c.toLowerCase() === escrito.toLowerCase()) ?? escrito;
+    if (!form.rubros?.some(x => x.toLowerCase() === r.toLowerCase())) {
       setForm(f => ({ ...f, rubros: [...(f.rubros ?? []), r] }));
     }
     setNuevoRubro("");
@@ -193,7 +198,7 @@ export function ProveedorDialog({ open, onOpenChange, proveedor }: Props) {
             <div className={`flex flex-wrap gap-2 p-3 bg-secondary/30 border rounded-md ${
               errors["rubros"] ? "border-destructive" : "border-input"
             }`}>
-              {RUBROS_SUGERIDOS.map(r => {
+              {rubrosCatalogo.map(r => {
                 const checked = form.rubros?.includes(r);
                 return (
                   <button
@@ -211,7 +216,7 @@ export function ProveedorDialog({ open, onOpenChange, proveedor }: Props) {
                 );
               })}
               {/* Custom rubros (no en sugeridos) */}
-              {form.rubros?.filter(r => !RUBROS_SUGERIDOS.includes(r)).map(r => (
+              {form.rubros?.filter(r => !rubrosCatalogo.includes(r)).map(r => (
                 <span key={r} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground">
                   {r}
                   <button type="button" onClick={() => toggleRubro(r)} className="hover:opacity-70">

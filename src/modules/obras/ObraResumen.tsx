@@ -474,7 +474,7 @@ function HistorialCard({ obraId }: { obraId: string }) {
             <div className="py-4 text-center"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></div>
           ) : error ? (
             <p className="text-sm text-muted-foreground">
-              No se pudo cargar el historial. ¿Se corrió el script <code>sql/064_obra_historial.sql</code>?
+              No se pudo cargar el historial. ¿Se corrió el script <code>sql/064_obra_historial.sql</code> y <code>sql/065_renombrar_historial_cambios_obras.sql</code>?
             </p>
           ) : historial.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin cambios registrados.</p>

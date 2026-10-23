@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle, Clock, Wallet, Images, HardDriveDownload, UserCog,
+  LayoutDashboard, Briefcase, Package, ShoppingCart,
+  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle, Clock, Wallet, Images, HardDriveDownload, UserCog, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ const NAV: NavItem[] = [
   // Proyectos
   { to: "/obras", icon: Briefcase, label: "Obras", group: "Proyectos" },
   { to: "/calendario", icon: CalendarDays, label: "Calendario", group: "Proyectos" },
-  { to: "/reportes", icon: FileText, label: "Reportes", group: "Proyectos" },
 
   // Operaciones
   { to: "/stock", icon: Package, label: "Stock", group: "Operaciones" },
@@ -43,6 +42,8 @@ const NAV: NavItem[] = [
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/usuarios", icon: UserCog, label: "Usuarios", group: "Administración",
     roles: ["Direccion", "Operaciones"] },
+  { to: "/auditoria", icon: ShieldCheck, label: "Auditoría", group: "Administración",
+    roles: ["Direccion"] },
   { to: "/config/google-calendar", icon: CalendarDays, label: "Google Calendar", group: "Configuración",
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/config/optimizar-fotos", icon: Images, label: "Optimizar fotos", group: "Configuración",

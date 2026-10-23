@@ -22,6 +22,7 @@ import ItemsRevisionPage from "@/modules/items-revision/ItemsRevisionPage";
 import GoogleCalendarConfigPage from "@/modules/configuracion/GoogleCalendarConfigPage";
 import FirmaRemitoPage from "@/modules/firma-publica/FirmaRemitoPage";
 import LiquidacionPage from "@/modules/liquidacion/LiquidacionPage";
+import AuditoriaPage from "@/modules/auditoria/AuditoriaPage";
 import CajaChicaPage from "@/modules/caja-chica/CajaChicaPage";
 import MigracionFotosPage from "@/modules/configuracion/MigracionFotosPage";
 import BackupPage from "@/modules/configuracion/BackupPage";
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/config/optimizar-fotos" element={<ErrorBoundary><MigracionFotosPage /></ErrorBoundary>} />
             <Route path="/config/backup" element={<ErrorBoundary><BackupPage /></ErrorBoundary>} />
             <Route path="/usuarios" element={<ErrorBoundary><UsuariosPage /></ErrorBoundary>} />
+            <Route path="/auditoria" element={<ErrorBoundary><AuditoriaPage /></ErrorBoundary>} />
             <Route path="/compras" element={<ErrorBoundary><ComprasPage /></ErrorBoundary>} />
             <Route path="/reportes" element={<ErrorBoundary><ReportesPage /></ErrorBoundary>} />
             <Route path="/crm" element={<ErrorBoundary><CrmPage /></ErrorBoundary>} />

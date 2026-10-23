@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { UnidadSelect } from "@/components/ui/unidad-select";
 import {
   useCrearRemito, useEditarRemito, useItemsRemitables,
   useEditarRemitoItem, useEliminarRemitoItem, useAgregarRemitoItem,
@@ -577,11 +578,7 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                               </div>
                               <div>
                                 <Label className="text-[10px]">Unidad</Label>
-                                <Input
-                                  placeholder="ud., m, kg..."
-                                  value={draft.unidad}
-                                  onChange={(e) => updateItemDirecto(idx, { unidad: e.target.value })}
-                                />
+                                <UnidadSelect value={draft.unidad} onChange={(v) => updateItemDirecto(idx, { unidad: v })} />
                               </div>
                             </div>
 
@@ -658,9 +655,11 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
               <div className="space-y-1.5">
                 <Label className="text-xs">DNI</Label>
                 <Input
-                  placeholder="12.345.678"
+                  placeholder="12345678"
+                  inputMode="numeric"
+                  maxLength={8}
                   value={dniReceptor}
-                  onChange={(e) => setDniReceptor(e.target.value)}
+                  onChange={(e) => setDniReceptor(e.target.value.replace(/\D/g, ""))}
                 />
               </div>
               <div className="space-y-1.5">
@@ -803,7 +802,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
                       </div>
                       <div>
                         <Label className="text-[10px]">Unidad</Label>
-                        <Input value={editUnidad} onChange={(e) => setEditUnidad(e.target.value)} />
+                        <UnidadSelect value={editUnidad} onChange={setEditUnidad} />
                       </div>
                       <div>
                         <Label className="text-[10px]">Descripción libre</Label>
@@ -880,7 +879,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
             </div>
             <div>
               <Label className="text-[10px]">Unidad</Label>
-              <Input value={newUnidad} onChange={(e) => setNewUnidad(e.target.value)} />
+              <UnidadSelect value={newUnidad} onChange={setNewUnidad} />
             </div>
           </div>
           <div className="flex gap-2 justify-end">

@@ -9,6 +9,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { UnidadSelect } from "@/components/ui/unidad-select";
 import { useProveedores } from "@/modules/crm/proveedores/useProveedores";
 import { useCrearOcDesdePendientes } from "./useItemsPendientesOc";
 import type { ItemPendienteOc } from "./useItemsPendientesOc";
@@ -169,10 +170,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
                     </div>
                     <div>
                       <Label className="text-[10px]">Unidad</Label>
-                      <Input
-                        value={it.unidad}
-                        onChange={(e) => handleEditar(idx, { unidad: e.target.value })}
-                      />
+                      <UnidadSelect value={it.unidad} onChange={(v) => handleEditar(idx, { unidad: v })} />
                     </div>
                     {verPrecios && (
                       <div>

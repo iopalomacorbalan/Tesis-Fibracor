@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase, MapPin, Calendar, User, Users, Loader2, Clock,
-  Wrench, ClipboardList, FileText, GitBranch, Wallet, FileDown, AlertTriangle, MessageCircle,
+  Wrench, ClipboardList, FileText, GitBranch, Wallet, FileDown, AlertTriangle, MessageCircle, Plus,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -15,6 +15,7 @@ import { useHorasTecnicasObra, useTotalHorasObra, useHorasPorDiaObra, type Total
 import { ExportarObraDialog } from "./ExportarObraDialog";
 import { ObraResumen } from "./ObraResumen";
 import { ReporteDetalle } from "@/modules/reportes/ReporteDetalle";
+import { ReporteDialog } from "@/modules/reportes/ReporteDialog";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
 import { supabase } from "@/lib/supabase";
@@ -84,6 +85,8 @@ export default function ObraDetallePage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [tab, setTab] = useState("resumen");
   const [reporteVer, setReporteVer] = useState<any | null>(null);
+  const [reporteNuevoOpen, setReporteNuevoOpen] = useState(false);
+  const qc = useQueryClient();
 
   // Cada obra abre en el resumen
   useEffect(() => { setTab("resumen"); }, [obraId]);
@@ -251,6 +254,12 @@ export default function ObraDetallePage() {
               </TabsContent>
 
               <TabsContent value="reportes">
+                <div className="flex justify-end mb-2">
+                  <Button size="sm" onClick={() => setReporteNuevoOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    Nuevo reporte
+                  </Button>
+                </div>
                 {(datos?.reportes.length ?? 0) === 0 ? (
                   <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">Sin reportes</CardContent></Card>
                 ) : (
@@ -305,6 +314,14 @@ export default function ObraDetallePage() {
         obra={obra ?? null}
         reportes={(datos?.reportes ?? []) as any}
         costos={costos ?? null}
+      />
+      <ReporteDialog
+        open={reporteNuevoOpen}
+        onOpenChange={(o) => {
+          setReporteNuevoOpen(o);
+          if (!o) qc.invalidateQueries({ queryKey: ["obra_datos", obraId] });
+        }}
+        obraIdFijo={obraId}
       />
       <ReporteDetalle
         open={!!reporteVer}

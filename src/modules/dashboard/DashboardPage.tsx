@@ -16,7 +16,8 @@ import { useReportes } from "@/modules/reportes/useReportes";
 import { useClientes } from "@/modules/crm/clientes/useClientes";
 import { usePrecioHoraTecnica, useActualizarPrecioHora } from "./useConfigGlobal";
 import { useAuth } from "@/lib/auth";
-import { puedeVerPrecios as canViewPrices } from "@/lib/permissions";
+import { puedeVerPrecios as canViewPrices, puedeVerFinanciero } from "@/lib/permissions";
+import { TableroControl } from "./TableroControl";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
@@ -115,6 +116,9 @@ export default function DashboardPage() {
         <KpiCard to="/crm" icon={Users} label="Clientes"
           value={clientes.length} sublabel="activos" />
       </div>
+
+      {/* Tablero de control - solo áreas que ven el detalle financiero */}
+      {puedeVerFinanciero(profile?.area) && <TableroControl />}
 
       {/* Resumen de inventario - solo Direccion/Operaciones/Contabilidad */}
       {puedeVerPrecios && (
