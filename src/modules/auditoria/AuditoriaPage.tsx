@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { Loader2, ShieldCheck, Search } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
+import { ExternalLink, Loader2, ShieldCheck, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
@@ -17,6 +17,18 @@ const ACCIONES: Record<string, { label: string; clase: string }> = {
   UPDATE: { label: "Modificación", clase: "bg-amber-500/10 text-amber-500 border-amber-500/30" },
   DELETE: { label: "Baja", clase: "bg-destructive/10 text-destructive border-destructive/30" },
 };
+
+const RUTAS_MODULO: Record<string, string> = {
+  remitos: "/remitos", compras: "/compras", inventario: "/stock",
+  caja_chica: "/caja-chica", clientes: "/crm", proveedores: "/crm", usuarios: "/usuarios",
+};
+
+/** A dónde lleva el código del registro. Las obras abren su ficha; el resto, su módulo. Un registro borrado ya no existe. */
+function rutaDestino(r: RegistroAuditoria): string | null {
+  if (r.accion === "DELETE") return null;
+  if (r.tabla === "obras") return r.registro_id ? `/obras/${r.registro_id}` : null;
+  return RUTAS_MODULO[r.tabla] ?? null;
+}
 
 const fmt = (v: unknown) =>
   v === null || v === undefined || v === "" ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v);
@@ -121,7 +133,21 @@ export default function AuditoriaPage() {
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className={cn("px-2 py-0.5 rounded-md text-[11px] border", a.clase)}>{a.label}</span>
                     <b>{TABLAS[r.tabla] ?? r.tabla}</b>
-                    {r.referencia && <span className="text-muted-foreground">{r.referencia}</span>}
+                    {r.referencia && (() => {
+                      const destino = rutaDestino(r);
+                      return destino ? (
+                        <Link
+                          to={destino}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                          title="Abrir"
+                        >
+                          {r.referencia}<ExternalLink className="h-3 w-3" />
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">{r.referencia}</span>
+                      );
+                    })()}
                     <span className="ml-auto text-xs text-muted-foreground">
                       {r.usuario_nombre ?? "Sistema"} · {new Date(r.created_at).toLocaleString("es-AR")}
                     </span>

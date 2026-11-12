@@ -17,16 +17,21 @@ se suben a **Fibracor real**. Respetar el orden: **1. Base de datos → 2. Edge 
 | 2 | `sql/063_diagnostico_datos_vacios.sql` | **Solo lectura.** Informe de campos vacíos por tabla. Correrlo ANTES de subir la app, para saber qué datos viejos completar | ✅ (corrido; en pruebas las 5 obras no tienen técnico) |
 | 3 | `sql/064_obra_historial.sql` | Tabla `obra_historial` + trigger que registra creación y cambios de estado de obras + carga la creación de las obras existentes | ✅ (aplicado y probado en la app) |
 | 4 | `sql/065_renombrar_historial_cambios_obras.sql` | Renombra `obra_historial` a `historial_cambios_obras` (índice, política y funciones). Correr después del 064 | ✅ (aplicado y probado en la app) |
-| 5 | `sql/066_catalogo_unidades.sql` | Diagnóstico de unidades fuera del catálogo + CHECK (NOT VALID) en `inventario.unidad` y `remito_items.unidad` | ⏳ (pendiente de aplicar en pruebas) |
+| 5 | `sql/066_catalogo_unidades.sql` | Diagnóstico de unidades fuera del catálogo + CHECK (NOT VALID) en `inventario.unidad` y `remito_items.unidad` | ✅ (aplicado; el diagnóstico dio 0 filas fuera del catálogo) |
 | 6 | `sql/067_auditoria.sql` | Tabla `auditoria` (solo lectura para Dirección) + trigger genérico `auditar_cambio` en obras, remitos, compras, inventario, caja_chica, clientes, proveedores y usuarios | ✅ (aplicado y probado en la app) |
-| 7 | `sql/068_rubros.sql` | Tablas `rubros` y `proveedor_rubros` (cada rubro una sola vez), pasa los rubros actuales de `proveedores.rubros`, y la función `set_rubros_proveedor`. **No borra** la columna vieja `proveedores.rubros` | ⏳ (pendiente de aplicar en pruebas) |
-| 8 | `sql/069_tablero_control.sql` | Función `get_tablero_control()` con los indicadores del tablero del Dashboard (solo Dirección, Contabilidad y Operaciones). Usa `get_herramientas_obra` y `get_herramientas_personales`, que ya tienen que existir | ⏳ (pendiente de aplicar en pruebas) |
+| 7 | `sql/068_rubros.sql` | Tablas `rubros` y `proveedor_rubros` (cada rubro una sola vez), pasa los rubros actuales de `proveedores.rubros`, y la función `set_rubros_proveedor`. **No borra** la columna vieja `proveedores.rubros` | ✅ (aplicado y probado en la app) |
+| 8 | `sql/069_tablero_control.sql` | Función `get_tablero_control()` con los indicadores del tablero del Dashboard (solo Dirección, Contabilidad y Operaciones). Usa `get_herramientas_obra` y `get_herramientas_personales`, que ya tienen que existir | ✅ (aplicado y probado en la app) |
+| 9 | `sql/061_fix_reporte_id_trigger.sql` | Trigger que genera el `reporte_id` (REP-001…) para que no se repitan códigos. **Verificar si el proyecto real ya lo tiene**; si no, correrlo | ✅ (aplicado en pruebas) |
 
 > **Después de desplegar la app con el 068 funcionando**, la columna `proveedores.rubros` queda sin uso y se puede eliminar:
 > `ALTER TABLE public.proveedores DROP COLUMN rubros;` (antes, quitar ese campo del diagnóstico 063).
 
 > `sql/crear_tecnico.sql` se corrigió (ahora completa `user_id`), pero no hay que correrlo:
 > es un script de uso manual, reemplazado por el módulo Usuarios.
+
+> 🛑 **Scripts de demo, NO subir a producción:** `sql/demo_01_limpiar_pruebas.sql` (borra los datos de negocio) y
+> `sql/demo_02_datos_demo.sql` (carga datos de ejemplo). Son solo para fibracor-pruebas. El de limpieza no hace nada
+> hasta cambiar `v_confirmo` a `TRUE`.
 
 ## 2. Edge Functions (proyecto REAL → Edge Functions)
 
@@ -122,6 +127,7 @@ ficha (cliente, jefe, fechas, sitio, presupuesto) con lápiz para editar · barr
 
 ### Módulo Auditoría (solo Dirección)
 Lista los últimos 300 altas/modificaciones/bajas con usuario, fecha y el detalle antes → después. Filtros por módulo, acción y búsqueda.
+- El código de cada registro (ej. `OBR-012`) es un link: en obras abre la ficha `/obras/:id`; en el resto abre el módulo (remitos, compras, stock, caja chica, CRM, usuarios). En registros borrados no es link.
 - Nuevo: `src/modules/auditoria/` (`AuditoriaPage.tsx`, `useAuditoria.ts`)
 - Modificado: `src/App.tsx` (ruta `/auditoria`), `src/components/layout/Sidebar.tsx` (menú, solo Dirección)
 - Depende de: SQL 067
@@ -145,6 +151,11 @@ personal técnico del mes (horas, reportes, herramientas a su cargo) y plazos (o
 - Modificado: `src/modules/dashboard/DashboardPage.tsx`
 - Depende de: SQL 069
 - Límites: no hay cobros/facturas en el sistema, por eso "plata" es presupuesto vs. costo; las OC en dólares no entran al gráfico de gasto.
+
+### Diálogo "Eliminar obra": botones ya no se salen del cuadro
+Los tres botones (No dejar como está / Cancelar obra / Eliminar definitivamente) se acomodan en varias líneas si no entran.
+- Modificado: `obras/EliminarObraDialog.tsx`
+- Sin dependencias (solo app)
 
 ### DNI solo con números en remitos
 El campo DNI aceptaba letras. Ahora solo deja números (máximo 8) en el formulario del remito y en la firma pública por QR; la firma pública exige 7 u 8 dígitos.

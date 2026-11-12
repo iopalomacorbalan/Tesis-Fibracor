@@ -67,7 +67,7 @@ export function ProveedorDialog({ open, onOpenChange, proveedor }: Props) {
     const escrito = nuevoRubro.trim();
     if (!escrito) return;
     // Si ya existe con otras mayúsculas, se usa el del catálogo (no se duplica)
-    const r = rubrosCatalogo.find(c => c.toLowerCase() === escrito.toLowerCase()) ?? escrito;
+    const r = rubrosCatalogo.find(c => c.toLowerCase() === escrito.toLowerCase()) ?? (escrito.charAt(0).toUpperCase() + escrito.slice(1));
     if (!form.rubros?.some(x => x.toLowerCase() === r.toLowerCase())) {
       setForm(f => ({ ...f, rubros: [...(f.rubros ?? []), r] }));
     }
