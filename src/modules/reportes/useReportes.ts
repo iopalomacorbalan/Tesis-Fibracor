@@ -216,6 +216,8 @@ export function useEditarReporte() {
         trabajos_realizados: string | null;
         pendientes: string | null;
         obra_id: string;
+        hora_entrada: string | null;
+        hora_salida: string | null;
       }>;
     }) => {
       const { data, error } = await supabase

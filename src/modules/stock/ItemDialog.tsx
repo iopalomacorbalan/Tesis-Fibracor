@@ -194,7 +194,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.stock_minimo ?? 0}
+                value={form.stock_minimo || ""}
                 onChange={(e) => setForm(f => ({ ...f, stock_minimo: parseFloat(e.target.value) || 0 }))}
               />
             </div>
@@ -208,7 +208,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                 type="number"
                 min="0"
                 step="0.01"
-                value={form.stock_inicial ?? 0}
+                value={form.stock_inicial || ""}
                 onChange={(e) => setForm(f => ({ ...f, stock_inicial: parseFloat(e.target.value) || 0 }))}
               />
               <p className="text-xs text-muted-foreground">
@@ -292,7 +292,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={form.precio_costo ?? 0}
+                  value={form.precio_costo || ""}
                   onChange={(e) => setForm(f => ({ ...f, precio_costo: parseFloat(e.target.value) || 0 }))}
                 />
               </div>
@@ -303,7 +303,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={form.precio_lista ?? 0}
+                  value={form.precio_lista || ""}
                   onChange={(e) => setForm(f => ({ ...f, precio_lista: parseFloat(e.target.value) || 0 }))}
                 />
               </div>

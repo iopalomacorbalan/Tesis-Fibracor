@@ -570,7 +570,7 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                                 <Input
                                   type="number"
                                   min="0.01" step="0.01"
-                                  value={draft.cantidad}
+                                  value={draft.cantidad || ""}
                                   onChange={(e) => updateItemDirecto(idx, { cantidad: parseFloat(e.target.value) || 0 })}
                                   className={stockInsuf ? "border-destructive" : ""}
                                 />
@@ -658,9 +658,11 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
               <div className="space-y-1.5">
                 <Label className="text-xs">DNI</Label>
                 <Input
-                  placeholder="12.345.678"
+                  placeholder="12345678"
+                  inputMode="numeric"
+                  maxLength={8}
                   value={dniReceptor}
-                  onChange={(e) => setDniReceptor(e.target.value)}
+                  onChange={(e) => setDniReceptor(e.target.value.replace(/\D/g, ""))}
                 />
               </div>
               <div className="space-y-1.5">
@@ -798,7 +800,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
                       <div>
                         <Label className="text-[10px]">Cantidad</Label>
                         <Input type="number" min="0.01" step="0.01"
-                          value={editCant}
+                          value={editCant || ""}
                           onChange={(e) => setEditCant(parseFloat(e.target.value) || 0)} />
                       </div>
                       <div>
@@ -875,7 +877,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
             <div>
               <Label className="text-[10px]">Cantidad</Label>
               <Input type="number" min="0.01" step="0.01"
-                value={newCant}
+                value={newCant || ""}
                 onChange={(e) => setNewCant(parseFloat(e.target.value) || 0)} />
             </div>
             <div>

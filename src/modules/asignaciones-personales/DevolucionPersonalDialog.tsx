@@ -89,7 +89,7 @@ export function DevolucionPersonalDialog({
               min="0.01"
               max={cantidadEnPoder}
               step="0.01"
-              value={cantidad}
+              value={cantidad || ""}
               onChange={(e) => setCantidad(parseFloat(e.target.value) || 0)}
             />
           </div>
