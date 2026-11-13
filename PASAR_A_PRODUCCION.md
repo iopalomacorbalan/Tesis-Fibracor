@@ -64,6 +64,7 @@ quedó guardado con BOM: abrirlo en VS Code → abajo a la derecha "UTF-8 with B
 > (WhatsApp Cloud API de Meta: cuenta Business verificada + plantilla de mensaje aprobada).
 > Los técnicos tienen que tener cargado su celular en **Administración → Usuarios**.
 
+- El mensaje va **sin emojis** (la página wa.me los mostraba como "�") y el diálogo tiene un botón **Copiar** y "Ver mensaje" para copiarlo y pegarlo donde se quiera, sin pasar por WhatsApp.
 - Nuevo: `src/lib/whatsapp.ts`, `src/modules/obras/AvisarWhatsAppDialog.tsx`
 - Modificado: `src/modules/obras/ObraDialog.tsx`, `src/modules/obras/ObraDetalle.tsx`, `src/types/database.ts`
 - Depende de: SQL 062

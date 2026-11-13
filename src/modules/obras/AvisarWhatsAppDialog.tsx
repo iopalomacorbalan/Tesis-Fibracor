@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, MessageCircle, Save } from "lucide-react";
+import { Check, Copy, Loader2, MessageCircle, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +71,16 @@ export function AvisarWhatsAppDialog({ open, onOpenChange, obra, tecnicos }: Pro
     }
   };
 
+  const copiarMensaje = async (texto: string) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.success("Mensaje copiado");
+    } catch {
+      // Sin permiso de portapapeles (http o navegador viejo): se puede seleccionar a mano en "Ver mensaje"
+      toast.error("No se pudo copiar. Abrí \"Ver mensaje\" y copialo a mano.");
+    }
+  };
+
   if (!obra) return null;
 
   return (
@@ -102,7 +112,7 @@ export function AvisarWhatsAppDialog({ open, onOpenChange, obra, tecnicos }: Pro
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Input
                     value={valor}
                     onChange={(e) => setTelefonos(p => ({ ...p, [t.id]: e.target.value }))}
@@ -121,6 +131,14 @@ export function AvisarWhatsAppDialog({ open, onOpenChange, obra, tecnicos }: Pro
                         : <Save className="h-4 w-4" />}
                     </Button>
                   )}
+                  <Button
+                    type="button" variant="outline" className="h-9 px-3 shrink-0 gap-1.5"
+                    title="Copiar el mensaje para pegarlo donde quieras"
+                    onClick={() => copiarMensaje(mensajeAsignacion(t.nombre, obra))}
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar
+                  </Button>
                   <a
                     href={linkWhatsApp(normalizado, mensajeAsignacion(t.nombre, obra))}
                     target="_blank"
@@ -135,6 +153,18 @@ export function AvisarWhatsAppDialog({ open, onOpenChange, obra, tecnicos }: Pro
                     Enviar
                   </a>
                 </div>
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                    Ver mensaje
+                  </summary>
+                  <textarea
+                    readOnly
+                    value={mensajeAsignacion(t.nombre, obra)}
+                    onFocus={(e) => e.currentTarget.select()}
+                    rows={8}
+                    className="mt-2 w-full rounded-md border border-input bg-background p-2 text-xs font-mono"
+                  />
+                </details>
                 {valor.trim() && !normalizado && (
                   <p className="text-[11px] text-warning">
                     ⚠️ No reconozco el número. WhatsApp te va a pedir que elijas el contacto.

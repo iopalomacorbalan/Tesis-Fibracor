@@ -60,19 +60,20 @@ export interface ObraParaAviso {
 export function mensajeAsignacion(tecnicoNombre: string, obra: ObraParaAviso): string {
   const primerNombre = tecnicoNombre.trim().split(/\s+/)[0] ?? "";
   const lineas = [
-    `Hola ${primerNombre}! 👋`,
+    // Sin emojis: la página wa.me los muestra como "�" y rompe el mensaje
+    `Hola ${primerNombre}!`,
     `Te asignaron a la obra *${obra.obra_id ?? ""} — ${obra.nombre_obra ?? "Sin nombre"}*.`,
     "",
-    obra.cliente_nombre ? `🏢 Cliente: ${obra.cliente_nombre}` : null,
-    obra.sitio ? `📍 Sitio: ${obra.sitio}` : null,
-    obra.fecha_inicio_est ? `📅 Inicio: ${formatDate(obra.fecha_inicio_est)}` : null,
-    obra.fecha_fin_est ? `🏁 Fin estimado: ${formatDate(obra.fecha_fin_est)}` : null,
-    obra.jefe_nombre ? `👷 Jefe de obra: ${obra.jefe_nombre}` : null,
-    obra.alcance_tecnico ? `\n📝 Alcance:\n${obra.alcance_tecnico}` : null,
-    obra.maps_url ? `\n🗺️ Cómo llegar: ${obra.maps_url}` : null,
+    obra.cliente_nombre ? `Cliente: ${obra.cliente_nombre}` : null,
+    obra.sitio ? `Sitio: ${obra.sitio}` : null,
+    obra.fecha_inicio_est ? `Inicio: ${formatDate(obra.fecha_inicio_est)}` : null,
+    obra.fecha_fin_est ? `Fin estimado: ${formatDate(obra.fecha_fin_est)}` : null,
+    obra.jefe_nombre ? `Jefe de obra: ${obra.jefe_nombre}` : null,
+    obra.alcance_tecnico ? `\nAlcance:\n${obra.alcance_tecnico}` : null,
+    obra.maps_url ? `\nCómo llegar: ${obra.maps_url}` : null,
     "",
     obra.id
-      ? `📲 Ver la obra en la app: ${window.location.origin}/obras/${obra.id}`
+      ? `Ver la obra en la app: ${window.location.origin}/obras/${obra.id}`
       : "Podés ver el detalle en la app de Fibracor.",
   ];
   return lineas.filter(l => l !== null).join("\n");
