@@ -294,7 +294,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
                 <Label htmlFor="presupuesto">Presupuesto ($)</Label>
                 <Input
                   id="presupuesto" type="number" min="0" step="0.01"
-                  value={form.presupuesto ?? 0}
+                  value={form.presupuesto || ""}
                   onChange={(e) => setForm(f => ({ ...f, presupuesto: parseFloat(e.target.value) || 0 }))}
                 />
               </div>

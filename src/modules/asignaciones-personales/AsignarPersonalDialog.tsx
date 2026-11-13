@@ -141,7 +141,7 @@ export function AsignarPersonalDialog({ open, onOpenChange, tecnicoId, tecnicoNo
                       type="number"
                       min="0.01"
                       step="0.01"
-                      value={linea.cantidad}
+                      value={linea.cantidad || ""}
                       onChange={(e) => {
                         const copy = [...lineas];
                         copy[idx] = { ...copy[idx], cantidad: parseFloat(e.target.value) || 0 };

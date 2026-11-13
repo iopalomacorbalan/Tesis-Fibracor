@@ -112,7 +112,7 @@ export function RecibirCompraDialog({ open, onOpenChange, compra }: Props) {
                         type="number"
                         min="0.01" step="0.01"
                         max={pendiente}
-                        value={cantidades[it.id] ?? 0}
+                        value={cantidades[it.id] || ""}
                         onChange={(e) => setCantidades({
                           ...cantidades,
                           [it.id]: parseFloat(e.target.value) || 0,

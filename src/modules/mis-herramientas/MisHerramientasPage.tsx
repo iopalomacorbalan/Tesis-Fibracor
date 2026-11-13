@@ -282,7 +282,7 @@ export default function MisHerramientasPage() {
                 min="0.01"
                 max={personalDevolver?.cantidad}
                 step="0.01"
-                value={cantDevolver}
+                value={cantDevolver || ""}
                 onChange={(e) => setCantDevolver(parseFloat(e.target.value) || 0)}
               />
             </div>
@@ -432,7 +432,7 @@ function DevolucionDialog({
               min="0.01"
               max={Number(herramienta.cantidad)}
               step="0.01"
-              value={cantidad}
+              value={cantidad || ""}
               onChange={(e) => setCantidad(parseFloat(e.target.value) || 0)}
               autoFocus
             />

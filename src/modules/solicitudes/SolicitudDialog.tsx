@@ -225,7 +225,7 @@ export function SolicitudDialog({ open, onOpenChange, obraIdFijo }: Props) {
                       type="number"
                       min="0.01" step="0.01"
                       placeholder="Cantidad"
-                      value={draft.cantidad}
+                      value={draft.cantidad || ""}
                       onChange={(e) => updateItem(idx, { cantidad: parseFloat(e.target.value) || 0 })}
                     />
                     <Input

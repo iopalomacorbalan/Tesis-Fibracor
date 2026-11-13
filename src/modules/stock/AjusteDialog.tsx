@@ -126,7 +126,7 @@ export function AjusteDialog({ open, onOpenChange, item }: Props) {
               type="number"
               min="0.01"
               step="0.01"
-              value={form.cantidad}
+              value={form.cantidad || ""}
               onChange={(e) => setForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))}
               autoFocus
             />
