@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { useAuditoria, type RegistroAuditoria } from "./useAuditoria";
+import { etiqueta, esTecnico, formatear, ordenar } from "./formato";
 
 const TABLAS: Record<string, string> = {
   obras: "Obras", remitos: "Remitos", compras: "Compras", inventario: "Stock",
@@ -30,34 +31,60 @@ function rutaDestino(r: RegistroAuditoria): string | null {
   return RUTAS_MODULO[r.tabla] ?? null;
 }
 
-const fmt = (v: unknown) =>
-  v === null || v === undefined || v === "" ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v);
+function Valor({ clave, valor }: { clave: string; valor: unknown }) {
+  const { texto, enlace } = formatear(clave, valor);
+  return enlace
+    ? <a href={enlace} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">{texto}</a>
+    : <span className="break-words">{texto}</span>;
+}
 
 function Detalle({ r }: { r: RegistroAuditoria }) {
+  const [tecnico, setTecnico] = useState(false);
   const cambios = r.cambios ?? {};
-  const claves = Object.keys(cambios);
-  if (claves.length === 0) return <p className="text-xs text-muted-foreground">Sin detalle.</p>;
+  const todas = Object.keys(cambios);
+  if (todas.length === 0) return <p className="text-xs text-muted-foreground">Sin detalle.</p>;
 
-  if (r.accion === "UPDATE") {
-    return (
-      <ul className="text-xs space-y-1">
-        {claves.map(k => (
-          <li key={k}>
-            <b>{k}</b>:{" "}
-            <span className="text-muted-foreground line-through">{fmt(cambios[k]?.antes)}</span>
-            {" → "}
-            <span>{fmt(cambios[k]?.despues)}</span>
-          </li>
-        ))}
-      </ul>
-    );
-  }
+  const esUpdate = r.accion === "UPDATE";
+  // el valor "de referencia" de cada campo: en una modificación, el nuevo; en alta o baja, el único
+  const ref = (k: string) => (esUpdate ? cambios[k]?.despues : cambios[k]);
+  const visibles = ordenar(todas.filter(k => !esTecnico(k, ref(k)) && (esUpdate || cambios[k] !== null)));
+  const ocultos = todas.length - visibles.length;
+
   return (
-    <ul className="text-xs space-y-1">
-      {claves.filter(k => cambios[k] !== null).map(k => (
-        <li key={k}><b>{k}</b>: {fmt(cambios[k])}</li>
-      ))}
-    </ul>
+    <div className="space-y-2 text-sm" onClick={(e) => e.stopPropagation()}>
+      {visibles.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Solo cambiaron datos internos del sistema.</p>
+      ) : (
+        <dl className="grid grid-cols-[minmax(110px,170px)_1fr] gap-x-4 gap-y-1.5">
+          {visibles.map(k => (
+            <div key={k} className="contents">
+              <dt className="text-muted-foreground">{etiqueta(k)}</dt>
+              <dd>
+                {esUpdate ? (
+                  <>
+                    <span className="text-muted-foreground line-through"><Valor clave={k} valor={cambios[k]?.antes} /></span>
+                    <span className="mx-1.5 text-muted-foreground">→</span>
+                    <b className="font-medium"><Valor clave={k} valor={cambios[k]?.despues} /></b>
+                  </>
+                ) : (
+                  <Valor clave={k} valor={cambios[k]} />
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {ocultos > 0 && (
+        <button type="button" onClick={() => setTecnico(t => !t)} className="text-xs text-primary hover:underline">
+          {tecnico ? "Ocultar datos técnicos" : `Ver datos técnicos (${ocultos})`}
+        </button>
+      )}
+      {tecnico && (
+        <pre className="text-[11px] leading-snug bg-secondary/40 rounded-md p-2 overflow-x-auto whitespace-pre-wrap break-all">
+          {JSON.stringify(cambios, null, 2)}
+        </pre>
+      )}
+    </div>
   );
 }
 
