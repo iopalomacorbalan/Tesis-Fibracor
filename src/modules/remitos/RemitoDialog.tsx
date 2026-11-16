@@ -570,7 +570,7 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                                 <Label className="text-[10px]">Cantidad</Label>
                                 <Input
                                   type="number"
-                                  min="0.01" step="0.01"
+                                  min="0.01" step="any"
                                   value={draft.cantidad || ""}
                                   onChange={(e) => updateItemDirecto(idx, { cantidad: parseFloat(e.target.value) || 0 })}
                                   className={stockInsuf ? "border-destructive" : ""}
@@ -796,7 +796,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <Label className="text-[10px]">Cantidad</Label>
-                        <Input type="number" min="0.01" step="0.01"
+                        <Input type="number" min="0.01" step="any"
                           value={editCant || ""}
                           onChange={(e) => setEditCant(parseFloat(e.target.value) || 0)} />
                       </div>
@@ -873,7 +873,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-[10px]">Cantidad</Label>
-              <Input type="number" min="0.01" step="0.01"
+              <Input type="number" min="0.01" step="any"
                 value={newCant || ""}
                 onChange={(e) => setNewCant(parseFloat(e.target.value) || 0)} />
             </div>

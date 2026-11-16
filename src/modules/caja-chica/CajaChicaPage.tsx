@@ -335,7 +335,7 @@ function NuevoGastoDialog({ open, onOpenChange, saldo }: { open: boolean; onOpen
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Monto *</Label>
-              <Input type="number" min="0" step="0.01" value={monto || ""} onChange={e => setMonto(parseFloat(e.target.value) || 0)} />
+              <Input type="number" min="0" step="any" value={monto || ""} onChange={e => setMonto(parseFloat(e.target.value) || 0)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Fecha</Label>
@@ -431,7 +431,7 @@ function MovimientoCajaDialog({ open, onOpenChange, saldoActual }: { open: boole
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">{tipo === "ingreso" ? "Monto a sumar" : "Nuevo saldo"}</Label>
-              <Input type="number" min="0" step="0.01" value={monto || ""} onChange={e => setMonto(parseFloat(e.target.value) || 0)} />
+              <Input type="number" min="0" step="any" value={monto || ""} onChange={e => setMonto(parseFloat(e.target.value) || 0)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Fecha</Label>

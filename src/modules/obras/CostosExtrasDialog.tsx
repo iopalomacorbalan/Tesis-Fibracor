@@ -108,7 +108,7 @@ export function CostosExtrasDialog({ open, onOpenChange, obra, onContinuar, modo
                   <Input
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="any"
                     placeholder="0.00"
                     value={monto || ""}
                     onChange={(e) => setMonto(parseFloat(e.target.value) || 0)}

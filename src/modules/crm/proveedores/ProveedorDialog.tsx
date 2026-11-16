@@ -140,7 +140,8 @@ export function ProveedorDialog({ open, onOpenChange, proveedor }: Props) {
                 id="cuit"
                 placeholder="30-12345678-9"
                 value={form.cuit ?? ""}
-                onChange={(e) => setForm(f => ({ ...f, cuit: e.target.value }))}
+                inputMode="numeric"
+                onChange={(e) => setForm(f => ({ ...f, cuit: e.target.value.replace(/[^\d-]/g, "") }))}
                 className={errors["cuit"] ? "border-destructive" : ""}
               />
               {errors["cuit"] && <p className="text-sm text-destructive">{errors["cuit"]}</p>}
@@ -174,7 +175,8 @@ export function ProveedorDialog({ open, onOpenChange, proveedor }: Props) {
               <Input
                 id="telefono"
                 value={form.telefono ?? ""}
-                onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value }))}
+                inputMode="tel"
+                onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value.replace(/[^\d+()\s-]/g, "") }))}
                 className={errors["telefono"] ? "border-destructive" : ""}
               />
               {errors["telefono"] && <p className="text-sm text-destructive">{errors["telefono"]}</p>}

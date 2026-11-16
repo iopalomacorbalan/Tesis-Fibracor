@@ -145,7 +145,8 @@ export function UsuarioDialog({ open, onOpenChange, usuario }: Props) {
             <Input
               id="telefono"
               value={form.telefono}
-              onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value }))}
+              inputMode="tel"
+              onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value.replace(/[^\d+()\s-]/g, "") }))}
               placeholder="351 1234567"
             />
             {telefonoInvalido && (

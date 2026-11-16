@@ -115,7 +115,8 @@ export function AvisarWhatsAppDialog({ open, onOpenChange, obra, tecnicos }: Pro
                 <div className="flex flex-wrap gap-2">
                   <Input
                     value={valor}
-                    onChange={(e) => setTelefonos(p => ({ ...p, [t.id]: e.target.value }))}
+                    inputMode="tel"
+                    onChange={(e) => setTelefonos(p => ({ ...p, [t.id]: e.target.value.replace(/[^\d+()\s-]/g, "") }))}
                     placeholder="Celular, ej: 351 1234567"
                     className="h-9"
                   />

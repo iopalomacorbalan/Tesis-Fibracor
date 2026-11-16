@@ -140,7 +140,7 @@ export function AsignarPersonalDialog({ open, onOpenChange, tecnicoId, tecnicoNo
                     <Input
                       type="number"
                       min="0.01"
-                      step="0.01"
+                      step="any"
                       value={linea.cantidad || ""}
                       onChange={(e) => {
                         const copy = [...lineas];

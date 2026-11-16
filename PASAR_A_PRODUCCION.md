@@ -87,6 +87,13 @@ escribir "5" quedaba "05" o "0,05").
   `mis-herramientas/MisHerramientasPage.tsx`
 - Sin dependencias (solo app)
 
+### Campos numéricos: flechas de a 1 y sin letras
+- Las flechas de los campos numéricos subían de a 0,01 (`step="0.01"` en 28 campos). Ahora son `step="any"`: suben de a 1 y se siguen pudiendo escribir decimales.
+- El componente `Input` compartido bloquea `e`, `E` y `+` en campos numéricos (y `-` cuando el mínimo es 0 o más).
+- CUIT (clientes y proveedores) acepta solo números y guion. Los teléfonos (clientes, proveedores, usuarios y aviso de WhatsApp) aceptan solo números, `+`, paréntesis, espacios y guion.
+- Modificado: `src/components/ui/input.tsx`, `crm/clientes/ClienteDialog.tsx`, `crm/proveedores/ProveedorDialog.tsx`, `usuarios/UsuarioDialog.tsx`, `obras/AvisarWhatsAppDialog.tsx` y los 16 archivos con campos numéricos
+- Sin dependencias (solo app)
+
 ### Campos obligatorios: no se guardan datos vacíos
 | Formulario | Ahora obligatorio | Sigue opcional |
 |---|---|---|

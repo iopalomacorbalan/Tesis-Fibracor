@@ -223,7 +223,7 @@ export function SolicitudDialog({ open, onOpenChange, obraIdFijo }: Props) {
                   <div className="grid grid-cols-2 gap-2">
                     <Input
                       type="number"
-                      min="0.01" step="0.01"
+                      min="0.01" step="any"
                       placeholder="Cantidad"
                       value={draft.cantidad || ""}
                       onChange={(e) => updateItem(idx, { cantidad: parseFloat(e.target.value) || 0 })}

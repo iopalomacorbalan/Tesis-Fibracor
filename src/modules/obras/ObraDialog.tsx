@@ -319,7 +319,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
               <div className="space-y-2">
                 <Label htmlFor="presupuesto">Presupuesto ($) *</Label>
                 <Input
-                  id="presupuesto" type="number" min="0" step="0.01" placeholder="0,00"
+                  id="presupuesto" type="number" min="0" step="any" placeholder="0,00"
                   value={form.presupuesto || ""}
                   onChange={(e) => setForm(f => ({ ...f, presupuesto: parseFloat(e.target.value) || 0 }))}
                   className={errors["presupuesto"] ? "border-destructive" : ""}

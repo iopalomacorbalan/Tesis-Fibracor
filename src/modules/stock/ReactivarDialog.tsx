@@ -96,7 +96,7 @@ export function ReactivarDialog({ open, onOpenChange, item, accion }: Props) {
               type="number"
               min="0.01"
               max={item.stock_fuera_servicio}
-              step="0.01"
+              step="any"
               value={cantidad || ""}
               onChange={(e) => setCantidad(parseFloat(e.target.value) || 0)}
               autoFocus

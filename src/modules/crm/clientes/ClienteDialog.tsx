@@ -129,7 +129,8 @@ export function ClienteDialog({ open, onOpenChange, cliente, onCreated }: Props)
                 id="cuit"
                 placeholder="20-12345678-9"
                 value={form.cuit ?? ""}
-                onChange={(e) => setForm(f => ({ ...f, cuit: e.target.value }))}
+                inputMode="numeric"
+                onChange={(e) => setForm(f => ({ ...f, cuit: e.target.value.replace(/[^\d-]/g, "") }))}
                 className={errors["cuit"] ? "border-destructive" : ""}
               />
               {errors["cuit"] && <p className="text-sm text-destructive">{errors["cuit"]}</p>}
@@ -166,7 +167,8 @@ export function ClienteDialog({ open, onOpenChange, cliente, onCreated }: Props)
                 id="telefono"
                 placeholder="+54 9 351..."
                 value={form.telefono ?? ""}
-                onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value }))}
+                inputMode="tel"
+                onChange={(e) => setForm(f => ({ ...f, telefono: e.target.value.replace(/[^\d+()\s-]/g, "") }))}
                 className={errors["telefono"] ? "border-destructive" : ""}
               />
               {errors["telefono"] && <p className="text-sm text-destructive">{errors["telefono"]}</p>}
