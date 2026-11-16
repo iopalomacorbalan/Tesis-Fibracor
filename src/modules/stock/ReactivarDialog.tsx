@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { useReactivarHerramienta } from "./useInventario";
 import type { Inventario } from "@/types/database";
+import { soloEnteros } from "@/lib/cantidades";
 
 interface Props {
   open: boolean;
@@ -94,11 +95,12 @@ export function ReactivarDialog({ open, onOpenChange, item, accion }: Props) {
             <Input
               id="cantidad"
               type="number"
-              min="0.01"
+              min="1"
               max={item.stock_fuera_servicio}
-              step="any"
+              step="1"
               value={cantidad || ""}
-              onChange={(e) => setCantidad(parseFloat(e.target.value) || 0)}
+              onKeyDown={soloEnteros}
+              onChange={(e) => setCantidad(parseInt(e.target.value, 10) || 0)}
               autoFocus
             />
             <p className="text-xs text-muted-foreground">

@@ -20,6 +20,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         className
       )}
       ref={ref}
+      // Fechas: el navegador deja escribir años de 6 dígitos (ej. 235325). Se acota a un rango razonable, salvo que el campo defina el suyo.
+      {...(type === "date" ? { min: "2000-01-01", max: "2100-12-31" } : {})}
       {...props}
     />
   )
