@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Briefcase, Package, FileText, ShoppingCart,
-  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle, Clock, Wallet, Images, HardDriveDownload,
+  Users, ClipboardList, GitBranch, LogOut, Wrench, ScrollText, CalendarDays, Package2, AlertCircle, Clock, Wallet, Images, HardDriveDownload, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ const NAV: NavItem[] = [
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/caja-chica", icon: Wallet, label: "Caja Chica", group: "Administración",
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
+  { to: "/auditoria", icon: ShieldCheck, label: "Auditoría", group: "Administración",
+    roles: ["Direccion"] },
   { to: "/config/google-calendar", icon: CalendarDays, label: "Google Calendar", group: "Configuración",
     roles: ["Direccion", "Operaciones", "Contabilidad"] },
   { to: "/config/optimizar-fotos", icon: Images, label: "Optimizar fotos", group: "Configuración",
