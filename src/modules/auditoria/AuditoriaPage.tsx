@@ -9,8 +9,8 @@ import { useAuditoria, type RegistroAuditoria } from "./useAuditoria";
 import { etiqueta, esTecnico, formatear, ordenar } from "./formato";
 
 const TABLAS: Record<string, string> = {
-  obras: "Obras", remitos: "Remitos", compras: "Compras", inventario: "Stock",
-  caja_chica: "Caja chica", clientes: "Clientes", proveedores: "Proveedores", usuarios: "Usuarios",
+  obras: "Obras", reportes: "Reportes", solicitudes: "Solicitudes", remitos: "Remitos", compras: "Compras",
+  inventario: "Stock", caja_chica: "Caja chica", clientes: "Clientes", proveedores: "Proveedores", usuarios: "Usuarios",
 };
 
 const ACCIONES: Record<string, { label: string; clase: string }> = {
@@ -22,6 +22,7 @@ const ACCIONES: Record<string, { label: string; clase: string }> = {
 const RUTAS_MODULO: Record<string, string> = {
   remitos: "/remitos", compras: "/compras", inventario: "/stock",
   caja_chica: "/caja-chica", clientes: "/crm", proveedores: "/crm", usuarios: "/usuarios",
+  reportes: "/reportes", solicitudes: "/solicitudes",
 };
 
 /** A dónde lleva el código del registro. Las obras abren su ficha; el resto, su módulo. Un registro borrado ya no existe. */
@@ -49,13 +50,21 @@ function Detalle({ r }: { r: RegistroAuditoria }) {
   const ref = (k: string) => (esUpdate ? cambios[k]?.despues : cambios[k]);
   const visibles = ordenar(todas.filter(k => !esTecnico(k, ref(k)) && (esUpdate || cambios[k] !== null)));
   const ocultos = todas.length - visibles.length;
+  const contexto = Object.entries(r.contexto ?? {});
 
   return (
     <div className="space-y-2 text-sm" onClick={(e) => e.stopPropagation()}>
-      {visibles.length === 0 ? (
+      {visibles.length === 0 && contexto.length === 0 ? (
         <p className="text-xs text-muted-foreground">Solo cambiaron datos internos del sistema.</p>
       ) : (
         <dl className="grid grid-cols-[minmax(110px,170px)_1fr] gap-x-4 gap-y-1.5">
+          {/* A qué obra, reporte, técnico… pertenece este movimiento, en palabras */}
+          {contexto.map(([k, v]) => (
+            <div key={"ctx-" + k} className="contents">
+              <dt className="text-muted-foreground">{k}</dt>
+              <dd className="font-medium">{v}</dd>
+            </div>
+          ))}
           {visibles.map(k => (
             <div key={k} className="contents">
               <dt className="text-muted-foreground">{etiqueta(k)}</dt>
@@ -159,7 +168,7 @@ export default function AuditoriaPage() {
                 <CardContent className="p-3 space-y-2">
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className={cn("px-2 py-0.5 rounded-md text-[11px] border", a.clase)}>{a.label}</span>
-                    <b>{TABLAS[r.tabla] ?? r.tabla}</b>
+                    <b>{TABLAS[r.tabla] ?? etiqueta(r.tabla)}</b>
                     {r.referencia && (() => {
                       const destino = rutaDestino(r);
                       return destino ? (
@@ -179,6 +188,11 @@ export default function AuditoriaPage() {
                       {r.usuario_nombre ?? "Sistema"} · {new Date(r.created_at).toLocaleString("es-AR")}
                     </span>
                   </div>
+                  {abierto !== r.id && r.contexto && Object.keys(r.contexto).length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {Object.entries(r.contexto).map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                    </div>
+                  )}
                   {abierto === r.id && <Detalle r={r} />}
                 </CardContent>
               </Card>
