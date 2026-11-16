@@ -17,6 +17,7 @@ import { useObras } from "@/modules/obras/useObras";
 import { useInventario } from "@/modules/stock/useInventario";
 import { useUsuarios } from "@/modules/obras/useUsuarios";
 import type { PrioridadSol } from "@/types/database";
+import { soloEnteros } from "@/lib/cantidades";
 
 interface Props {
   open: boolean;
@@ -223,10 +224,11 @@ export function SolicitudDialog({ open, onOpenChange, obraIdFijo }: Props) {
                   <div className="grid grid-cols-2 gap-2">
                     <Input
                       type="number"
-                      min="0.01" step="0.01"
+                      min="1" step="1"
                       placeholder="Cantidad"
                       value={draft.cantidad || ""}
-                      onChange={(e) => updateItem(idx, { cantidad: parseFloat(e.target.value) || 0 })}
+                      onKeyDown={soloEnteros}
+                      onChange={(e) => updateItem(idx, { cantidad: parseInt(e.target.value, 10) || 0 })}
                     />
                     <Input
                       placeholder="Unidad (ud., m, kg...)"

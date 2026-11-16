@@ -281,7 +281,7 @@ export default function MisHerramientasPage() {
                 type="number"
                 min="0.01"
                 max={personalDevolver?.cantidad}
-                step="0.01"
+                step="any"
                 value={cantDevolver || ""}
                 onChange={(e) => setCantDevolver(parseFloat(e.target.value) || 0)}
               />
@@ -431,7 +431,7 @@ function DevolucionDialog({
               type="number"
               min="0.01"
               max={Number(herramienta.cantidad)}
-              step="0.01"
+              step="any"
               value={cantidad || ""}
               onChange={(e) => setCantidad(parseFloat(e.target.value) || 0)}
               autoFocus

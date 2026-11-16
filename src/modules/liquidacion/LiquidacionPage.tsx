@@ -425,11 +425,11 @@ function ConfigValoresDialog({ open, onOpenChange }: { open: boolean; onOpenChan
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Valor hora global (ARS)</Label>
-            <Input type="number" min="0" step="0.01" value={vHora} onChange={e => setVHora(e.target.value)} />
+            <Input type="number" min="0" step="any" value={vHora} onChange={e => setVHora(e.target.value)} />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Valor hora extra global (ARS)</Label>
-            <Input type="number" min="0" step="0.01" value={vExtra} onChange={e => setVExtra(e.target.value)} />
+            <Input type="number" min="0" step="any" value={vExtra} onChange={e => setVExtra(e.target.value)} />
           </div>
         </div>
 
@@ -440,13 +440,13 @@ function ConfigValoresDialog({ open, onOpenChange }: { open: boolean; onOpenChan
               <div key={t.id} className="grid grid-cols-[1fr_90px_90px] gap-2 items-center">
                 <span className="text-sm truncate">{t.nombre}</span>
                 <Input
-                  type="number" min="0" step="0.01" placeholder="hora"
+                  type="number" min="0" step="any" placeholder="hora"
                   className="h-8 text-xs"
                   value={overrides[t.id]?.h ?? ""}
                   onChange={e => setOverrides(prev => ({ ...prev, [t.id]: { h: e.target.value, e: prev[t.id]?.e ?? "" } }))}
                 />
                 <Input
-                  type="number" min="0" step="0.01" placeholder="extra"
+                  type="number" min="0" step="any" placeholder="extra"
                   className="h-8 text-xs"
                   value={overrides[t.id]?.e ?? ""}
                   onChange={e => setOverrides(prev => ({ ...prev, [t.id]: { h: prev[t.id]?.h ?? "", e: e.target.value } }))}

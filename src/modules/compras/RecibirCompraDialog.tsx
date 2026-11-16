@@ -110,7 +110,7 @@ export function RecibirCompraDialog({ open, onOpenChange, compra }: Props) {
                       <Label className="text-[10px]">Cantidad a recibir ahora</Label>
                       <Input
                         type="number"
-                        min="0.01" step="0.01"
+                        min="0.01" step="any"
                         max={pendiente}
                         value={cantidades[it.id] || ""}
                         onChange={(e) => setCantidades({

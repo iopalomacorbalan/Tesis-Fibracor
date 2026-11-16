@@ -316,7 +316,7 @@ function PrecioHoraCard() {
             <input
               type="number"
               min="0"
-              step="0.01"
+              step="any"
               value={val}
               onChange={(e) => setVal(e.target.value)}
               className="flex-1 h-12 px-3 text-2xl font-bold border rounded-md bg-background"

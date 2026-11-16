@@ -162,7 +162,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
                     <div>
                       <Label className="text-[10px]">Cantidad</Label>
                       <Input
-                        type="number" min="0.01" step="0.01"
+                        type="number" min="0.01" step="any"
                         value={it.cantidad || ""}
                         onChange={(e) => handleEditar(idx, { cantidad: parseFloat(e.target.value) || 0 })}
                       />
@@ -178,7 +178,7 @@ export function GenerarOcDialog({ open, onOpenChange, items }: Props) {
                       <div>
                         <Label className="text-[10px]">Precio unit. $ *</Label>
                         <Input
-                          type="number" min="0" step="0.01"
+                          type="number" min="0" step="any"
                           value={it.precio_unitario || ""}
                           onChange={(e) => handleEditar(idx, { precio_unitario: parseFloat(e.target.value) || 0 })}
                           placeholder="0.00"

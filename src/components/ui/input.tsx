@@ -4,14 +4,24 @@ import { cn } from "@/lib/utils";
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => (
+  ({ className, type, onKeyDown, ...props }, ref) => (
     <input
       type={type}
+      onKeyDown={(e) => {
+        // En campos numéricos el navegador deja escribir "e", "+" y "-", que no sirven para cantidades ni montos
+        if (type === "number") {
+          if (e.key === "e" || e.key === "E" || e.key === "+") e.preventDefault();
+          if (e.key === "-" && Number(props.min) >= 0) e.preventDefault();
+        }
+        onKeyDown?.(e);
+      }}
       className={cn(
         "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       ref={ref}
+      // Fechas: el navegador deja escribir años de 6 dígitos (ej. 235325). Se acota a un rango razonable, salvo que el campo defina el suyo.
+      {...(type === "date" ? { min: "2000-01-01", max: "2100-12-31" } : {})}
       {...props}
     />
   )

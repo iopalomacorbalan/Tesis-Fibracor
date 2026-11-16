@@ -11,6 +11,7 @@ import {
 import { useAjustarStock } from "./useInventario";
 import { ajusteSchema, type AjusteFormValues } from "./schemas";
 import type { Inventario } from "@/types/database";
+import { categoriaEntera, soloEnteros, leerCantidad } from "@/lib/cantidades";
 
 interface Props {
   open: boolean;
@@ -27,6 +28,8 @@ export function AjusteDialog({ open, onOpenChange, item }: Props) {
     motivo: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Herramientas y equipos especiales: se ajustan en unidades enteras
+  const entera = categoriaEntera(item?.categoria);
 
   useEffect(() => {
     if (open) {
@@ -124,10 +127,11 @@ export function AjusteDialog({ open, onOpenChange, item }: Props) {
             <Input
               id="cantidad"
               type="number"
-              min="0.01"
-              step="0.01"
+              min={entera ? "1" : "0.01"}
+              step={entera ? "1" : "any"}
               value={form.cantidad || ""}
-              onChange={(e) => setForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))}
+              onKeyDown={entera ? soloEnteros : undefined}
+              onChange={(e) => setForm(f => ({ ...f, cantidad: leerCantidad(e.target.value, entera) }))}
               autoFocus
             />
             {errors["cantidad"] && <p className="text-sm text-destructive">{errors["cantidad"]}</p>}

@@ -15,6 +15,7 @@ import { useProveedores } from "@/modules/crm/proveedores/useProveedores";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios as canViewPrices } from "@/lib/permissions";
 import { itemSchema, type ItemFormValues } from "./schemas";
+import { categoriaEntera, soloEnteros, leerCantidad } from "@/lib/cantidades";
 import type { Inventario, CategoriaItem } from "@/types/database";
 
 interface Props {
@@ -76,6 +77,10 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
     setErrors({});
   }, [item, open]);
 
+  // Herramientas y equipos especiales: stock en unidades enteras
+  const entera = categoriaEntera(form.categoria);
+  const aStock = (n?: number) => (entera ? Math.trunc(n ?? 0) : n);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = itemSchema.safeParse(form);
@@ -94,7 +99,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
             descripcion: parsed.data.descripcion,
             categoria: parsed.data.categoria,
             unidad: parsed.data.unidad,
-            stock_minimo: parsed.data.stock_minimo ?? 0,
+            stock_minimo: aStock(parsed.data.stock_minimo) ?? 0,
             numero_serie: parsed.data.numero_serie || null,
             codigo_barras: parsed.data.codigo_barras?.trim() || null,
             proveedor_principal_id: parsed.data.proveedor_principal_id ?? null,
@@ -109,8 +114,8 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
           descripcion: parsed.data.descripcion,
           categoria: parsed.data.categoria,
           unidad: parsed.data.unidad,
-          stock_inicial: parsed.data.stock_inicial,
-          stock_minimo: parsed.data.stock_minimo,
+          stock_inicial: aStock(parsed.data.stock_inicial),
+          stock_minimo: aStock(parsed.data.stock_minimo),
           numero_serie: parsed.data.numero_serie || null,
           codigo_barras: parsed.data.codigo_barras?.trim() || null,
           proveedor_principal_id: parsed.data.proveedor_principal_id ?? null,
@@ -193,9 +198,10 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                 id="stock_minimo"
                 type="number"
                 min="0"
-                step="0.01"
+                step={entera ? "1" : "any"}
                 value={form.stock_minimo || ""}
-                onChange={(e) => setForm(f => ({ ...f, stock_minimo: parseFloat(e.target.value) || 0 }))}
+                onKeyDown={entera ? soloEnteros : undefined}
+                onChange={(e) => setForm(f => ({ ...f, stock_minimo: leerCantidad(e.target.value, entera) }))}
               />
             </div>
           </div>
@@ -207,9 +213,10 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                 id="stock_inicial"
                 type="number"
                 min="0"
-                step="0.01"
+                step={entera ? "1" : "any"}
                 value={form.stock_inicial || ""}
-                onChange={(e) => setForm(f => ({ ...f, stock_inicial: parseFloat(e.target.value) || 0 }))}
+                onKeyDown={entera ? soloEnteros : undefined}
+                onChange={(e) => setForm(f => ({ ...f, stock_inicial: leerCantidad(e.target.value, entera) }))}
               />
               <p className="text-xs text-muted-foreground">
                 Cantidad disponible al momento de crear el ítem (se registra como movimiento "Ingreso inicial")
@@ -291,7 +298,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                   id="precio_costo"
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="any"
                   value={form.precio_costo || ""}
                   onChange={(e) => setForm(f => ({ ...f, precio_costo: parseFloat(e.target.value) || 0 }))}
                 />
@@ -302,7 +309,7 @@ export function ItemDialog({ open, onOpenChange, item }: Props) {
                   id="precio_lista"
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="any"
                   value={form.precio_lista || ""}
                   onChange={(e) => setForm(f => ({ ...f, precio_lista: parseFloat(e.target.value) || 0 }))}
                 />
