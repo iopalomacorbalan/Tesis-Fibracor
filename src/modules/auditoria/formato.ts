@@ -10,7 +10,7 @@ const SOLO_HORA = /^(\d{2}):(\d{2})(:\d{2})?$/;
 const MONEDA = /(presupuesto|precio|monto|total|costo|saldo|importe)/;
 
 /** Campos de sistema que no le dicen nada a una persona. */
-const TECNICOS = new Set(["id", "created_at", "updated_at", "created_by", "updated_by", "user_id", "firma_imagen", "firma_token"]);
+const TECNICOS = new Set(["id", "created_at", "updated_at", "created_by", "updated_by", "user_id", "firma_imagen", "firma_token", "storage_path"]);
 
 /** Etiqueta y orden de los campos más comunes. Lo que no figura se muestra con el nombre "humanizado". */
 const ETIQUETAS: Record<string, string> = {
@@ -26,6 +26,11 @@ const ETIQUETAS: Record<string, string> = {
   precio_costo: "Precio de costo", precio_lista: "Precio de lista", ubicacion_fisica: "Ubicación en pañol",
   numero_serie: "Número de serie", codigo_barras: "Código de barras", activo: "Activo",
   observaciones: "Observaciones", notas: "Notas", recomendaciones: "Recomendaciones",
+  reporte_id: "Código de reporte", solicitud_id: "Código de solicitud", mov_id: "Código de movimiento",
+  trabajos_realizados: "Trabajos realizados", pendientes: "Pendientes", hora_entrada: "Hora de entrada", hora_salida: "Hora de salida",
+  cantidad: "Cantidad", cantidad_solicitada: "Cantidad pedida", cantidad_recibida: "Cantidad recibida", precio_unitario: "Precio unitario",
+  prioridad: "Prioridad", descripcion_libre: "Descripción", caption: "Epígrafe", estado_herramienta: "Estado de la herramienta",
+  fecha_solicitud: "Fecha de solicitud", fecha_atencion: "Fecha de atención",
 };
 const ORDEN = Object.keys(ETIQUETAS);
 
