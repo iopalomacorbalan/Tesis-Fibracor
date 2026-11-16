@@ -10,6 +10,8 @@ export interface RegistroAuditoria {
   usuario_id: string | null;
   usuario_nombre: string | null;
   cambios: Record<string, any> | null;
+  /** Quién y qué es cada referencia, en palabras (obra, reporte, técnico…). Lo guarda el trigger al registrar. */
+  contexto: Record<string, string> | null;
   created_at: string;
 }
 
