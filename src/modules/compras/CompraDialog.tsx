@@ -219,7 +219,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
                         <Label className="text-[10px]">Cantidad</Label>
                         <Input
                           type="number"
-                          min="0.01" step="0.01"
+                          min="0.01" step="any"
                           value={draft.cantidad_solicitada || ""}
                           onChange={(e) => updateItem(idx, { cantidad_solicitada: parseFloat(e.target.value) || 0 })}
                         />
@@ -230,7 +230,7 @@ export function CompraDialog({ open, onOpenChange }: Props) {
                             <Label className="text-[10px]">Precio unitario</Label>
                             <Input
                               type="number"
-                              min="0" step="0.01"
+                              min="0" step="any"
                               value={draft.precio_unitario || ""}
                               onChange={(e) => updateItem(idx, { precio_unitario: parseFloat(e.target.value) || 0 })}
                             />
