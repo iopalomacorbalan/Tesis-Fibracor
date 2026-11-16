@@ -25,6 +25,7 @@ import CajaChicaPage from "@/modules/caja-chica/CajaChicaPage";
 import MigracionFotosPage from "@/modules/configuracion/MigracionFotosPage";
 import BackupPage from "@/modules/configuracion/BackupPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
+import AuditoriaPage from "@/modules/auditoria/AuditoriaPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/reportes" element={<ErrorBoundary><ReportesPage /></ErrorBoundary>} />
             <Route path="/crm" element={<ErrorBoundary><CrmPage /></ErrorBoundary>} />
             <Route path="/remitos" element={<ErrorBoundary><RemitosPage /></ErrorBoundary>} />
+            <Route path="/auditoria" element={<ErrorBoundary><AuditoriaPage /></ErrorBoundary>} />
             <Route path="*" element={<Placeholder />} />
           </Route>
         </Routes>
