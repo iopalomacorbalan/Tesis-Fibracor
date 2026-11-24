@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Plus, Search, Filter, MoreVertical, Edit, Trash2, Eye,
   Briefcase, MapPin, Calendar, User, AlertCircle,
-  Play, CheckCircle, Lock, Loader2, DollarSign, RotateCcw,
+  Play, CheckCircle, Lock, Loader2, DollarSign, RotateCcw, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { ObraDialog } from "./ObraDialog";
 import { useNavigate } from "react-router-dom";
 import { CostosExtrasDialog } from "./CostosExtrasDialog";
 import { EliminarObraDialog } from "./EliminarObraDialog";
+import { ReporteDialog } from "@/modules/reportes/ReporteDialog";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
@@ -59,6 +60,7 @@ export default function ObrasPage() {
   const [obraCerrar, setObraCerrar] = useState<ObraConRelaciones | null>(null); // paso 2: confirmar
   const [obraFinalizar, setObraFinalizar] = useState<ObraConRelaciones | null>(null);
   const [obraReabrir, setObraReabrir] = useState<ObraConRelaciones | null>(null);
+  const [obraReporte, setObraReporte] = useState<ObraConRelaciones | null>(null);
 
   const puedeEditar = profile && ["Direccion", "Operaciones", "Comercial"].includes(profile.area);
   const puedeEliminar = !!profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
@@ -208,6 +210,7 @@ export default function ObrasPage() {
               onFinalizar={(o) => setObraFinalizar(o)}
               puedeReabrir={!!puedeReabrir}
               onReabrir={(o) => setObraReabrir(o)}
+              onReporte={(o) => setObraReporte(o)}
             />
           ))}
         </div>
@@ -312,6 +315,11 @@ export default function ObrasPage() {
         onOpenChange={(o) => !o && setObraEliminar(null)}
         obra={obraEliminar}
       />
+      <ReporteDialog
+        open={!!obraReporte}
+        onOpenChange={(o) => !o && setObraReporte(null)}
+        obraIdFijo={obraReporte?.id}
+      />
     </div>
   );
 }
@@ -335,7 +343,7 @@ function StatCard({ label, value, variant = "default" }: { label: string; value:
 
 function ObraCard({
   obra, puedeEditar, puedeEliminar, puedeCerrar, verPrecios, puedeGestionarExtras, puedeReabrir,
-  onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar, onGestionarExtras, onReabrir,
+  onVer, onEditar, onEliminar, onIniciar, onParaCierre, onFinalizar, onGestionarExtras, onReabrir, onReporte,
 }: {
   obra: ObraConRelaciones;
   puedeEditar: boolean;
@@ -352,6 +360,7 @@ function ObraCard({
   onGestionarExtras: (o: ObraConRelaciones) => void;
   onFinalizar: (o: ObraConRelaciones) => void;
   onReabrir: (o: ObraConRelaciones) => void;
+  onReporte: (o: ObraConRelaciones) => void;
 }) {
   return (
     <Card className="hover:border-primary/40 transition-colors">
@@ -405,6 +414,14 @@ function ObraCard({
               <Eye className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Ver</span>
             </Button>
+
+            {/* Acceso directo a cargar reporte (tarea principal del técnico) */}
+            {obra.estado !== "Cerrada" && obra.estado !== "Cancelada" && (
+              <Button variant="default" size="sm" onClick={() => onReporte(obra)}>
+                <FileText className="h-3.5 w-3.5" />
+                Reporte
+              </Button>
+            )}
 
             {/* Acciones de cambio de estado */}
             {puedeCerrar && obra.estado === "Pendiente OIO" && (

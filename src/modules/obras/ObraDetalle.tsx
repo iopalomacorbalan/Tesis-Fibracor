@@ -153,6 +153,18 @@ export default function ObraDetallePage() {
               />
             )}
 
+            {/* Acceso directo a cargar reporte: es la tarea principal del técnico en obra (desde el celu) */}
+            {obra.estado !== "Cerrada" && obra.estado !== "Cancelada" && (
+              <Button
+                size="lg"
+                className="w-full sm:w-auto text-base font-semibold"
+                onClick={() => setReporteNuevoOpen(true)}
+              >
+                <Plus className="h-5 w-5" />
+                Cargar reporte
+              </Button>
+            )}
+
             <Tabs value={tab} onValueChange={setTab}>
               <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 pb-1">
                 <TabsList className="w-max">
