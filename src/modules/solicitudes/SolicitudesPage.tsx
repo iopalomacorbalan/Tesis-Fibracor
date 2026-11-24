@@ -17,6 +17,7 @@ import { SolicitudDetalle } from "./SolicitudDetalle";
 import { useAuth } from "@/lib/auth";
 import { cn, formatDate } from "@/lib/utils";
 import type { SolicitudConRelaciones, EstadoSolicitud, PrioridadSol } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 const ESTADO_INFO: Record<EstadoSolicitud, { label: string; color: string; icon: any }> = {
   "Pendiente":  { label: "Pendiente", color: "bg-warning/15 text-warning border-warning/30", icon: Clock },
@@ -63,6 +64,8 @@ export default function SolicitudesPage() {
       return true;
     });
   }, [solicitudes, search, filtroEstado, esTecnico, profile]);
+
+  const pag = usePaginacion(filtered, `${search}|${filtroEstado}`);
 
   const stats = useMemo(() => ({
     pendientes: solicitudes.filter(s => s.estado === "Pendiente").length,
@@ -157,8 +160,9 @@ export default function SolicitudesPage() {
           </CardContent>
         </Card>
       ) : (
+      <>
         <div className="space-y-2">
-          {filtered.map(s => (
+          {pag.items.map(s => (
             <SolicitudCard
               key={s.id}
               solicitud={s}
@@ -168,6 +172,8 @@ export default function SolicitudesPage() {
             />
           ))}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       <SolicitudDialog open={dialogOpen} onOpenChange={setDialogOpen} />

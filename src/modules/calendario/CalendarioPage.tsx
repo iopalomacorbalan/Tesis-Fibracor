@@ -7,13 +7,15 @@ import listPlugin from "@fullcalendar/list";
 import esLocale from "@fullcalendar/core/locales/es";
 import type { EventInput, EventClickArg, EventDropArg } from "@fullcalendar/core";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+import { Calendar as CalendarIcon, RefreshCw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useObras } from "@/modules/obras/useObras";
-import { ObraDetalle } from "@/modules/obras/ObraDetalle";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import type { EstadoObra } from "@/types/database";
+import { VistaPorTecnico } from "./VistaPorTecnico";
+import { cn } from "@/lib/utils";
 
 const COLOR_POR_ESTADO: Record<EstadoObra, { bg: string; text: string; border: string }> = {
   "Pendiente OIO": { bg: "#FBBF24", text: "#78350F", border: "#D97706" },  // amarillo
@@ -26,14 +28,17 @@ const COLOR_POR_ESTADO: Record<EstadoObra, { bg: string; text: string; border: s
 export function CalendarioPage() {
   const { profile } = useAuth();
   const { data: obras = [], refetch, isLoading } = useObras();
-  const [obraDetalleId, setObraDetalleId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const calendarRef = useRef<FullCalendar | null>(null);
+  const [vista, setVista] = useState<"calendario" | "tecnicos">("calendario");
 
   // Permisos
   const area = profile?.area;
   const puedeEditar = area && ["Direccion", "Operaciones", "Paniol", "Comercial"].includes(area);
   const esTecnico = area === "Tecnico";
+  // La vista "Por técnico" muestra la carga de todo el equipo: solo para quienes ya ven lo general
+  const veTecnicos = !!area && ["Direccion", "Operaciones", "Contabilidad"].includes(area);
 
   // Filtrar obras: técnicos solo ven las suyas Y activas
   const obrasVisibles = useMemo(() => {
@@ -130,7 +135,7 @@ export function CalendarioPage() {
   };
 
   const handleEventClick = (info: EventClickArg) => {
-    setObraDetalleId(info.event.id);
+    navigate(`/obras/${info.event.id}`);
   };
 
   return (
@@ -146,11 +151,41 @@ export function CalendarioPage() {
               : "Vista general de todas las obras"}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading || saving}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${(isLoading || saving) ? "animate-spin" : ""}`} />
-          Actualizar
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {veTecnicos && (
+            <div className="inline-flex rounded-md border border-input p-0.5 bg-background" role="tablist" aria-label="Vista">
+              {([
+                { id: "calendario", label: "Calendario", icono: CalendarIcon },
+                { id: "tecnicos", label: "Por técnico", icono: Users },
+              ] as const).map(v => (
+                <button
+                  key={v.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={vista === v.id}
+                  onClick={() => setVista(v.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors",
+                    vista === v.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <v.icono className="h-3.5 w-3.5" />
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading || saving}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${(isLoading || saving) ? "animate-spin" : ""}`} />
+            Actualizar
+          </Button>
+        </div>
       </div>
+
+      {vista === "tecnicos" && veTecnicos ? (
+        <VistaPorTecnico obras={obras} />
+      ) : (
+      <>
 
       {/* Leyenda */}
       <div className="flex flex-wrap gap-3 px-1 text-xs text-muted-foreground">
@@ -236,12 +271,10 @@ export function CalendarioPage() {
         />
       </div>
 
+      </>
+      )}
+
       {/* Modal de detalle de obra (reusa el existente) */}
-      <ObraDetalle
-        open={obraDetalleId !== null}
-        onOpenChange={(o) => { if (!o) setObraDetalleId(null); }}
-        obraId={obraDetalleId}
-      />
     </div>
   );
 }

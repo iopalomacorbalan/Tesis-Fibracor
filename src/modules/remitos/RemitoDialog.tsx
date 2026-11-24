@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { UnidadSelect } from "@/components/ui/unidad-select";
 import {
   useCrearRemito, useEditarRemito, useItemsRemitables,
   useEditarRemitoItem, useEliminarRemitoItem, useAgregarRemitoItem,
@@ -583,11 +584,7 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                               </div>
                               <div>
                                 <Label className="text-[10px]">Unidad</Label>
-                                <Input
-                                  placeholder="ud., m, kg..."
-                                  value={draft.unidad}
-                                  onChange={(e) => updateItemDirecto(idx, { unidad: e.target.value })}
-                                />
+                                <UnidadSelect value={draft.unidad} onChange={(v) => updateItemDirecto(idx, { unidad: v })} />
                               </div>
                             </div>
 
@@ -812,7 +809,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
                       </div>
                       <div>
                         <Label className="text-[10px]">Unidad</Label>
-                        <Input value={editUnidad} onChange={(e) => setEditUnidad(e.target.value)} />
+                        <UnidadSelect value={editUnidad} onChange={setEditUnidad} />
                       </div>
                       <div>
                         <Label className="text-[10px]">Descripción libre</Label>
@@ -890,7 +887,7 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
             </div>
             <div>
               <Label className="text-[10px]">Unidad</Label>
-              <Input value={newUnidad} onChange={(e) => setNewUnidad(e.target.value)} />
+              <UnidadSelect value={newUnidad} onChange={setNewUnidad} />
             </div>
           </div>
           <div className="flex gap-2 justify-end">

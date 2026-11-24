@@ -18,6 +18,7 @@ import { RemitoQRDialog } from "./RemitoQRDialog";
 import { useAuth } from "@/lib/auth";
 import { formatDate, cn } from "@/lib/utils";
 import type { RemitoConRelaciones } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 export default function RemitosPage() {
   const { profile } = useAuth();
@@ -52,6 +53,8 @@ export default function RemitosPage() {
       return true;
     });
   }, [remitos, search, filtroFirma]);
+
+  const pag = usePaginacion(filtered, `${search}|${filtroFirma}`);
 
   const stats = useMemo(() => ({
     total: remitos.length,
@@ -140,8 +143,9 @@ export default function RemitosPage() {
           </CardContent>
         </Card>
       ) : (
+      <>
         <div className="space-y-2">
-          {filtered.map(r => (
+          {pag.items.map(r => (
             <RemitoCard
               key={r.id}
               remito={r}
@@ -154,6 +158,8 @@ export default function RemitosPage() {
             />
           ))}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       <RemitoDialog open={dialogOpen} onOpenChange={(o) => {

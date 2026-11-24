@@ -53,8 +53,8 @@ BEGIN
   RETURNING id INTO v_user_id;
 
   -- 2. Crear entrada en public.usuarios
-  INSERT INTO public.usuarios (id, email, nombre, area, activo)
-  VALUES (v_user_id, v_email, v_nombre, 'Tecnico', true);
+  INSERT INTO public.usuarios (id, user_id, email, nombre, area, activo)
+  VALUES (v_user_id, v_user_id, v_email, v_nombre, 'Tecnico', true);
 
   RAISE NOTICE 'Técnico creado: % (UUID: %)', v_email, v_user_id;
 END $$;

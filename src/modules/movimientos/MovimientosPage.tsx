@@ -19,6 +19,7 @@ import { AceptarDevolucionDialog } from "./AceptarDevolucionDialog";
 import { useAuth } from "@/lib/auth";
 import { cn, formatDate } from "@/lib/utils";
 import type { MovimientoConRelaciones, TipoMovimiento } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 const TIPO_INFO: Record<TipoMovimiento, { label: string; color: string; icon: any; sign: string }> = {
   "Ingreso_compra":      { label: "Ingreso compra", color: "text-success", icon: ArrowUp, sign: "+" },
@@ -64,6 +65,8 @@ export default function MovimientosPage() {
       return true;
     });
   }, [movimientos, search, filtroTipo]);
+
+  const pag = usePaginacion(filtered, `${search}|${filtroTipo}`);
 
   const handleCancelarPendiente = async () => {
     if (!movCancelar) return;
@@ -139,9 +142,12 @@ export default function MovimientosPage() {
                 </CardContent>
               </Card>
             ) : (
+            <>
               <div className="space-y-2">
-                {filtered.map(m => <MovCard key={m.id} mov={m} />)}
+                {pag.items.map(m => <MovCard key={m.id} mov={m} />)}
               </div>
+              <Paginacion {...pag.controles} />
+            </>
             )}
           </div>
         </TabsContent>

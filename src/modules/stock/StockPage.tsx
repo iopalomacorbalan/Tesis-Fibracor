@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios as canViewPrices } from "@/lib/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Inventario, CategoriaItem } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 const CATEGORIAS_FILTROS: (CategoriaItem | "Todos" | "Críticos")[] = [
   "Todos", "Críticos", "Material", "Consumo", "Herramienta", "Reutilizable", "Equipo especial",
@@ -79,6 +80,8 @@ export default function StockPage() {
       return true;
     });
   }, [items, search, filtro, esTecnico]);
+
+  const pag = usePaginacion(filtered, `${search}|${filtro}`);
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -214,8 +217,9 @@ export default function StockPage() {
           </CardContent>
         </Card>
       ) : (
+      <>
         <div className="space-y-2">
-          {filtered.map(it => (
+          {pag.items.map(it => (
             <ItemCard
               key={it.id}
               item={it}
@@ -229,6 +233,8 @@ export default function StockPage() {
             />
           ))}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       {/* Dialogs */}

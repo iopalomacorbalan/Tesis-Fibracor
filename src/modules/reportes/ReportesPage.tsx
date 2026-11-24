@@ -14,6 +14,7 @@ import { ReporteDetalle } from "./ReporteDetalle";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import type { ReporteConRelaciones } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 export default function ReportesPage() {
   const { profile } = useAuth();
@@ -44,6 +45,8 @@ export default function ReportesPage() {
       );
     });
   }, [reportes, search]);
+
+  const pag = usePaginacion(filtered, search);
 
   const stats = useMemo(() => {
     const total = reportes.length;
@@ -116,8 +119,9 @@ export default function ReportesPage() {
           </CardContent>
         </Card>
       ) : (
+      <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map(r => {
+          {pag.items.map(r => {
             const esAutor = profile && r.tecnico_id === profile.id;
             const puedeEditarEste = puedeEditarSiempre || esAutor;
             return (
@@ -133,6 +137,8 @@ export default function ReportesPage() {
             );
           })}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       <ReporteDialog open={dialogOpen} onOpenChange={setDialogOpen} />

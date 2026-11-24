@@ -1,9 +1,11 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { puedeVerRuta } from "./Sidebar";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, profile, initialized, profileLoading } = useAuth();
+  const { pathname } = useLocation();
 
   if (!initialized || profileLoading) {
     return (
@@ -30,6 +32,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  // Módulos que el área no tiene en el menú tampoco se pueden abrir por URL
+  if (!puedeVerRuta(pathname, profile.area)) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 }

@@ -15,6 +15,7 @@ import { useProveedores, useEliminarProveedor } from "./useProveedores";
 import { ProveedorDialog } from "./ProveedorDialog";
 import { useAuth } from "@/lib/auth";
 import type { Proveedor } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 export function ProveedoresList() {
   const { profile } = useAuth();
@@ -53,6 +54,8 @@ export function ProveedoresList() {
       return true;
     });
   }, [proveedores, search, filtroRubro]);
+
+  const pag = usePaginacion(filtered, `${search}|${filtroRubro}`);
 
   const handleEliminar = async () => {
     if (!provEliminar) return;
@@ -133,8 +136,9 @@ export function ProveedoresList() {
           </CardContent>
         </Card>
       ) : (
+      <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {filtered.map(p => (
+          {pag.items.map(p => (
             <ProveedorCard
               key={p.id}
               proveedor={p}
@@ -144,6 +148,8 @@ export function ProveedoresList() {
             />
           ))}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       <ProveedorDialog open={dialogOpen} onOpenChange={setDialogOpen} proveedor={provEditar} />

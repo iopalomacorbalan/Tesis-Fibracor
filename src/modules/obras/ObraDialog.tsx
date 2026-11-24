@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Building2, ClipboardList, CalendarRange, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,16 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useClientes, useCrearCliente } from "./useClientes";
+import { useClientes } from "./useClientes";
+import { ClienteDialog } from "@/modules/crm/clientes/ClienteDialog";
 import { useUsuarios, useTecnicos } from "./useUsuarios";
 import { useCrearObra, useEditarObra } from "./useObras";
 import { obraSchema, type ObraFormValues } from "./schemas";
+import { AvisarWhatsAppDialog } from "./AvisarWhatsAppDialog";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
-import type { ObraConRelaciones } from "@/types/database";
+import type { ObraParaAviso } from "@/lib/whatsapp";
+import type { Obra, ObraConRelaciones, Usuario } from "@/types/database";
 
 interface Props {
   open: boolean;
@@ -34,7 +37,6 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
   const { data: tecnicos = [] } = useTecnicos();
   const crearObra = useCrearObra();
   const editarObra = useEditarObra();
-  const crearCliente = useCrearCliente();
 
   const [form, setForm] = useState<ObraFormValues>({
     cliente_id: null,
@@ -50,8 +52,9 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
     tecnicos_ids: [],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showNuevoCliente, setShowNuevoCliente] = useState(false);
-  const [nuevoClienteNombre, setNuevoClienteNombre] = useState("");
+  const [nuevoClienteOpen, setNuevoClienteOpen] = useState(false);
+  // Aviso por WhatsApp a los técnicos recién asignados (se abre al guardar)
+  const [aviso, setAviso] = useState<{ obra: ObraParaAviso; tecnicos: Usuario[] } | null>(null);
 
   useEffect(() => {
     if (obra) {
@@ -86,19 +89,6 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
     setErrors({});
   }, [obra, open]);
 
-  const handleCrearCliente = async () => {
-    if (!nuevoClienteNombre.trim()) return;
-    try {
-      const cli = await crearCliente.mutateAsync({ nombre: nuevoClienteNombre.trim() });
-      setForm(f => ({ ...f, cliente_id: cli.id }));
-      setNuevoClienteNombre("");
-      setShowNuevoCliente(false);
-      toast.success("Cliente creado");
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
-    }
-  };
-
   const toggleTecnico = (tid: string) => {
     setForm(f => ({
       ...f,
@@ -111,16 +101,40 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = obraSchema.safeParse(form);
+    const errs: Record<string, string> = {};
     if (!parsed.success) {
-      const errs: Record<string, string> = {};
-      parsed.error.issues.forEach(i => { errs[i.path.join(".")] = i.message; });
+      parsed.error.issues.forEach(i => { errs[i.path.join(".")] ??= i.message; });
+    }
+    // El presupuesto solo lo carga quien puede ver precios
+    if (verPrecios && !((form.presupuesto ?? 0) > 0)) {
+      errs["presupuesto"] = "Presupuesto requerido";
+    }
+    if (!parsed.success || Object.keys(errs).length > 0) {
       setErrors(errs);
-      toast.error("Revisá los errores del formulario");
+      toast.error("Completá los campos obligatorios");
       return;
     }
+    setErrors({});
+    // Solo se avisa a los técnicos que no estaban asignados antes
+    const yaAsignados = new Set(obra?.tecnicos?.map(t => t.id) ?? []);
+    const nuevosTecnicos = tecnicos.filter(
+      t => parsed.data.tecnicos_ids?.includes(t.id) && !yaAsignados.has(t.id),
+    );
+    const prepararAviso = (o: Obra) => {
+      if (nuevosTecnicos.length === 0) return;
+      setAviso({
+        obra: {
+          ...o,
+          cliente_nombre: clientes.find(c => c.id === o.cliente_id)?.nombre ?? null,
+          jefe_nombre: jefesPosibles.find(u => u.id === o.jefe_obra_id)?.nombre ?? null,
+        },
+        tecnicos: nuevosTecnicos,
+      });
+    };
+
     try {
       if (isEdit && obra) {
-        await editarObra.mutateAsync({
+        const obraEditada = await editarObra.mutateAsync({
           id: obra.id,
           patch: {
             cliente_id: parsed.data.cliente_id,
@@ -137,6 +151,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
           tecnicos_ids: parsed.data.tecnicos_ids,
         });
         toast.success("Obra actualizada");
+        prepararAviso(obraEditada);
       } else {
         const obraNueva = await crearObra.mutateAsync({
           cliente_id: parsed.data.cliente_id,
@@ -152,6 +167,7 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
           tecnicos_ids: parsed.data.tecnicos_ids,
         });
         toast.success(`Obra ${obraNueva.obra_id} creada`);
+        prepararAviso(obraNueva);
       }
       onOpenChange(false);
     } catch (e: any) {
@@ -161,210 +177,250 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
 
   const loading = crearObra.isPending || editarObra.isPending;
 
+  const ErrorCampo = ({ campo }: { campo: string }) =>
+    errors[campo] ? <p className="text-sm text-destructive">{errors[campo]}</p> : null;
+
   return (
+    <>
+    <AvisarWhatsAppDialog
+      open={!!aviso}
+      onOpenChange={(o) => { if (!o) setAviso(null); }}
+      obra={aviso?.obra ?? null}
+      tecnicos={aviso?.tecnicos ?? []}
+    />
+    <ClienteDialog
+      open={nuevoClienteOpen}
+      onOpenChange={setNuevoClienteOpen}
+      onCreated={(c) => setForm(f => ({ ...f, cliente_id: c.id }))}
+    />
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? `Editar — ${obra?.obra_id}` : "Nueva obra"}</DialogTitle>
+      <DialogContent className="max-w-5xl p-0 gap-0 flex flex-col overflow-hidden">
+        <DialogHeader className="px-4 sm:px-8 pt-5 sm:pt-7 pb-4 border-b border-border pr-12">
+          <DialogTitle className="text-xl">{isEdit ? `Editar — ${obra?.obra_id}` : "Nueva obra"}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "Modificar los datos de la obra" : "Cargar una nueva orden de trabajo"}
+            {isEdit
+              ? "Modificá los datos de la obra."
+              : "Cargá la orden de trabajo. Los campos con * son obligatorios."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Cliente */}
-          <div className="space-y-2">
-            <Label>Cliente *</Label>
-            {!showNuevoCliente ? (
-              <div className="flex gap-2">
-                <Select
-                  value={form.cliente_id ?? ""}
-                  onValueChange={(v) => setForm(f => ({ ...f, cliente_id: v || null }))}
-                >
-                  <SelectTrigger className={errors["cliente_id"] ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Seleccionar cliente..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
-                    ))}
-                    {clientes.length === 0 && (
-                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                        No hay clientes. Creá uno con el botón +
-                      </div>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setShowNuevoCliente(true)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Nombre del nuevo cliente"
-                  value={nuevoClienteNombre}
-                  onChange={(e) => setNuevoClienteNombre(e.target.value)}
-                  autoFocus
-                />
-                <Button type="button" onClick={handleCrearCliente} disabled={!nuevoClienteNombre.trim() || crearCliente.isPending}>
-                  {crearCliente.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear"}
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setShowNuevoCliente(false)}>Cancelar</Button>
-              </div>
-            )}
-            {errors["cliente_id"] && <p className="text-sm text-destructive">{errors["cliente_id"]}</p>}
-          </div>
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 sm:py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 lg:gap-6">
+              {/* ───────── Columna izquierda: la obra ───────── */}
+              <div className="lg:col-span-3 space-y-5">
+                <Seccion icono={Building2} titulo="Datos de la obra">
+                  {/* Cliente */}
+                  <div className="space-y-2">
+                    <Label>Cliente *</Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={form.cliente_id ?? ""}
+                        onValueChange={(v) => setForm(f => ({ ...f, cliente_id: v || null }))}
+                      >
+                        <SelectTrigger className={errors["cliente_id"] ? "border-destructive" : ""}>
+                          <SelectValue placeholder="Seleccionar cliente..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clientes.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                          ))}
+                          {clientes.length === 0 && (
+                            <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                              No hay clientes. Creá uno con el botón +
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {/* Abre el alta completa de cliente, para no crear clientes con datos vacíos */}
+                      <Button
+                        type="button" variant="outline" size="icon" title="Nuevo cliente"
+                        onClick={() => setNuevoClienteOpen(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <ErrorCampo campo="cliente_id" />
+                  </div>
 
-          {/* Nombre y sitio */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nombre_obra">Nombre obra *</Label>
-              <Input
-                id="nombre_obra"
-                value={form.nombre_obra}
-                onChange={(e) => setForm(f => ({ ...f, nombre_obra: e.target.value }))}
-                className={errors["nombre_obra"] ? "border-destructive" : ""}
-              />
-              {errors["nombre_obra"] && <p className="text-sm text-destructive">{errors["nombre_obra"]}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sitio">Sitio / dirección</Label>
-              <Input
-                id="sitio"
-                value={form.sitio ?? ""}
-                onChange={(e) => setForm(f => ({ ...f, sitio: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          {/* Ubicación Google Maps (opcional) */}
-          <div className="space-y-2">
-            <Label htmlFor="maps_url" className="flex items-center gap-1.5">
-              📍 Link de Google Maps <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
-            </Label>
-            <Input
-              id="maps_url"
-              value={form.maps_url ?? ""}
-              onChange={(e) => setForm(f => ({ ...f, maps_url: e.target.value }))}
-              placeholder="Pegá el link de Google Maps de la ubicación"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              En Google Maps buscá la ubicación → Compartir → Copiar vínculo, y pegalo acá. Los técnicos verán un botón "Cómo llegar".
-            </p>
-            {form.maps_url && !/(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(form.maps_url) && (
-              <p className="text-[11px] text-warning">
-                ⚠️ Esto no parece un link de Google Maps. Verificá que sea correcto.
-              </p>
-            )}
-          </div>
-
-          {/* Alcance */}
-          <div className="space-y-2">
-            <Label htmlFor="alcance">Alcance técnico</Label>
-            <Textarea
-              id="alcance"
-              rows={3}
-              value={form.alcance_tecnico ?? ""}
-              onChange={(e) => setForm(f => ({ ...f, alcance_tecnico: e.target.value }))}
-              placeholder="Descripción de los trabajos..."
-            />
-          </div>
-
-          {/* Fechas y presupuesto */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="fecha_inicio">Inicio estimado</Label>
-              <Input
-                id="fecha_inicio" type="date"
-                value={form.fecha_inicio_est ?? ""}
-                onChange={(e) => setForm(f => ({ ...f, fecha_inicio_est: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fecha_fin">Fin estimado</Label>
-              <Input
-                id="fecha_fin" type="date"
-                value={form.fecha_fin_est ?? ""}
-                onChange={(e) => setForm(f => ({ ...f, fecha_fin_est: e.target.value }))}
-              />
-            </div>
-            {verPrecios && (
-              <div className="space-y-2">
-                <Label htmlFor="presupuesto">Presupuesto ($)</Label>
-                <Input
-                  id="presupuesto" type="number" min="0" step="any"
-                  value={form.presupuesto || ""}
-                  onChange={(e) => setForm(f => ({ ...f, presupuesto: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Jefe de obra */}
-          <div className="space-y-2">
-            <Label>Jefe de obra</Label>
-            <Select
-              value={form.jefe_obra_id ?? ""}
-              onValueChange={(v) => setForm(f => ({ ...f, jefe_obra_id: v || null }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="— sin asignar —" />
-              </SelectTrigger>
-              <SelectContent>
-                {jefesPosibles.map(u => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.nombre} ({u.area})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Técnicos asignados */}
-          <div className="space-y-2">
-            <Label>Técnicos asignados</Label>
-            <div className="flex flex-wrap gap-2 p-3 bg-secondary/30 border border-input rounded-md min-h-[60px]">
-              {tecnicos.length === 0 ? (
-                <span className="text-sm text-muted-foreground">No hay técnicos registrados</span>
-              ) : (
-                tecnicos.map(t => {
-                  const checked = form.tecnicos_ids?.includes(t.id);
-                  return (
-                    <label
-                      key={t.id}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors text-sm ${
-                        checked
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-background hover:bg-accent"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked ?? false}
-                        onChange={() => toggleTecnico(t.id)}
-                        className="sr-only"
+                  {/* Nombre y sitio */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre_obra">Nombre de la obra *</Label>
+                      <Input
+                        id="nombre_obra"
+                        value={form.nombre_obra}
+                        onChange={(e) => setForm(f => ({ ...f, nombre_obra: e.target.value }))}
+                        className={errors["nombre_obra"] ? "border-destructive" : ""}
                       />
-                      {t.nombre}
-                    </label>
-                  );
-                })
-              )}
+                      <ErrorCampo campo="nombre_obra" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sitio">Sitio / dirección *</Label>
+                      <Input
+                        id="sitio"
+                        value={form.sitio ?? ""}
+                        onChange={(e) => setForm(f => ({ ...f, sitio: e.target.value }))}
+                        className={errors["sitio"] ? "border-destructive" : ""}
+                      />
+                      <ErrorCampo campo="sitio" />
+                    </div>
+                  </div>
+
+                  {/* Ubicación Google Maps (opcional) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="maps_url" className="flex items-center gap-1.5">
+                      📍 Link de Google Maps <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+                    </Label>
+                    <Input
+                      id="maps_url"
+                      value={form.maps_url ?? ""}
+                      onChange={(e) => setForm(f => ({ ...f, maps_url: e.target.value }))}
+                      placeholder="Pegá el link de Google Maps de la ubicación"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      En Google Maps buscá la ubicación → Compartir → Copiar vínculo, y pegalo acá. Los técnicos verán un botón "Cómo llegar".
+                    </p>
+                    {form.maps_url && !/(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(form.maps_url) && (
+                      <p className="text-[11px] text-warning">
+                        ⚠️ Esto no parece un link de Google Maps. Verificá que sea correcto.
+                      </p>
+                    )}
+                  </div>
+                </Seccion>
+
+                <Seccion icono={ClipboardList} titulo="Trabajo a realizar">
+                  <div className="space-y-2">
+                    <Label htmlFor="alcance">Alcance técnico *</Label>
+                    <Textarea
+                      id="alcance"
+                      rows={5}
+                      value={form.alcance_tecnico ?? ""}
+                      onChange={(e) => setForm(f => ({ ...f, alcance_tecnico: e.target.value }))}
+                      placeholder="Descripción de los trabajos..."
+                      className={errors["alcance_tecnico"] ? "border-destructive" : ""}
+                    />
+                    <ErrorCampo campo="alcance_tecnico" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="obs">
+                      Observaciones <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+                    </Label>
+                    <Textarea
+                      id="obs"
+                      rows={3}
+                      value={form.observaciones ?? ""}
+                      onChange={(e) => setForm(f => ({ ...f, observaciones: e.target.value }))}
+                    />
+                  </div>
+                </Seccion>
+              </div>
+
+              {/* ───────── Columna derecha: plazos y equipo ───────── */}
+              <div className="lg:col-span-2 space-y-5">
+                <Seccion icono={CalendarRange} titulo="Plazos y presupuesto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_inicio">Inicio estimado *</Label>
+                      <Input
+                        id="fecha_inicio" type="date"
+                        value={form.fecha_inicio_est ?? ""}
+                        onChange={(e) => setForm(f => ({ ...f, fecha_inicio_est: e.target.value }))}
+                        className={errors["fecha_inicio_est"] ? "border-destructive" : ""}
+                      />
+                      <ErrorCampo campo="fecha_inicio_est" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_fin">Fin estimado *</Label>
+                      <Input
+                        id="fecha_fin" type="date"
+                        min={form.fecha_inicio_est || undefined}
+                        value={form.fecha_fin_est ?? ""}
+                        onChange={(e) => setForm(f => ({ ...f, fecha_fin_est: e.target.value }))}
+                        className={errors["fecha_fin_est"] ? "border-destructive" : ""}
+                      />
+                      <ErrorCampo campo="fecha_fin_est" />
+                    </div>
+                  </div>
+                  {verPrecios && (
+                    <div className="space-y-2">
+                      <Label htmlFor="presupuesto">Presupuesto ($) *</Label>
+                      <Input
+                        id="presupuesto" type="number" min="0" step="any" placeholder="0,00"
+                        value={form.presupuesto || ""}
+                        onChange={(e) => setForm(f => ({ ...f, presupuesto: parseFloat(e.target.value) || 0 }))}
+                        className={errors["presupuesto"] ? "border-destructive" : ""}
+                      />
+                      <ErrorCampo campo="presupuesto" />
+                    </div>
+                  )}
+                </Seccion>
+
+                <Seccion icono={Users} titulo="Equipo">
+                  <div className="space-y-2">
+                    <Label>Jefe de obra *</Label>
+                    <Select
+                      value={form.jefe_obra_id ?? ""}
+                      onValueChange={(v) => setForm(f => ({ ...f, jefe_obra_id: v || null }))}
+                    >
+                      <SelectTrigger className={errors["jefe_obra_id"] ? "border-destructive" : ""}>
+                        <SelectValue placeholder="Seleccionar jefe de obra..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {jefesPosibles.map(u => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.nombre} ({u.area})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <ErrorCampo campo="jefe_obra_id" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Técnicos asignados *</Label>
+                      {(form.tecnicos_ids?.length ?? 0) > 0 && (
+                        <span className="text-xs text-muted-foreground">{form.tecnicos_ids?.length} seleccionados</span>
+                      )}
+                    </div>
+                    <div className={`flex flex-wrap gap-2 p-3 bg-background/40 border rounded-md min-h-[60px] ${
+                      errors["tecnicos_ids"] ? "border-destructive" : "border-input"
+                    }`}>
+                      {tecnicos.length === 0 ? (
+                        <span className="text-sm text-muted-foreground">No hay técnicos registrados</span>
+                      ) : (
+                        tecnicos.map(t => {
+                          const checked = form.tecnicos_ids?.includes(t.id);
+                          return (
+                            <label
+                              key={t.id}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors text-sm ${
+                                checked
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-background hover:bg-accent"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked ?? false}
+                                onChange={() => toggleTecnico(t.id)}
+                                className="sr-only"
+                              />
+                              {t.nombre}
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                    <ErrorCampo campo="tecnicos_ids" />
+                  </div>
+                </Seccion>
+              </div>
             </div>
           </div>
 
-          {/* Observaciones */}
-          <div className="space-y-2">
-            <Label htmlFor="obs">Observaciones</Label>
-            <Textarea
-              id="obs"
-              rows={2}
-              value={form.observaciones ?? ""}
-              onChange={(e) => setForm(f => ({ ...f, observaciones: e.target.value }))}
-            />
-          </div>
-
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 px-4 sm:px-8 py-4 border-t border-border bg-card">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -374,5 +430,21 @@ export function ObraDialog({ open, onOpenChange, obra }: Props) {
         </form>
       </DialogContent>
     </Dialog>
+    </>
+  );
+}
+
+/** Tarjeta con título para agrupar campos relacionados */
+function Seccion({
+  icono: Icono, titulo, children,
+}: { icono: React.ComponentType<{ className?: string }>; titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border border-border bg-secondary/20 p-4 sm:p-5 space-y-4">
+      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <Icono className="h-4 w-4" />
+        {titulo}
+      </h3>
+      {children}
+    </section>
   );
 }

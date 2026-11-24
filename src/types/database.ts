@@ -27,6 +27,7 @@ export interface Usuario {
   user_id: string;
   nombre: string;
   email: string;
+  telefono: string | null;
   area: UserArea;
   rol: string | null;
   activo: boolean;
