@@ -41,6 +41,20 @@ npm run preview   # ver localmente
 
 El output queda en `dist/`. Se puede subir a Vercel/Netlify directo.
 
+## Funcionalidades principales
+
+- **Obras:** alta con formulario por secciones, página de detalle por obra (ficha, progreso, cambio de estado con historial, reportes dentro de la obra y exportación a PDF).
+- **Calendario:** calendario de obras y vista **Por técnico**; enlaces de calendario personales y uno central para suscribirse desde Google Calendar.
+- **Stock y Herramientas:** inventario, movimientos y revisión, con pestañas; catálogo de unidades.
+- **Comercial:** CRM de clientes y proveedores (rubros), remitos con firma por QR, solicitudes y órdenes de compra.
+- **Administración:** usuarios (alta desde la app), caja chica, liquidación de horas, auditoría de cambios y copia de seguridad.
+- **Dashboard:** indicadores y tablero de control (presupuesto vs. costo, gasto mensual, plazos y personal).
+- **Avisos por WhatsApp** a los técnicos asignados a una obra.
+- **Backup automático diario** de la base de datos (GitHub Actions).
+
+El detalle de cada cambio, las migraciones SQL y las funciones a publicar está en
+[PASAR_A_PRODUCCION.md](PASAR_A_PRODUCCION.md).
+
 ## Estructura
 
 ```
