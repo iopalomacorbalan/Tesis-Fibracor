@@ -1,0 +1,42 @@
+# Recordatorio mensual: guardar una copia del backup en un lugar aparte (por ejemplo Google Drive).
+# El día 1 de cada mes GitHub abre un "issue" con la lista de pasos y se lo asigna al dueño del
+# repositorio; GitHub le manda un mail. Cuando termina, cierra el issue.
+# Se puede probar a mano: pestaña Actions > "Recordatorio backup mensual" > Run workflow.
+
+name: Recordatorio backup mensual
+
+on:
+  schedule:
+    - cron: "0 12 1 * *"   # día 1 de cada mes, 12:00 UTC = 09:00 en Argentina
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  recordatorio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Crear el aviso
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DUENO: ${{ github.repository_owner }}
+        run: |
+          MES=$(date -u +%Y-%m)
+          cat > cuerpo.md <<'EOF'
+          Es el aviso mensual para guardar una copia de seguridad **fuera de GitHub y de Supabase**.
+
+          - [ ] Entrar a la pestaña **Actions** de este repositorio, abrir **Backup diario** y elegir la ejecución **más reciente en verde**.
+          - [ ] Descargar el archivo de la sección **Artifacts** (`backup-...`).
+          - [ ] Subirlo a la carpeta de backups del Drive (o disco externo), con la fecha en el nombre.
+          - [ ] En la app, entrar a **Configuración > Copia de seguridad** y descargar el ZIP con **datos y fotos** (las fotos no están en el backup diario). Subirlo también al Drive.
+          - [ ] Borrar del Drive las copias de más de 6 meses (dejar al menos 6).
+          - [ ] Comprobar que la clave de los backups (`BACKUP_PASSPHRASE`) sigue guardada en un lugar seguro.
+
+          Cuando termines, cerrá este aviso.
+          EOF
+          gh issue create --repo "$REPO" \
+            --title "Backup mensual: guardar una copia en Drive ($MES)" \
+            --body-file cuerpo.md \
+            --assignee "$DUENO"

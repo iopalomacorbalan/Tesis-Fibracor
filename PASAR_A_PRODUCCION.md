@@ -22,6 +22,9 @@ se suben a **Fibracor real**. Respetar el orden: **1. Base de datos → 2. Edge 
 | 7 | `sql/068_rubros.sql` | Tablas `rubros` y `proveedor_rubros` (cada rubro una sola vez), pasa los rubros actuales de `proveedores.rubros`, y la función `set_rubros_proveedor`. **No borra** la columna vieja `proveedores.rubros` | ✅ (aplicado y probado en la app) |
 | 8 | `sql/069_tablero_control.sql` | Función `get_tablero_control()` con los indicadores del tablero del Dashboard (solo Dirección, Contabilidad y Operaciones). Usa `get_herramientas_obra` y `get_herramientas_personales`, que ya tienen que existir | ✅ (aplicado y probado en la app) |
 | 9 | `sql/061_fix_reporte_id_trigger.sql` | Trigger que genera el `reporte_id` (REP-001…) para que no se repitan códigos. **Verificar si el proyecto real ya lo tiene**; si no, correrlo | ✅ (aplicado en pruebas) |
+| 10 | `sql/070_auditoria_ampliada.sql` | Auditoría de las 10 entidades principales con detalle en palabras (agrega la columna `contexto`, la función `auditar_etiqueta` y deja el trigger solo en esas tablas). Correr después del 067 | ✅ (aplicado y probado en la app) |
+| 11 | `sql/071_calendario_enlaces.sql` | Tabla `calendario_enlaces` (enlaces secretos de calendario, sin acceso desde la app) y las funciones `mi_enlace_calendario`, `regenerar_enlace_calendario` y `enlace_calendario_central` | 🟡 (probar en pruebas junto con la función `calendario-ics`) |
+| 12 | `sql/072_quitar_sync_google_central.sql` | **Opcional.** Quita el disparador viejo de la sincronización con el calendario central por cuenta de servicio. No borra tablas ni datos | 🟡 |
 
 > **Después de desplegar la app con el 068 funcionando**, la columna `proveedores.rubros` queda sin uso y se puede eliminar:
 > `ALTER TABLE public.proveedores DROP COLUMN rubros;` (antes, quitar ese campo del diagnóstico 063).
@@ -29,8 +32,8 @@ se suben a **Fibracor real**. Respetar el orden: **1. Base de datos → 2. Edge 
 > `sql/crear_tecnico.sql` se corrigió (ahora completa `user_id`), pero no hay que correrlo:
 > es un script de uso manual, reemplazado por el módulo Usuarios.
 
-> 🛑 **Scripts de demo, NO subir a producción:** `sql/demo_01_limpiar_pruebas.sql` (borra los datos de negocio) y
-> `sql/demo_02_datos_demo.sql` (carga datos de ejemplo). Son solo para fibracor-pruebas. El de limpieza no hace nada
+> 🛑 **Scripts de demo, NO subir a producción:** `sql/demo_00_tecnicos.sql` (crea 3 técnicos de prueba), `sql/demo_01_limpiar_pruebas.sql` (borra los datos de negocio) y
+> `sql/demo_02_datos_demo.sql` (carga 8 obras, stock, reportes y compras de ejemplo, con fechas relativas a hoy). Son solo para fibracor-pruebas. El de limpieza no hace nada
 > hasta cambiar `v_confirmo` a `TRUE`.
 
 ## 2. Edge Functions (proyecto REAL → Edge Functions)
@@ -38,6 +41,7 @@ se suben a **Fibracor real**. Respetar el orden: **1. Base de datos → 2. Edge 
 | Función | Archivo | Probado en pruebas |
 |---------|---------|--------------------|
 | `gestionar-usuarios` | `supabase/functions/gestionar-usuarios/index.ts` | 🟡 (desplegada, falta probar desde la app) |
+| `calendario-ics` | `supabase/functions/calendario-ics/index.ts` | 🟡 (desplegada en pruebas, falta probar la suscripción en Google Calendar) |
 
 ⚠️ El nombre tiene que quedar exacto: la URL de la función debe terminar en
 `/functions/v1/gestionar-usuarios`. Por terminal:
@@ -50,6 +54,15 @@ npx supabase functions deploy gestionar-usuarios --project-ref <REF_DEL_PROYECTO
 Si falla con `failed to parse environment file ... unexpected character`, el `.env.local`
 quedó guardado con BOM: abrirlo en VS Code → abajo a la derecha "UTF-8 with BOM" →
 "Save with Encoding" → "UTF-8".
+
+La función `calendario-ics` **se publica sin verificación de sesión** (Google Calendar la consulta sin iniciar sesión; la seguridad es el token secreto del enlace):
+
+```
+npx supabase functions deploy calendario-ics --no-verify-jwt --project-ref <REF_DEL_PROYECTO_REAL>
+```
+
+> La función vieja `sync-google-calendar` ya no se usa: se puede borrar con
+> `npx supabase functions delete sync-google-calendar --project-ref <REF>`.
 
 ## 3. App (código; se publica con el deploy de Vercel)
 
@@ -170,6 +183,49 @@ El campo DNI aceptaba letras. Ahora solo deja números (máximo 8) en el formula
 - Modificado: `remitos/RemitoDialog.tsx`, `firma-publica/FirmaRemitoPage.tsx`
 - Sin dependencias (solo app)
 
+### Menú lateral con submenús
+Cada sección (Comercial, Proyectos, Operaciones, Administración, Configuración) es un submenú que se abre y se cierra. Solo queda abierta la sección donde estás; al cambiar de pantalla, las otras se cierran solas. Dashboard queda suelto.
+- Modificado: `src/components/layout/Sidebar.tsx`
+- Sin dependencias (solo app)
+
+### Stock y Herramientas unificados con pestañas
+Operaciones pasa de 7 ítems a 4 (Stock, Herramientas, Solicitudes, Compras). **Stock**: Inventario · Movimientos · En revisión. **Herramientas**: Mis herramientas · Asignaciones diarias. Cada pestaña es la pantalla de siempre; las rutas viejas (`/movimientos`, `/items-revision`, `/asignaciones-personales`) siguen funcionando y respetan los permisos por área.
+- Nuevo: `src/components/layout/PestanasSeccion.tsx`
+- Modificado: `src/components/layout/Sidebar.tsx`, `src/App.tsx`
+- Sin dependencias (solo app)
+
+### Paginación en todas las listas
+Barra "Mostrando 1–25 de 134 · por página · ‹ 1 2 3 ›" (10, 25, 50 o 100 por página). Vuelve a la página 1 al buscar o filtrar y no se mueve al recargar datos. Se aplica en Obras, Stock, Remitos, Reportes, Solicitudes, Compras, Movimientos, Auditoría, Clientes, Proveedores y Caja chica.
+- Nuevo: `src/components/ui/paginacion.tsx`
+- Modificado: las 11 pantallas de lista (en CRM, sobre la versión con fichas de documentos)
+- Límites que siguen: Auditoría trae los últimos 300 registros del servidor; Movimientos y el historial de stock, los últimos 100
+- Sin dependencias (solo app)
+
+### Formularios más grandes y mejor distribuidos: Nueva obra y Nuevo reporte
+Ventana ancha con dos columnas y tarjetas con título; encabezado y botones fijos (solo se desplaza el contenido); en celular se apila en una columna. Mismos campos, validaciones y datos guardados.
+- Modificado: `src/modules/obras/ObraDialog.tsx`, `src/modules/reportes/ReporteDialog.tsx`
+- Sin dependencias (solo app)
+
+### Calendario personal y central por enlace (reemplaza la sincronización vieja con Google)
+Cada persona copia su enlace en **Configuración → Mi Google Calendar** y lo suscribe una vez en Google Calendar (Otros calendarios → + → Desde URL): sus obras (como técnico o jefe) aparecen solas. Direccion, Operaciones y Contabilidad tienen además un enlace **central** con un evento por técnico y obra. Gratis y sin Google Cloud. Google actualiza los calendarios suscritos cada varias horas. Cada enlace se puede regenerar.
+- Se **elimina** la pantalla vieja "Sincronización Google Calendar" (`GoogleCalendarConfigPage.tsx`, `useGoogleCalendar.ts`) y la función `sync-google-calendar`
+- Nuevo: `src/modules/configuracion/MiGoogleCalendarPage.tsx`, `useEnlacesCalendario.ts`, `supabase/functions/calendario-ics/index.ts`
+- Modificado: `src/components/layout/Sidebar.tsx`, `src/App.tsx`
+- Depende de: SQL 071 + Edge Function `calendario-ics` (sin verificación JWT)
+
+### Calendario: vista "Por técnico" (Dirección, Operaciones y Contabilidad)
+Grilla con una fila por técnico y barras de color por obra sobre sus fechas: se ve quién está libre, quién tiene obras superpuestas ("2 obras a la vez") y las obras sin técnico. Navegación por semanas, rango de 2, 4 o 6 semanas; tocar una barra abre la obra.
+- Nuevo: `src/modules/calendario/VistaPorTecnico.tsx`
+- Modificado: `src/modules/calendario/CalendarioPage.tsx`
+- Depende de: la página de detalle de obra (`/obras/:id`)
+
+### Backup automático diario y recordatorio mensual (GitHub Actions)
+Todos los días a las 03:00 (Argentina) GitHub hace una copia completa de la base (esquema `public` + usuarios), la cifra y la guarda 30 días como *artifact* (fuera de Supabase). El día 1 de cada mes abre un aviso para guardar una copia en Drive (incluye bajar el ZIP con fotos desde Configuración → Copia de seguridad).
+- Nuevo: `.github/workflows/backup-diario.yml`, `.github/workflows/recordatorio-backup-mensual.yml`
+- Necesita 2 *secrets* en el repo de GitHub: `SUPABASE_DB_URL` (cadena del **Session pooler**, con la contraseña) y `BACKUP_PASSPHRASE` (clave para abrir las copias; guardarla en un lugar seguro). Sin ellos el workflow avisa y no hace nada
+- Probar con Actions → "Backup diario" → Run workflow; hacer una prueba de restauración en un proyecto de prueba
+- Las fotos del almacenamiento no están en la copia diaria
+
 ### Corrección de errores de TypeScript (sin cambio de comportamiento)
 - `calendario/CalendarioPage.tsx`: `EventDropArg` se importa de `@fullcalendar/core`
 - `movimientos/MovimientosPage.tsx` y `stock/HistorialDialog.tsx`: faltaban los 3 tipos de movimiento personales (antes mostraban el tipo sin etiqueta/icono)
@@ -183,3 +239,6 @@ El campo DNI aceptaba letras. Ahora solo deja números (máximo 8) en el formula
 - [ ] Iniciar sesión con ese técnico y verificar que solo ve sus módulos
 - [ ] Asignarlo a una obra y verificar que aparece el aviso de WhatsApp
 - [ ] Desactivar el técnico de prueba
+- [ ] Abrir **Configuración → Mi Google Calendar**, copiar el enlace y suscribirlo en Google Calendar; comprobar que aparece una obra asignada
+- [ ] Con Dirección: Calendario → "Por técnico" muestra a cada técnico con sus obras
+- [ ] Cargar los secrets del backup y correr Actions → "Backup diario" → Run workflow (tiene que terminar en verde)

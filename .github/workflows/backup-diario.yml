@@ -1,0 +1,76 @@
+# Backup diario de la base de datos de Supabase.
+# Guarda una copia COMPLETA (tablas, datos, funciones, políticas y usuarios) cifrada, fuera de Supabase,
+# como "artifact" de GitHub Actions con 30 días de retención.
+#
+# Necesita 2 secrets en el repo (Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL      Connection string del "Session pooler" de Supabase (con la contraseña real)
+#   BACKUP_PASSPHRASE    Clave para cifrar la copia (guardala en un lugar seguro: sin ella no se puede abrir)
+# Si faltan, el workflow avisa y no hace nada (no falla).
+#
+# Se puede correr a mano: pestaña Actions > "Backup diario" > Run workflow.
+
+name: Backup diario
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # todos los días 06:00 UTC = 03:00 en Argentina
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Verificar configuración
+        run: |
+          if [ -z "$DB_URL" ] || [ -z "$PASS" ]; then
+            echo "::warning::Faltan los secrets SUPABASE_DB_URL y/o BACKUP_PASSPHRASE. No se hizo el backup."
+            echo "CONFIGURADO=no" >> "$GITHUB_ENV"
+          else
+            echo "CONFIGURADO=si" >> "$GITHUB_ENV"
+          fi
+
+      - name: Volcar la base de datos
+        if: env.CONFIGURADO == 'si'
+        run: |
+          set -euo pipefail
+          FECHA=$(date -u +%Y-%m-%d_%H%M)
+          echo "FECHA=$FECHA" >> "$GITHUB_ENV"
+          mkdir -p salida
+          # Se usa pg_dump 17 (Supabase usa PostgreSQL 17; el cliente no puede ser más viejo que el servidor)
+          # 1) Tu información: todo el esquema "public" (tablas, datos, funciones, triggers, políticas)
+          docker run --rm -e DB_URL="$DB_URL" -v "$PWD/salida:/salida" postgres:17 \
+            sh -c 'pg_dump "$DB_URL" --schema=public --no-owner --no-privileges --format=custom --file=/salida/public.dump'
+          # 2) Los usuarios y contraseñas (cifradas) para poder restaurar los inicios de sesión
+          docker run --rm -e DB_URL="$DB_URL" -v "$PWD/salida:/salida" postgres:17 \
+            sh -c 'pg_dump "$DB_URL" --data-only --no-owner --no-privileges --format=custom --table=auth.users --table=auth.identities --file=/salida/auth.dump'
+
+      - name: Comprobar y cifrar
+        if: env.CONFIGURADO == 'si'
+        run: |
+          set -euo pipefail
+          for f in salida/public.dump salida/auth.dump; do
+            tam=$(stat -c%s "$f")
+            echo "$f: $tam bytes"
+            if [ "$tam" -lt 2000 ]; then echo "::error::$f es demasiado chico, el backup parece vacío"; exit 1; fi
+          done
+          tar -czf "backup_${FECHA}.tar.gz" -C salida public.dump auth.dump
+          gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 \
+              --passphrase "$PASS" -o "backup_${FECHA}.tar.gz.gpg" "backup_${FECHA}.tar.gz"
+          rm -rf salida "backup_${FECHA}.tar.gz"
+          ls -la
+
+      - name: Guardar la copia (30 días)
+        if: env.CONFIGURADO == 'si'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ env.FECHA }}
+          path: backup_${{ env.FECHA }}.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error
