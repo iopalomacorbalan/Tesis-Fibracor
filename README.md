@@ -23,14 +23,31 @@ Aplicación de gestión operativa de redes de datos.
 # 1. Instalar dependencias
 npm install
 
-# 2. Verificar que .env.local exista con las credenciales correctas
-# (ya viene con las del proyecto fibracor)
+# 2. Crear .env.local (no se sube a git, hay que armarlo en cada compu)
+#    apuntando a fibracor-pruebas, NO al proyecto real:
+#    VITE_SUPABASE_URL=https://bippqzutnxjhvktwvxva.supabase.co
+#    VITE_SUPABASE_ANON_KEY=<clave anon/publishable de fibracor-pruebas>
+#    (Supabase → Project Settings → API Keys). Guardarlo en UTF-8 sin BOM.
 
 # 3. Correr en desarrollo
 npm run dev
 ```
 
 Abrir http://localhost:5173
+
+> ⚠️ `.env.example` tiene la URL de **otro** proyecto: no copiarlo tal cual.
+
+### Problemas comunes en local
+- **Página en blanco:** falta `.env.local` o le falta alguna variable. Después de crearlo o cambiarlo, reiniciar `npm run dev`.
+- **Se queda en "Cargando perfil...":** el usuario puede iniciar sesión pero no tiene fila en la tabla `usuarios`. Pasa si se creó a mano en Supabase → Authentication. Lo correcto es crearlo desde el módulo **Usuarios** de la app; si ya existe, en el SQL Editor de pruebas:
+  ```sql
+  INSERT INTO public.usuarios (id, user_id, email, nombre, area, activo)
+  SELECT id, id, email, 'Nombre', 'Direccion', true
+  FROM auth.users WHERE email = 'el@email.com'
+  ON CONFLICT (id) DO NOTHING;
+  ```
+  `area` es el sector, no la ciudad: `Direccion`, `Operaciones`, `Paniol`, `Comercial`, `Contabilidad` o `Tecnico`.
+- **Probar en el celular:** `npm run dev -- --host` y abrir en el celu la dirección `Network:` que muestra (mismo WiFi).
 
 ### Build de producción
 

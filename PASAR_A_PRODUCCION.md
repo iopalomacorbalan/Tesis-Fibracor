@@ -232,12 +232,22 @@ Todos los días a las 03:00 (Argentina) GitHub hace una copia completa de la bas
 - `reportes/useReportes.ts`: el `patch` de edición acepta `hora_entrada` / `hora_salida`
 - Sin dependencias (solo app)
 
+### Cargar reporte más rápido (pensado para el técnico desde el celular)
+Cargar reportes es casi lo único que hace el técnico, y el botón quedaba escondido en la pestaña Reportes (en el celular esa pestaña muestra solo un ícono). Ahora hay dos accesos directos, que abren el mismo formulario con la obra ya elegida:
+- **Lista de Obras:** botón azul **Reporte** en cada tarjeta, al lado de "Ver". Se carga sin entrar al detalle.
+- **Detalle de obra:** botón grande **Cargar reporte** arriba de las pestañas (en el celular ocupa todo el ancho).
+- No aparecen en obras **Cerradas** ni **Canceladas**. El botón de la pestaña Reportes sigue igual.
+- Los ven todas las áreas; el técnico solo ve sus obras asignadas, así que solo le aparecen en esas.
+- Modificado: `src/modules/obras/ObrasPage.tsx`, `src/modules/obras/ObraDetalle.tsx`
+- Sin dependencias (solo app)
+
 ---
 
 ## Checklist después de subir a producción
 - [ ] Crear un técnico de prueba desde **Administración → Usuarios**
 - [ ] Iniciar sesión con ese técnico y verificar que solo ve sus módulos
 - [ ] Asignarlo a una obra y verificar que aparece el aviso de WhatsApp
+- [ ] Con ese técnico, desde el celular: cargar un reporte con el botón **Reporte** de la lista de Obras y otro con **Cargar reporte** del detalle
 - [ ] Desactivar el técnico de prueba
 - [ ] Abrir **Configuración → Mi Google Calendar**, copiar el enlace y suscribirlo en Google Calendar; comprobar que aparece una obra asignada
 - [ ] Con Dirección: Calendario → "Por técnico" muestra a cada técnico con sus obras
