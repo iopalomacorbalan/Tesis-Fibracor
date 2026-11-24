@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { useAuditoria, type RegistroAuditoria } from "./useAuditoria";
 import { etiqueta, esTecnico, formatear, ordenar } from "./formato";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 const TABLAS: Record<string, string> = {
   obras: "Obras", reportes: "Reportes", solicitudes: "Solicitudes", remitos: "Remitos", compras: "Compras",
@@ -113,6 +114,8 @@ export default function AuditoriaPage() {
     );
   }, [data, busqueda]);
 
+  const pag = usePaginacion(visibles, `${tabla}|${accion}|${busqueda}`);
+
   if (profile && profile.area !== "Direccion") return <Navigate to="/" replace />;
 
   const selectCls = "h-9 rounded-md border border-input bg-background px-3 text-sm";
@@ -160,8 +163,9 @@ export default function AuditoriaPage() {
           No hay movimientos con esos filtros.
         </CardContent></Card>
       ) : (
+      <>
         <div className="space-y-2">
-          {visibles.map(r => {
+          {pag.items.map(r => {
             const a = ACCIONES[r.accion];
             return (
               <Card key={r.id} className="cursor-pointer" onClick={() => setAbierto(abierto === r.id ? null : r.id)}>
@@ -199,6 +203,8 @@ export default function AuditoriaPage() {
             );
           })}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
     </div>
   );

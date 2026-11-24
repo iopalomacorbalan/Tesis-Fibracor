@@ -34,6 +34,11 @@ interface Props {
 
 type ModoRemito = "obra" | "directo";
 
+// La cantidad de un remito va en unidades enteras: no se pueden escribir decimales
+const soloEnteros = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === "." || e.key === ",") e.preventDefault();
+};
+
 // Item draft para modo directo (sin obra)
 type ItemDraft = {
   item_id: string | null;
@@ -570,9 +575,10 @@ export function RemitoDialog({ open, onOpenChange, remito, obraIdFijo }: Props) 
                                 <Label className="text-[10px]">Cantidad</Label>
                                 <Input
                                   type="number"
-                                  min="0.01" step="any"
+                                  min="1" step="1"
                                   value={draft.cantidad || ""}
-                                  onChange={(e) => updateItemDirecto(idx, { cantidad: parseFloat(e.target.value) || 0 })}
+                                  onKeyDown={soloEnteros}
+                                  onChange={(e) => updateItemDirecto(idx, { cantidad: parseInt(e.target.value, 10) || 0 })}
                                   className={stockInsuf ? "border-destructive" : ""}
                                 />
                               </div>
@@ -796,9 +802,10 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <Label className="text-[10px]">Cantidad</Label>
-                        <Input type="number" min="0.01" step="any"
+                        <Input type="number" min="1" step="1"
                           value={editCant || ""}
-                          onChange={(e) => setEditCant(parseFloat(e.target.value) || 0)} />
+                          onKeyDown={soloEnteros}
+                          onChange={(e) => setEditCant(parseInt(e.target.value, 10) || 0)} />
                       </div>
                       <div>
                         <Label className="text-[10px]">Unidad</Label>
@@ -873,9 +880,10 @@ function RemitoItemsEditor({ remitoId: _remitoId, items, inventario, onEdit, onD
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-[10px]">Cantidad</Label>
-              <Input type="number" min="0.01" step="any"
+              <Input type="number" min="1" step="1"
                 value={newCant || ""}
-                onChange={(e) => setNewCant(parseFloat(e.target.value) || 0)} />
+                onKeyDown={soloEnteros}
+                onChange={(e) => setNewCant(parseInt(e.target.value, 10) || 0)} />
             </div>
             <div>
               <Label className="text-[10px]">Unidad</Label>

@@ -12,6 +12,7 @@ import { useClientes, useEliminarCliente } from "./useClientes";
 import { ClienteDialog } from "./ClienteDialog";
 import { useAuth } from "@/lib/auth";
 import type { Cliente } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 export function ClientesList() {
   const { profile } = useAuth();
@@ -36,6 +37,8 @@ export function ClientesList() {
       (c.email?.toLowerCase().includes(s) ?? false)
     );
   }, [clientes, search]);
+
+  const pag = usePaginacion(filtered, search);
 
   const handleEliminar = async () => {
     if (!clienteEliminar) return;
@@ -105,8 +108,9 @@ export function ClientesList() {
           </CardContent>
         </Card>
       ) : (
+      <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {filtered.map(c => (
+          {pag.items.map(c => (
             <ClienteCard
               key={c.id}
               cliente={c}
@@ -116,6 +120,8 @@ export function ClientesList() {
             />
           ))}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       <ClienteDialog

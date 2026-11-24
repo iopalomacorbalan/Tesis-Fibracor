@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Loader2, Camera, X, Upload, Trash2, Users } from "lucide-react";
+import { Loader2, Camera, X, Upload, Trash2, Users, ClipboardList, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -227,266 +227,276 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? `Editar reporte ${reporte?.reporte_id}` : "Nuevo reporte"}</DialogTitle>
+      <DialogContent className="max-w-5xl p-0 gap-0 flex flex-col overflow-hidden">
+        <DialogHeader className="px-4 sm:px-8 pt-5 sm:pt-7 pb-4 border-b border-border pr-12">
+          <DialogTitle className="text-xl">{isEdit ? `Editar reporte ${reporte?.reporte_id}` : "Nuevo reporte"}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "Modificar los datos del reporte" : "Documentar trabajos en obra con texto y fotos"}
+            {isEdit ? "Modificá los datos del reporte." : "Documentá los trabajos en obra con texto y fotos. Los campos con * son obligatorios."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Obra *</Label>
-              <Select value={obraId} onValueChange={setObraId} disabled={!!obraIdFijo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar obra..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {obras.map(o => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.obra_id} — {o.nombre_obra ?? o.cliente?.nombre ?? "Sin nombre"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Fecha *</Label>
-              <Input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Descripción general</Label>
-            <Textarea
-              rows={2}
-              placeholder="Resumen del día..."
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Trabajos realizados</Label>
-            <Textarea
-              rows={3}
-              placeholder="• Tendido de fibra X metros&#10;• Fusión de Y empalmes..."
-              value={trabajos}
-              onChange={(e) => setTrabajos(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Observaciones / Pendientes / Próximos pasos</Label>
-            <Textarea
-              rows={2}
-              placeholder="Tareas pendientes para próxima visita..."
-              value={pendientes}
-              onChange={(e) => setPendientes(e.target.value)}
-            />
-          </div>
-
-          {/* === Horas trabajadas === */}
-          <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              <Label className="text-base font-semibold">Asistencia y horario *</Label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <TimePicker
-                label="Hora de entrada"
-                value={horaEntrada}
-                onChange={setHoraEntrada}
-                required
-              />
-              <TimePicker
-                label="Hora de salida"
-                value={horaSalida}
-                onChange={setHoraSalida}
-                required
-              />
-            </div>
-
-            {horasCalculadas > 0 && (
-              <div className="text-sm text-muted-foreground">
-                Total: <b className="text-foreground">{horasCalculadas.toFixed(2)} horas</b>
-                {asistentes.length > 0 && (
-                  <> · {asistentes.length} asistente{asistentes.length > 1 ? "s" : ""} · <b className="text-primary">{(horasCalculadas * asistentes.length).toFixed(2)} horas-hombre</b></>
-                )}
-              </div>
-            )}
-
-            {/* Asistentes a la obra - todos los usuarios activos, nadie pre-tildado */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm">¿Quiénes asistieron? <span className="text-destructive">*</span></Label>
-                {asistentes.length > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {asistentes.length} seleccionado{asistentes.length > 1 ? "s" : ""}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Marcá a quienes estuvieron presentes (incluido vos si trabajaste). Sólo los marcados van a contar en las horas.
-              </p>
-              {todosUsuarios.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {todosUsuarios.map(u => {
-                    const asignado = obraActual?.tecnicos?.some(t => t.id === u.id);
-                    return (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onClick={() => {
-                          setAsistentes(prev =>
-                            prev.includes(u.id)
-                              ? prev.filter(id => id !== u.id)
-                              : [...prev, u.id]
-                          );
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                          asistentes.includes(u.id)
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background text-muted-foreground border-input hover:border-primary/40"
-                        }`}
-                      >
-                        {u.nombre}
-                        {asignado && <span className="ml-1 opacity-60">·</span>}
-                        {!asignado && <span className="ml-1 text-[10px] opacity-60">({u.area})</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground italic">No hay usuarios activos.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Fotos existentes (en modo edición) */}
-          {isEdit && fotosExistentes.length > 0 && (
-            <div className="space-y-2">
-              <Label>Fotos actuales ({fotosExistentes.length})</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {fotosExistentes.map((f: any) => (
-                  <div key={f.id} className="relative aspect-square">
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      src={f.url}
-                      alt=""
-                      className="w-full h-full object-cover rounded-md border"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeFotoExistente(f)}
-                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
-                      title="Eliminar foto"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>{isEdit ? "Agregar fotos nuevas" : "Fotos"} ({fotos.length})</Label>
-            <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-4">
-              {/* Input para cámara (solo en mobile) */}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*,.heic,.heif"
-                multiple
-                capture="environment"
-                onChange={handleFileChange}
-                className="hidden"
-                id="upload-fotos-camara"
-              />
-              {/* Input para galería (sin capture) */}
-              <input
-                ref={fileRefGaleria}
-                type="file"
-                accept="image/*,.heic,.heif"
-                multiple
-                onChange={handleFileChange}
-                className="hidden"
-                id="upload-fotos-galeria"
-              />
-              <div className="flex flex-col items-center gap-2">
-                {procesandoFotos ? (
-                  <>
-                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                    <p className="text-sm font-medium text-primary">Procesando imágenes...</p>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Esto puede tardar unos segundos si son fotos de iPhone (HEIC).
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileRef.current?.click()}
-                        disabled={procesandoFotos}
-                      >
-                        <Camera className="h-3.5 w-3.5" /> Tomar foto
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileRefGaleria.current?.click()}
-                        disabled={procesandoFotos}
-                      >
-                        <Upload className="h-3.5 w-3.5" /> Desde galería
-                      </Button>
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 sm:py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 lg:gap-6">
+              {/* ───────── Columna izquierda: qué se hizo ───────── */}
+              <div className="lg:col-span-3 space-y-5">
+                <Seccion icono={ClipboardList} titulo="Datos del reporte">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Obra *</Label>
+                      <Select value={obraId} onValueChange={setObraId} disabled={!!obraIdFijo}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar obra..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {obras.map(o => (
+                            <SelectItem key={o.id} value={o.id}>
+                              {o.obra_id} — {o.nombre_obra ?? o.cliente?.nombre ?? "Sin nombre"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Podés subir múltiples imágenes a la vez
+                    <div className="space-y-2">
+                      <Label>Fecha *</Label>
+                      <Input
+                        type="date"
+                        value={fecha}
+                        onChange={(e) => setFecha(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Descripción general</Label>
+                    <Textarea
+                      rows={3}
+                      placeholder="Resumen del día..."
+                      value={descripcion}
+                      onChange={(e) => setDescripcion(e.target.value)}
+                    />
+                  </div>
+                </Seccion>
+
+                <Seccion icono={Wrench} titulo="Detalle del trabajo">
+                  <div className="space-y-2">
+                    <Label>Trabajos realizados</Label>
+                    <Textarea
+                      rows={6}
+                      placeholder="• Tendido de fibra X metros&#10;• Fusión de Y empalmes..."
+                      value={trabajos}
+                      onChange={(e) => setTrabajos(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Observaciones / Pendientes / Próximos pasos</Label>
+                    <Textarea
+                      rows={4}
+                      placeholder="Tareas pendientes para próxima visita..."
+                      value={pendientes}
+                      onChange={(e) => setPendientes(e.target.value)}
+                    />
+                  </div>
+                </Seccion>
+              </div>
+
+              {/* ───────── Columna derecha: quién, cuándo y fotos ───────── */}
+              <div className="lg:col-span-2 space-y-5">
+                <Seccion icono={Users} titulo="Asistencia y horario *">
+                  <div className="grid grid-cols-2 gap-3">
+                    <TimePicker
+                      label="Hora de entrada"
+                      value={horaEntrada}
+                      onChange={setHoraEntrada}
+                      required
+                    />
+                    <TimePicker
+                      label="Hora de salida"
+                      value={horaSalida}
+                      onChange={setHoraSalida}
+                      required
+                    />
+                  </div>
+
+                  {horasCalculadas > 0 && (
+                    <div className="rounded-md bg-background/50 border border-border px-3 py-2 text-sm text-muted-foreground">
+                      Total: <b className="text-foreground">{horasCalculadas.toFixed(2)} horas</b>
+                      {asistentes.length > 0 && (
+                        <> · {asistentes.length} asistente{asistentes.length > 1 ? "s" : ""} · <b className="text-primary">{(horasCalculadas * asistentes.length).toFixed(2)} horas-hombre</b></>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Asistentes a la obra - todos los usuarios activos, nadie pre-tildado */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">¿Quiénes asistieron? <span className="text-destructive">*</span></Label>
+                      {asistentes.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {asistentes.length} seleccionado{asistentes.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Marcá a quienes estuvieron presentes (incluido vos si trabajaste). Sólo los marcados van a contar en las horas.
                     </p>
-                  </>
-                )}
+                    {todosUsuarios.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {todosUsuarios.map(u => {
+                          const asignado = obraActual?.tecnicos?.some(t => t.id === u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => {
+                                setAsistentes(prev =>
+                                  prev.includes(u.id)
+                                    ? prev.filter(id => id !== u.id)
+                                    : [...prev, u.id]
+                                );
+                              }}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                                asistentes.includes(u.id)
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background text-muted-foreground border-input hover:border-primary/40"
+                              }`}
+                            >
+                              {u.nombre}
+                              {asignado && <span className="ml-1 opacity-60">·</span>}
+                              {!asignado && <span className="ml-1 text-[10px] opacity-60">({u.area})</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No hay usuarios activos.</p>
+                    )}
+                  </div>
+                </Seccion>
+
+                <Seccion icono={Camera} titulo={`Fotos (${fotosExistentes.length + fotos.length})`}>
+                  {/* Fotos existentes (en modo edición) */}
+                  {isEdit && fotosExistentes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Fotos actuales ({fotosExistentes.length})</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {fotosExistentes.map((f: any) => (
+                          <div key={f.id} className="relative aspect-square">
+                            <img
+                              loading="lazy"
+                              decoding="async"
+                              src={f.url}
+                              alt=""
+                              className="w-full h-full object-cover rounded-md border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeFotoExistente(f)}
+                              className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
+                              title="Eliminar foto"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {isEdit && <Label>Agregar fotos nuevas ({fotos.length})</Label>}
+                    <div className="rounded-md border-2 border-dashed border-muted-foreground/25 p-4">
+                      {/* Input para cámara (solo en mobile) */}
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/*,.heic,.heif"
+                        multiple
+                        capture="environment"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="upload-fotos-camara"
+                      />
+                      {/* Input para galería (sin capture) */}
+                      <input
+                        ref={fileRefGaleria}
+                        type="file"
+                        accept="image/*,.heic,.heif"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="upload-fotos-galeria"
+                      />
+                      <div className="flex flex-col items-center gap-2">
+                        {procesandoFotos ? (
+                          <>
+                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                            <p className="text-sm font-medium text-primary">Procesando imágenes...</p>
+                            <p className="text-xs text-muted-foreground text-center">
+                              Esto puede tardar unos segundos si son fotos de iPhone (HEIC).
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="h-8 w-8 text-muted-foreground" />
+                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileRef.current?.click()}
+                                disabled={procesandoFotos}
+                              >
+                                <Camera className="h-3.5 w-3.5" /> Tomar foto
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileRefGaleria.current?.click()}
+                                disabled={procesandoFotos}
+                              >
+                                <Upload className="h-3.5 w-3.5" /> Desde galería
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Podés subir múltiples imágenes a la vez
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {previews.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {previews.map((src, idx) => (
+                          <div key={idx} className="relative aspect-square">
+                            <img
+                              loading="lazy"
+                              decoding="async"
+                              src={src}
+                              alt={`Foto ${idx + 1}`}
+                              className="w-full h-full object-cover rounded-md border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeFotoNueva(idx)}
+                              className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Seccion>
               </div>
             </div>
-
-            {previews.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
-                {previews.map((src, idx) => (
-                  <div key={idx} className="relative aspect-square">
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      src={src}
-                      alt={`Foto ${idx + 1}`}
-                      className="w-full h-full object-cover rounded-md border"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeFotoNueva(idx)}
-                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/80"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 px-4 sm:px-8 py-4 border-t border-border bg-card">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -496,5 +506,20 @@ export function ReporteDialog({ open, onOpenChange, obraIdFijo, reporte }: Props
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Tarjeta con título para agrupar campos relacionados */
+function Seccion({
+  icono: Icono, titulo, children,
+}: { icono: React.ComponentType<{ className?: string }>; titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border border-border bg-secondary/20 p-4 sm:p-5 space-y-4">
+      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <Icono className="h-4 w-4" />
+        {titulo}
+      </h3>
+      {children}
+    </section>
   );
 }

@@ -22,6 +22,7 @@ import {
   useSaldoCaja, useMovimientosCaja, useAgregarMovimientoCaja,
   CATEGORIAS_CAJA, MEDIOS_PAGO, type CajaChicaGasto,
 } from "./useCajaChica";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 export default function CajaChicaPage() {
   const { profile } = useAuth();
@@ -37,6 +38,8 @@ export default function CajaChicaPage() {
   const { data: movimientos = [] } = useMovimientosCaja();
   const eliminar = useEliminarGasto();
   const [movDialogOpen, setMovDialogOpen] = useState(false);
+
+  const pag = usePaginacion(gastos, `${desde}|${hasta}`);
 
   const puedeAcceder = profile && ["Direccion", "Operaciones", "Contabilidad"].includes(profile.area);
   if (profile && !puedeAcceder) return <Navigate to="/" replace />;
@@ -174,8 +177,9 @@ export default function CajaChicaPage() {
           No hay gastos en este período. Cargá uno con "Nuevo gasto".
         </CardContent></Card>
       ) : (
+      <>
         <div className="space-y-2">
-          {gastos.map(g => (
+          {pag.items.map(g => (
             <Card key={g.id}>
               <CardContent className="p-3 flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
@@ -212,6 +216,8 @@ export default function CajaChicaPage() {
             </Card>
           ))}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       <NuevoGastoDialog open={dialogOpen} onOpenChange={setDialogOpen} saldo={saldo} />

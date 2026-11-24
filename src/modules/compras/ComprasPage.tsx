@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth";
 import { puedeVerPreciosEnOC } from "@/lib/permissions";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import type { CompraConRelaciones, EstadoCompra } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 const ESTADO_INFO: Record<EstadoCompra, { label: string; color: string; icon: any }> = {
   "Solicitada": { label: "Solicitada", color: "bg-warning/15 text-warning border-warning/30", icon: Clock },
@@ -66,6 +67,8 @@ export default function ComprasPage() {
       return true;
     });
   }, [compras, search, filtro]);
+
+  const pag = usePaginacion(filtered, `${search}|${filtro}`);
 
   const stats = useMemo(() => ({
     pendientes: compras.filter(c => c.estado === "Solicitada").length,
@@ -184,8 +187,9 @@ export default function ComprasPage() {
               </CardContent>
             </Card>
           ) : (
+          <>
             <div className="space-y-2">
-              {filtered.map(c => (
+              {pag.items.map(c => (
                 <CompraCard
                   key={c.id}
                   compra={c}
@@ -200,6 +204,8 @@ export default function ComprasPage() {
                 />
               ))}
             </div>
+            <Paginacion {...pag.controles} />
+          </>
           )}
         </TabsContent>
 

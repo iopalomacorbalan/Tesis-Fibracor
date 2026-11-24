@@ -19,7 +19,7 @@ import CrmPage from "@/modules/crm/CrmPage";
 import MisHerramientasPage from "@/modules/mis-herramientas/MisHerramientasPage";
 import AsignacionesPersonalesPage from "@/modules/asignaciones-personales/AsignacionesPersonalesPage";
 import ItemsRevisionPage from "@/modules/items-revision/ItemsRevisionPage";
-import GoogleCalendarConfigPage from "@/modules/configuracion/GoogleCalendarConfigPage";
+import MiGoogleCalendarPage from "@/modules/configuracion/MiGoogleCalendarPage";
 import FirmaRemitoPage from "@/modules/firma-publica/FirmaRemitoPage";
 import LiquidacionPage from "@/modules/liquidacion/LiquidacionPage";
 import AuditoriaPage from "@/modules/auditoria/AuditoriaPage";
@@ -27,8 +27,10 @@ import CajaChicaPage from "@/modules/caja-chica/CajaChicaPage";
 import MigracionFotosPage from "@/modules/configuracion/MigracionFotosPage";
 import BackupPage from "@/modules/configuracion/BackupPage";
 import RemitosPage from "@/modules/remitos/RemitosPage";
+import AuditoriaPage from "@/modules/auditoria/AuditoriaPage";
 import UsuariosPage from "@/modules/usuarios/UsuariosPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { StockSeccion, HerramientasSeccion } from "@/components/layout/PestanasSeccion";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,13 +57,19 @@ export default function App() {
             <Route path="/obras" element={<ErrorBoundary><ObrasPage /></ErrorBoundary>} />
             <Route path="/obras/:id" element={<ErrorBoundary><ObraDetallePage /></ErrorBoundary>} />
             <Route path="/calendario" element={<ErrorBoundary><CalendarioPage /></ErrorBoundary>} />
-            <Route path="/stock" element={<ErrorBoundary><StockPage /></ErrorBoundary>} />
+            {/* Stock: Inventario, Movimientos y Items en revisión, como pestañas de una misma sección */}
+            <Route element={<StockSeccion />}>
+              <Route path="/stock" element={<ErrorBoundary><StockPage /></ErrorBoundary>} />
+              <Route path="/movimientos" element={<ErrorBoundary><MovimientosPage /></ErrorBoundary>} />
+              <Route path="/items-revision" element={<ErrorBoundary><ItemsRevisionPage /></ErrorBoundary>} />
+            </Route>
+            {/* Herramientas: Mis herramientas y Asignaciones diarias */}
+            <Route element={<HerramientasSeccion />}>
+              <Route path="/mis-herramientas" element={<ErrorBoundary><MisHerramientasPage /></ErrorBoundary>} />
+              <Route path="/asignaciones-personales" element={<ErrorBoundary><AsignacionesPersonalesPage /></ErrorBoundary>} />
+            </Route>
             <Route path="/solicitudes" element={<ErrorBoundary><SolicitudesPage /></ErrorBoundary>} />
-            <Route path="/movimientos" element={<ErrorBoundary><MovimientosPage /></ErrorBoundary>} />
-            <Route path="/mis-herramientas" element={<ErrorBoundary><MisHerramientasPage /></ErrorBoundary>} />
-            <Route path="/asignaciones-personales" element={<ErrorBoundary><AsignacionesPersonalesPage /></ErrorBoundary>} />
-            <Route path="/items-revision" element={<ErrorBoundary><ItemsRevisionPage /></ErrorBoundary>} />
-            <Route path="/config/google-calendar" element={<ErrorBoundary><GoogleCalendarConfigPage /></ErrorBoundary>} />
+            <Route path="/config/mi-google-calendar" element={<ErrorBoundary><MiGoogleCalendarPage /></ErrorBoundary>} />
             <Route path="/liquidacion" element={<ErrorBoundary><LiquidacionPage /></ErrorBoundary>} />
             <Route path="/caja-chica" element={<ErrorBoundary><CajaChicaPage /></ErrorBoundary>} />
             <Route path="/config/optimizar-fotos" element={<ErrorBoundary><MigracionFotosPage /></ErrorBoundary>} />
@@ -72,6 +80,8 @@ export default function App() {
             <Route path="/reportes" element={<ErrorBoundary><ReportesPage /></ErrorBoundary>} />
             <Route path="/crm" element={<ErrorBoundary><CrmPage /></ErrorBoundary>} />
             <Route path="/remitos" element={<ErrorBoundary><RemitosPage /></ErrorBoundary>} />
+            <Route path="/usuarios" element={<ErrorBoundary><UsuariosPage /></ErrorBoundary>} />
+            <Route path="/auditoria" element={<ErrorBoundary><AuditoriaPage /></ErrorBoundary>} />
             <Route path="*" element={<Placeholder />} />
           </Route>
         </Routes>

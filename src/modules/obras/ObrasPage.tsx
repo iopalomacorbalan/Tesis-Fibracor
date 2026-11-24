@@ -25,6 +25,7 @@ import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { puedeVerPrecios } from "@/lib/permissions";
 import type { ObraConRelaciones, EstadoObra } from "@/types/database";
+import { Paginacion, usePaginacion } from "@/components/ui/paginacion";
 
 const ESTADOS: { value: EstadoObra | "todos"; label: string; color: string }[] = [
   { value: "todos", label: "Todas", color: "" },
@@ -81,6 +82,8 @@ export default function ObrasPage() {
       return true;
     });
   }, [obras, search, filtroEstado]);
+
+  const pag = usePaginacion(obrasFiltradas, `${search}|${filtroEstado}`);
 
   const handleEditarObra = (o: ObraConRelaciones) => {
     setObraEditar(o);
@@ -185,8 +188,9 @@ export default function ObrasPage() {
           </CardContent>
         </Card>
       ) : (
+      <>
         <div className="space-y-3">
-          {obrasFiltradas.map(o => (
+          {pag.items.map(o => (
             <ObraCard
               key={o.id}
               obra={o}
@@ -207,6 +211,8 @@ export default function ObrasPage() {
             />
           ))}
         </div>
+        <Paginacion {...pag.controles} />
+      </>
       )}
 
       {/* Dialogs */}
